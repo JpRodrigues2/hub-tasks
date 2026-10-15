@@ -78,7 +78,7 @@ export class Orca {
 
   // Tela atual do terminal (últimas `linhas` linhas).
   async readScreen(handle: string, linhas = 60): Promise<string[]> {
-    const r = await this.run<{ terminal: { tail: string[] } }>([
+    const r = await this.run<{ terminal: { tail: string[]; status?: string } }>([
       'terminal',
       'read',
       '--terminal',
@@ -87,6 +87,9 @@ export class Orca {
       '--limit',
       String(linhas),
     ]);
+    // Terminal fechado continua legível por um tempo, com status "exited" e tela vazia.
+    if (r.terminal.status && r.terminal.status !== 'running')
+      throw new OrcaError(`terminal ${handle} não está rodando (${r.terminal.status})`, 'terminal_not_running');
     return r.terminal.tail;
   }
 

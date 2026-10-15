@@ -4,6 +4,7 @@ import {
   atrasada,
   prazoIso,
   EscritaBloqueadaError,
+  escritaPermitida,
   extrairImagens,
   htmlParaTexto,
   McpConexao,
@@ -95,12 +96,12 @@ export class BnexoAdapter implements PmAdapter {
   }
 
   async setStatus(id: string, status: StatusHub) {
-    if (!this.env.HUB_ESCRITA_PM) throw new EscritaBloqueadaError(`update_task ${id} → ${STATUS[status]}`);
+    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`update_task ${id} → ${STATUS[status]}`);
     await this.mcp.call('update_task', { task_id: id, status: STATUS[status] });
   }
 
   async comment(id: string, texto: string) {
-    if (!this.env.HUB_ESCRITA_PM) throw new EscritaBloqueadaError(`add_task_comment ${id}`);
+    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_task_comment ${id}`);
     await this.mcp.call('add_task_comment', { task_id: id, content: texto });
   }
 

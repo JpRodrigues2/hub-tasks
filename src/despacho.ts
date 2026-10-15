@@ -18,17 +18,28 @@ import { baixarImagens, escreverPrompt, linhaDespacho } from './prompt.js';
 import { escapeHtml } from './resumo.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
-const REPETIR_AVISO_MS = 30 * 60_000;
+const REPETIR_AVISO_MS = 30 * 60_000; // avisos de fila (antes do despacho)
 const ESPERA_SESSAO_NOVA_MS = 120_000;
 
 export type EstadoSessao = 'ocioso' | 'ocupado' | 'aguardando' | 'limite';
 
 // Classificação pela tela do Claude Code (+ estado do agente no Orca, quando houver).
-export function classificarTela(tela: string, estadoAgente?: string): EstadoSessao {
-  if (/usage limit reached|hit your (usage )?limit|limit (will )?reset|5-hour limit/i.test(tela)) return 'limite';
-  if (/esc to interrupt/i.test(tela) || estadoAgente === 'working') return 'ocupado';
+export function classificarTela(telaInteira: string, estadoAgente?: string): EstadoSessao {
+  // Os sinais (spinner, diálogos, limite, rodapé) ficam no fim da tela; o meio é conversa e pode citar qualquer texto.
+  const tela = telaInteira
+    .split('\n')
+    .filter((l) => l.trim())
+    .slice(-14)
+    .join('\n');
+  // Mensagem do Claude Code no começo da linha (ex.: "Claude usage limit reached…", "5-hour limit reached ∙ resets 3pm").
+  if (/^[\s⎿●⏺]*(Claude )?(AI )?(usage limit reached|(5-hour|weekly|Opus) limit reached|You'?ve hit your (usage )?limit)/im.test(tela))
+    return 'limite';
+  // Diálogo explícito (pergunta/permissão/confiança na pasta) tem prioridade sobre "working".
   if (/Do you want to|Would you like to|Esc to cancel|Enter to (select|confirm)|trust the files|Yes, proceed|\(y\/n\)/i.test(tela))
     return 'aguardando';
+  // Trabalhando: spinner, agente "working" no Orca, ou comando em segundo plano que vai acordar o Claude.
+  if (/esc to interrupt/i.test(tela) || estadoAgente === 'working' || /\d+ shells? still running|· \d+ shells? ·/i.test(tela))
+    return 'ocupado';
   // Ocioso = caixa de entrada do Claude Code (❯ entre linhas ────). Só "❯" pode ser o prompt do zsh.
   if (/^\s*❯/m.test(tela) && /─{10,}/.test(tela)) return 'ocioso';
   return 'ocupado'; // desconhecido: conservador, não envia
@@ -61,6 +72,32 @@ export function extrairResultado(tela: string, selecaoId: number): Record<string
   // Só vale o bloco desta task (a tela pode ainda mostrar o resultado de uma task anterior).
   if (campos.task?.replace(/\s/g, '') !== `#${selecaoId}`) return null;
   return campos;
+}
+
+function dormir(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// Últimas linhas úteis da tela (sem a caixa de entrada e o rodapé do Claude Code).
+export function ultimasLinhas(tela: string, n = 14) {
+  return tela
+    .split('\n')
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim() && !/^[─━]{5,}/.test(l.trim()) && !/^\s*⏵⏵|for shortcuts|shift\+tab/.test(l))
+    .slice(-n)
+    .map((l) => (l.length > 110 ? l.slice(0, 109) + '…' : l))
+    .join('\n');
+}
+
+export function textoComentario(r: Record<string, string>) {
+  return [
+    '🤖 Hub de automação (Claude Code)',
+    `Resultado: ${r.status}`,
+    `Resumo: ${r.resumo ?? '-'}`,
+    `Branch/PR: ${r.branch ?? '-'}`,
+    `Arquivos: ${r.arquivos ?? '-'}`,
+    `Pendências: ${r.pendencias ?? 'nenhuma'}`,
+  ].join('\n');
 }
 
 // Há sessão anterior do Claude nessa pasta? (para decidir entre `claude -c` e `claude`)
@@ -117,7 +154,7 @@ export class Despachante {
     if (this.rodando) return;
     this.rodando = true;
     try {
-      await this.verificarEmExecucao();
+      this.retomarMonitores();
       const apps = this.db.prepare('SELECT DISTINCT app FROM fila ORDER BY id').all() as { app: string }[];
       for (const { app } of apps) {
         try {
@@ -145,9 +182,15 @@ export class Despachante {
     return out;
   }
 
-  private async estadoDoHandle(handle: string): Promise<{ estado: EstadoSessao; tela: string }> {
+  // Estado de um terminal específico: tela + estado do agente no Orca (via pasta → tabId:leafId).
+  private async estadoDoHandle(handle: string, pasta?: string): Promise<{ estado: EstadoSessao; tela: string }> {
     const tela = (await this.orca.readScreen(handle, 60)).join('\n');
-    return { estado: classificarTela(tela), tela };
+    let estadoAgente: string | undefined;
+    if (pasta) {
+      const t = (await this.orca.listTerminals(pasta).catch(() => [])).find((x) => x.handle === handle);
+      if (t) estadoAgente = (await this.orca.agentStates().catch(() => new Map<string, string>())).get(`${t.tabId}:${t.leafId}`);
+    }
+    return { estado: classificarTela(tela, estadoAgente), tela };
   }
 
   // ─────────────────────────── despacho ───────────────────────────
@@ -208,7 +251,7 @@ export class Despachante {
     });
 
     // Confere de novo logo antes de enviar (o João pode ter começado a usar a sessão).
-    if ((await this.estadoDoHandle(alvo.handle)).estado !== 'ocioso') {
+    if ((await this.estadoDoHandle(alvo.handle, app.pasta)).estado !== 'ocioso') {
       return this.avisar(sel, 'fila_ocupado', `⏳ <b>${escapeHtml(titulo)}</b> está na fila de <b>${escapeHtml(app.app)}</b>: a sessão ficou ocupada.`);
     }
     await this.orca.send(alvo.handle, linhaDespacho(arquivo));
@@ -232,13 +275,8 @@ export class Despachante {
       `🚀 <b>${escapeHtml(titulo)}</b> despachada para <b>${escapeHtml(app.app)}</b>${task.imagens.length || sel.anexos ? ' (com imagens/anexos)' : ''}.\nPrompt: <code>${escapeHtml(arquivo)}</code>`,
     );
 
-    // 4. Confirma que o Claude começou.
-    await new Promise((r) => setTimeout(r, 15_000));
-    const depois = await this.estadoDoHandle(alvo.handle).catch(() => null);
-    if (depois?.estado === 'aguardando')
-      await this.enviar(`🙋 <b>${escapeHtml(titulo)}</b>: a sessão em ${escapeHtml(app.app)} está pedindo algo (provavelmente permissão para ler o arquivo da task).`);
-    else if (depois?.estado === 'ocioso' && !/RESULTADO HUB/.test(depois.tela))
-      await this.enviar(`⚠️ <b>${escapeHtml(titulo)}</b>: não vi o Claude começar em ${escapeHtml(app.app)}. Confira no Orca.`);
+    // 4. Acompanhamento até o RESULTADO HUB.
+    this.monitorar(despachoId);
   }
 
   private async abrirSessao(app: App, sel: Selecao, titulo: string): Promise<OrcaTerminal | null> {
@@ -299,35 +337,207 @@ export class Despachante {
     return adapter.getTask(sel.task_id);
   }
 
-  // ─────────────── em execução (mínimo para a fila andar; Fase 6 completa) ───────────────
+  // ─────────────────────────── acompanhamento (Fase 6) ───────────────────────────
+  //
+  // Um laço por despacho ativo: `orca terminal wait --for tui-idle` (timeout 60 s) + leitura da tela.
+  //   ocupado                      → em_execucao
+  //   ocioso com RESULTADO HUB     → fechamento (Orca em revisão, ferramenta de gestão, Telegram, fila)
+  //   ocioso sem bloco / pergunta  → aguardando_joao (aviso com as últimas linhas, no máx. 1 a cada 15 min)
+  //   limite de uso                → pausado_limite (aviso para trocar de conta)
+  //   terminal sumiu               → redescobre pela pasta; se não achar, interrompido
 
-  private async verificarEmExecucao() {
-    const ativos = this.db.prepare("SELECT * FROM despachos WHERE estado = 'em_execucao'").all() as Despacho[];
-    for (const d of ativos) {
+  private monitorados = new Set<number>();
+  private falhasTerminal = new Map<number, number>();
+
+  private retomarMonitores() {
+    const ativos = this.db
+      .prepare("SELECT id FROM despachos WHERE estado IN ('em_execucao','aguardando_joao','pausado_limite')")
+      .all() as { id: number }[];
+    for (const { id } of ativos) this.monitorar(id);
+  }
+
+  private monitorar(despachoId: number) {
+    if (this.monitorados.has(despachoId)) return;
+    this.monitorados.add(despachoId);
+    log.info('monitor: iniciado', { despachoId });
+    void this.laco(despachoId)
+      .catch((e) => log.error('monitor: laço abortado', { despachoId, ...errInfo(e) }))
+      .finally(() => this.monitorados.delete(despachoId));
+  }
+
+  private getDespacho(id: number) {
+    return this.db.prepare('SELECT * FROM despachos WHERE id = ?').get(id) as (Despacho & { estado: string }) | undefined;
+  }
+
+  private async laco(id: number) {
+    await dormir(20_000); // dá tempo do Claude começar
+    for (;;) {
+      const d = this.getDespacho(id);
+      if (!d || !['em_execucao', 'aguardando_joao', 'pausado_limite'].includes(d.estado)) return;
+
+      let leitura: { estado: EstadoSessao; tela: string };
       try {
-        let handle = d.terminal_handle;
-        let leitura = handle ? await this.estadoDoHandle(handle).catch((e) => (e instanceof OrcaError ? null : Promise.reject(e))) : null;
-        if (!leitura) {
-          // Orca reiniciou: redescobre pela pasta (só se houver exatamente uma sessão do Claude).
-          const sessoes = await this.sessoesClaude(d.pasta);
-          if (sessoes.length !== 1) continue; // Fase 6 trata "interrompido"
-          handle = sessoes[0].term.handle;
-          this.db.prepare('UPDATE despachos SET terminal_handle = ? WHERE id = ?').run(handle, d.id);
-          leitura = await this.estadoDoHandle(handle);
+        if (!d.terminal_handle) throw new OrcaError('despacho sem terminal');
+        // Lê antes de esperar: um terminal fechado falha na hora, sem gastar o timeout do wait.
+        leitura = await this.estadoDoHandle(d.terminal_handle, d.pasta);
+        let ficouOcioso = false;
+        if (leitura.estado === 'ocupado') {
+          ficouOcioso = await this.orca.waitIdle(d.terminal_handle, 60_000);
+          leitura = await this.estadoDoHandle(d.terminal_handle, d.pasta);
         }
-        if (leitura.estado !== 'ocioso') continue;
-        const r = extrairResultado(leitura.tela, d.selecao_id);
-        if (!r) continue;
-        await this.concluir(d, r);
+        this.falhasTerminal.delete(id);
+        if (leitura.estado === 'ocupado') {
+          this.mudarEstado(d, 'em_execucao');
+          if (ficouOcioso) await dormir(5_000); // TUI parado mas ainda trabalhando: evita laço apertado
+          continue;
+        }
       } catch (e) {
-        log.warn('despacho: falha ao verificar execução', { despachoId: d.id, ...errInfo(e) });
+        if (!(e instanceof OrcaError)) throw e;
+        const r = await this.redescobrir(d);
+        if (r === 'interrompido') return;
+        await dormir(r === 'ok' ? 1_000 : 30_000);
+        continue;
+      }
+
+      const resultado = leitura.estado === 'ocioso' ? extrairResultado(leitura.tela, d.selecao_id) : null;
+      if (resultado) {
+        await this.concluir(d, resultado);
+        void this.processar(); // libera a fila do app
+        return;
+      }
+
+      const titulo = this.tituloDe(this.getSelecaoDe(d));
+      if (leitura.estado === 'limite') {
+        this.mudarEstado(d, 'pausado_limite');
+        await this.avisarDespacho(
+          d,
+          'limite',
+          `⏸️ <b>${escapeHtml(titulo)}</b> está pausada em <b>${escapeHtml(d.app)}</b>: a conta do Claude atingiu o limite de uso.\nTroque de conta no Orca; o hub continua sozinho quando a sessão voltar a trabalhar.`,
+        );
+        await dormir(60_000);
+      } else {
+        this.mudarEstado(d, 'aguardando_joao');
+        await this.avisarDespacho(
+          d,
+          'joao',
+          `🙋 <b>${escapeHtml(titulo)}</b> precisa de você no Orca (<b>${escapeHtml(d.app)}</b>):\n<pre>${escapeHtml(ultimasLinhas(leitura.tela))}</pre>`,
+        );
+        await dormir(30_000);
       }
     }
   }
 
-  private async concluir(d: Despacho, r: Record<string, string>) {
-    const sel = this.db.prepare('SELECT * FROM selecoes WHERE id = ?').get(d.selecao_id) as Selecao;
+  private mudarEstado(d: Despacho & { estado: string }, estado: string) {
+    if (d.estado === estado) return;
+    // Voltou a trabalhar: o próximo pedido de atenção é um aviso novo.
+    const limpaAviso = estado === 'em_execucao';
+    this.db
+      .prepare(
+        `UPDATE despachos SET estado = ?, atualizado_em = ?${limpaAviso ? ', aviso_motivo = NULL, ultimo_aviso_em = NULL' : ''} WHERE id = ?`,
+      )
+      .run(estado, new Date().toISOString(), d.id);
+    log.info('monitor: estado', { despachoId: d.id, de: d.estado, para: estado });
+    d.estado = estado;
+  }
+
+  private async avisarDespacho(d: Despacho, motivo: string, html: string) {
+    const atual = this.db.prepare('SELECT aviso_motivo, ultimo_aviso_em FROM despachos WHERE id = ?').get(d.id) as {
+      aviso_motivo: string | null;
+      ultimo_aviso_em: string | null;
+    };
+    const recente = atual.ultimo_aviso_em && Date.now() - Date.parse(atual.ultimo_aviso_em) < 15 * 60_000;
+    if (atual.aviso_motivo === motivo && recente) return;
+    this.db.prepare('UPDATE despachos SET aviso_motivo = ?, ultimo_aviso_em = ? WHERE id = ?').run(motivo, new Date().toISOString(), d.id);
+    await this.enviar(html);
+  }
+
+  // O handle mudou (Orca reiniciou) ou o terminal fechou.
+  private async redescobrir(d: Despacho & { estado: string }): Promise<'ok' | 'esperar' | 'interrompido'> {
+    const orcaOk = await this.orca
+      .status()
+      .then((s) => s.ok)
+      .catch(() => false);
+    if (!orcaOk) return 'esperar'; // Orca fechado/reiniciando: não conclui nada ainda
+
+    const sessoes = await this.sessoesClaude(d.pasta).catch(() => []);
+    let achado = sessoes.length === 1 ? sessoes[0].term : null;
+    if (sessoes.length > 1) {
+      for (const s of sessoes) {
+        const tela = (await this.orca.readScreen(s.term.handle, 60).catch(() => [])).join('\n');
+        if (tela.includes(`runs/${d.selecao_id}.md`) || tela.includes(`task: #${d.selecao_id}`)) achado = s.term;
+      }
+    }
+    if (achado) {
+      this.db.prepare('UPDATE despachos SET terminal_handle = ?, atualizado_em = ? WHERE id = ?').run(achado.handle, new Date().toISOString(), d.id);
+      log.info('monitor: terminal redescoberto', { despachoId: d.id, handle: achado.handle });
+      return 'ok';
+    }
+
+    // Dá uma segunda chance (o Orca pode estar restaurando os terminais).
+    const falhas = (this.falhasTerminal.get(d.id) ?? 0) + 1;
+    this.falhasTerminal.set(d.id, falhas);
+    if (falhas < 3) return 'esperar';
+
+    const sel = this.getSelecaoDe(d);
     const titulo = this.tituloDe(sel);
+    const agora = new Date().toISOString();
+    this.db.transaction(() => {
+      this.db.prepare("UPDATE despachos SET estado = 'interrompido', atualizado_em = ? WHERE id = ?").run(agora, d.id);
+      this.db.prepare("UPDATE selecoes SET estado = 'interrompida', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
+      this.db
+        .prepare("INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, criado_em) VALUES (?, ?, ?, ?, 'interrompido', ?)")
+        .run(sel.ferramenta, sel.task_id, titulo, d.app, agora);
+    })();
+    this.falhasTerminal.delete(d.id);
+    log.warn('monitor: despacho interrompido', { despachoId: d.id });
+    await this.enviar(
+      `💥 <b>${escapeHtml(titulo)}</b> foi <b>interrompida</b>: o terminal do Claude em ${escapeHtml(d.app)} sumiu (o Orca reiniciou ou a aba foi fechada).\nVeja o que ficou feito na branch e selecione a task de novo se precisar.`,
+    );
+    void this.processar();
+    return 'interrompido';
+  }
+
+  private getSelecaoDe(d: Despacho) {
+    return this.db.prepare('SELECT * FROM selecoes WHERE id = ?').get(d.selecao_id) as Selecao;
+  }
+
+  private async concluir(d: Despacho, r: Record<string, string>) {
+    const sel = this.getSelecaoDe(d);
+    const titulo = this.tituloDe(sel);
+    const link = (
+      this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
+        | { link: string | null }
+        | undefined
+    )?.link;
+    const notas: string[] = [];
+
+    // 1. Orca: worktree "em revisão" com o resumo.
+    try {
+      await this.orca.setWorktreeStatus(d.pasta, 'in-review', `hub #${sel.id} (${r.status}): ${r.resumo ?? ''}`.slice(0, 500));
+      notas.push('🟣 Orca: worktree em revisão');
+    } catch (e) {
+      notas.push(`⚠️ Orca: não marquei em revisão (${escapeHtml((e as Error).message)})`);
+      log.warn('fechamento: falha no Orca', { despachoId: d.id, ...errInfo(e) });
+    }
+
+    // 2. Ferramenta de gestão: status "em revisão" (NUNCA "concluída") + comentário com o resultado.
+    if (sel.ferramenta !== 'teste') {
+      const adapter = this.adapters.find((a) => a.nome === sel.ferramenta);
+      try {
+        if (!adapter) throw new Error(`sem adaptador para ${sel.ferramenta}`);
+        await adapter.comment(sel.task_id, textoComentario(r));
+        if (r.status !== 'bloqueado') {
+          await adapter.setStatus(sel.task_id, 'em_revisao');
+          notas.push('📋 Task movida para "em revisão" e comentada');
+        } else notas.push('📋 Task comentada (status mantido: bloqueada)');
+      } catch (e) {
+        const bloqueada = (e as Error).name === 'EscritaBloqueadaError';
+        notas.push(bloqueada ? '🔒 Ferramenta de gestão não atualizada (escrita desligada)' : `⚠️ Ferramenta de gestão: ${escapeHtml((e as Error).message)}`);
+        log.warn('fechamento: ferramenta de gestão', { despachoId: d.id, ...errInfo(e) });
+      }
+    }
+
+    // 3. Banco + histórico.
     const agora = new Date().toISOString();
     this.db.transaction(() => {
       this.db.prepare("UPDATE despachos SET estado = 'concluido', resultado = ?, atualizado_em = ? WHERE id = ?").run(JSON.stringify(r), agora, d.id);
@@ -336,13 +546,17 @@ export class Despachante {
         .prepare('INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, resumo, branch, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         .run(sel.ferramenta, sel.task_id, titulo, d.app, r.status, r.resumo ?? null, r.branch ?? null, agora);
     })();
-    log.info('despacho: concluído', { despachoId: d.id, status: r.status });
+    log.info('fechamento: concluído', { despachoId: d.id, status: r.status });
+
+    // 4. Telegram.
     const icone = r.status === 'concluido' ? '✅' : r.status === 'bloqueado' ? '⛔' : '🔍';
-    await this.enviar(
-      `${icone} <b>${escapeHtml(titulo)}</b> terminou em ${escapeHtml(d.app)}: <b>${escapeHtml(r.status)}</b>\n${escapeHtml(r.resumo ?? '')}${
-        r.branch ? `\n🌿 ${escapeHtml(r.branch)}` : ''
-      }${r.pendencias && !/^nenhuma/i.test(r.pendencias) ? `\n📌 ${escapeHtml(r.pendencias)}` : ''}`,
-    );
+    const nome = link ? `<a href="${escapeHtml(link)}">${escapeHtml(titulo)}</a>` : escapeHtml(titulo);
+    const linhas = [`${icone} <b>${nome}</b> — ${escapeHtml(d.app)}: <b>${escapeHtml(r.status)}</b>`, '', escapeHtml(r.resumo ?? '')];
+    if (r.arquivos) linhas.push(`📄 ${escapeHtml(r.arquivos)}`);
+    if (r.branch) linhas.push(`🌿 ${escapeHtml(r.branch)}`);
+    if (r.pendencias && !/^nenhuma/i.test(r.pendencias)) linhas.push(`📌 ${escapeHtml(r.pendencias)}`);
+    linhas.push('', ...notas);
+    await this.enviar(linhas.join('\n'));
   }
 
   // ─────────────────────────── util ───────────────────────────

@@ -113,6 +113,10 @@ const MIGRATIONS: string[] = [
   CREATE UNIQUE INDEX fila_selecao ON fila(selecao_id);
   ALTER TABLE despachos ADD COLUMN titulo_terminal TEXT;
   `,
+  // 4 — acompanhamento (Fase 6)
+  `
+  ALTER TABLE despachos ADD COLUMN aviso_motivo TEXT;   -- joao | limite (com ultimo_aviso_em: no máx. 1 aviso igual a cada 15 min)
+  `,
 ];
 
 export type DB = Database.Database;

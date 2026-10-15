@@ -38,8 +38,13 @@ export interface PmAdapter {
 
 export class EscritaBloqueadaError extends Error {
   constructor(acao: string) {
-    super(`Escrita na ferramenta de gestão bloqueada (HUB_ESCRITA_PM=false): ${acao}`);
+    super(`Escrita na ferramenta de gestão bloqueada (HUB_ESCRITA_PM / HUB_ESCRITA_PM_SOMENTE): ${acao}`);
+    this.name = 'EscritaBloqueadaError';
   }
+}
+
+export function escritaPermitida(env: { HUB_ESCRITA_PM: boolean; HUB_ESCRITA_PM_SOMENTE: string[] | null }, taskId: string) {
+  return env.HUB_ESCRITA_PM && (!env.HUB_ESCRITA_PM_SOMENTE || env.HUB_ESCRITA_PM_SOMENTE.includes(taskId));
 }
 
 // Data AAAA-MM-DD no fuso do hub.

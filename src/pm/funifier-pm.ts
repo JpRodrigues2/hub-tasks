@@ -4,6 +4,7 @@ import {
   atrasada,
   prazoIso,
   EscritaBloqueadaError,
+  escritaPermitida,
   McpConexao,
   type Categoria,
   type PmAdapter,
@@ -87,12 +88,12 @@ export class FunifierPmAdapter implements PmAdapter {
   }
 
   async setStatus(id: string, status: StatusHub) {
-    if (!this.env.HUB_ESCRITA_PM) throw new EscritaBloqueadaError(`move_task ${id} → ${STATUS[status]}`);
+    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`move_task ${id} → ${STATUS[status]}`);
     await this.mcp.call('move_task', { taskId: id, status: STATUS[status] });
   }
 
   async comment(id: string, texto: string) {
-    if (!this.env.HUB_ESCRITA_PM) throw new EscritaBloqueadaError(`add_comment ${id}`);
+    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_comment ${id}`);
     // O PM exige o "confirmation" devolvido pelo preview com exatamente os mesmos campos.
     const p = (await this.mcp.call('preview_add_comment', { taskId: id, content: texto })) as { confirmation?: string };
     if (!p.confirmation) throw new Error('preview_add_comment não devolveu confirmation');
