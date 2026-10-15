@@ -20,6 +20,7 @@ interface PmTask {
   due?: string | null;
   url?: string;
   notes?: string;
+  attachments?: { url?: string; name?: string }[];
   comments?: { author?: { name?: string }; createdAt?: string; created?: string; content?: string; text?: string }[];
 }
 
@@ -80,6 +81,8 @@ export class FunifierPmAdapter implements PmAdapter {
         data: c.createdAt ?? c.created ?? '',
         texto: c.content ?? c.text ?? '',
       })),
+      // Hoje o MCP devolve attachments vazio e a descrição sem imagens; pronto para quando vier URL.
+      imagens: (t.attachments ?? []).map((x) => x.url).filter((u): u is string => !!u),
     };
   }
 

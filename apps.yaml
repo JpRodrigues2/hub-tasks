@@ -7,6 +7,15 @@
 # Como adicionar um projeto novo: veja "Adicionando novos projetos ao hub" no ROADMAP_HUB.md.
 
 apps:
+  # ───────────────────────── TESTE ─────────────────────────
+  - app: sandbox
+    empresa: dac          # dac = sem exigência de gamificação
+    ferramenta: teste     # tasks fictícias criadas por scripts/despacho-teste.ts
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/HUB/sandbox
+    contexto: null
+    sessao_resume_id: null
+
   # ───────────────────────── DAC (Bnexo) ─────────────────────────
   - app: pecas-c4
     empresa: dac

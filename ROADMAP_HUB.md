@@ -148,8 +148,8 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
 - [ ] PARAR.
 
 ## Fase 5 — Despacho para o Orca
-- [ ] Antes de usar projetos reais, criar um projeto de teste: `~/Documents/HUB/sandbox` (repositório git simples), abrir no Orca e adicionar ao `apps.yaml` como `app: sandbox`.
-- [ ] Gerar o arquivo da task em `runs/<id>.md` com:
+- [x] Antes de usar projetos reais, criar um projeto de teste: `~/Documents/HUB/sandbox` (repositório git simples), abrir no Orca e adicionar ao `apps.yaml` como `app: sandbox`.
+- [x] Gerar o arquivo da task em `runs/<id>.md` com:
   - título, descrição, comentários e link da task original;
   - a informação extra do João;
   - app e pasta;
@@ -161,15 +161,17 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
     - antes de qualquer escrita no backend, confirmar o alvo;
     - ao terminar, atualizar o CONTEXT.md conforme a regra do projeto;
   - **formato obrigatório de encerramento:** terminar com um bloco iniciado pela linha `### RESULTADO HUB`, contendo `status: concluido | bloqueado | precisa_revisao`, resumo, arquivos alterados, branch/PR e pendências.
-- [ ] Implementar a lógica de despacho, por app:
+- [x] Implementar a lógica de despacho, por app:
   1. Listar os terminais da pasta do app.
   2. Se houver um terminal com o Claude Code rodando, ler a tela:
      - se estiver ocioso, enviar a linha do prompt;
      - se estiver ocupado ou esperando resposta do João, colocar a task na fila do app e avisar no Telegram.
   3. Se não houver terminal com o Claude, criar um na pasta com `claude -c` (ou `claude --resume <sessao_resume_id>`, se configurado), esperar ficar ocioso e então enviar.
   4. Marcar o despacho como `em_execucao` e registrar o handle do terminal (sabendo que ele pode mudar se o Orca reiniciar).
-- [ ] Uma task por vez por app; a fila anda sozinha quando a anterior termina.
-- [ ] Testar ponta a ponta no `sandbox` com uma task fictícia ("crie um arquivo OLA.md com a data de hoje").
+- [x] Uma task por vez por app; a fila anda sozinha quando a anterior termina.
+- [x] Testar ponta a ponta no `sandbox` com uma task fictícia ("crie um arquivo OLA.md com a data de hoje").
+- [x] Extra: anexos do João pelo Telegram (fotos/arquivos na etapa de informação extra → `runs/<id>/`) e imagens `<img>` da descrição do Bnexo baixadas para o prompt. O MCP do Funifier PM não expõe anexos nem imagens da descrição (pedir ao time do PM).
+- [x] Extra: `/teste <texto>` cria uma task fictícia no sandbox passando pela conversa inteira.
 - [ ] PARAR.
 
 ## Fase 6 — Acompanhamento e fechamento

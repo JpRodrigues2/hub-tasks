@@ -24,6 +24,7 @@ export interface Task {
 export interface TaskDetalhe extends Task {
   descricao: string; // texto puro
   comentarios: { autor: string; data: string; texto: string }[];
+  imagens: string[]; // URLs de imagens/anexos (baixadas para runs/<id>/ no despacho)
 }
 
 export interface PmAdapter {
@@ -57,8 +58,13 @@ export function atrasada(prazo: string | null, tz: string, agora = new Date()) {
   return !!prazo && dataLocal(new Date(prazo), tz) < dataLocal(agora, tz);
 }
 
+export function extrairImagens(html: string | null | undefined): string[] {
+  return [...(html ?? '').matchAll(/<img[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
+}
+
 export function htmlParaTexto(html: string | null | undefined) {
   return (html ?? '')
+    .replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, '\n[imagem: $1]\n')
     .replace(/<\/(p|li|h\d|div)>/gi, '\n')
     .replace(/<li[^>]*>/gi, '- ')
     .replace(/<br\s*\/?>/gi, '\n')

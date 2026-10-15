@@ -105,6 +105,14 @@ const MIGRATIONS: string[] = [
   ALTER TABLE selecoes ADD COLUMN etapa TEXT;          -- info | destino | escolher_app | alvo | confirmar
   ALTER TABLE selecoes ADD COLUMN msg_pergunta INTEGER; -- mensagem da pergunta atual (para tirar os botões)
   `,
+  // 3 — despacho (Fase 5)
+  `
+  ALTER TABLE selecoes ADD COLUMN anexos TEXT;           -- JSON: caminhos locais de arquivos mandados pelo Telegram
+  ALTER TABLE selecoes ADD COLUMN aviso_em TEXT;         -- último aviso de fila/bloqueio (evita repetir)
+  ALTER TABLE selecoes ADD COLUMN aviso_motivo TEXT;
+  CREATE UNIQUE INDEX fila_selecao ON fila(selecao_id);
+  ALTER TABLE despachos ADD COLUMN titulo_terminal TEXT;
+  `,
 ];
 
 export type DB = Database.Database;

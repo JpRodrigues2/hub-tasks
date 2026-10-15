@@ -5,12 +5,14 @@
 //   r:<resumo>:go|none       "Iniciar selecionadas" / "Nenhuma hoje"
 //   s:<selecao>:<acao>[:arg] respostas da conversa (pular, ok, outro, app:<nome>, g:<i>, gok, desp, reset, cancel)
 import { InlineKeyboard, type Api } from 'grammy';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { extname, join } from 'node:path';
 import { loadCatalogo, type App, type Catalogo, type Env, type Gamificacao } from './config.js';
 import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Orca } from './orca.js';
 import { dataLocal, type PmAdapter } from './pm/types.js';
+import { dirAnexos } from './prompt.js';
 import { buscarTasks, dividirMensagem, escapeHtml, montarResumo } from './resumo.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
@@ -26,6 +28,7 @@ interface Selecao {
   estado: string;
   etapa: string | null;
   msg_pergunta: number | null;
+  anexos: string | null;
 }
 
 interface TaskVista {
@@ -40,6 +43,8 @@ interface TaskVista {
 export class Fluxo {
   private chatId: number;
   private enviandoResumo = false;
+  // Chamado quando o João toca em "Despachar" (ligado ao Despachante no telegram.ts).
+  onDespachar: (selecaoId: number) => void = () => {};
 
   constructor(
     private env: Env,
@@ -209,6 +214,25 @@ export class Fluxo {
 
   // ───────────────────────────── conversa ─────────────────────────────
 
+  // /teste <texto>: task fictícia para o app sandbox, passando pela conversa inteira.
+  async criarTeste(texto: string) {
+    const agora = new Date().toISOString();
+    const taskId = `teste-${Date.now()}`;
+    this.db
+      .prepare(
+        `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+         VALUES ('teste', ?, 'dac', ?, NULL, 'sandbox (task fictícia)', 'teste', NULL, NULL, ?, ?)`,
+      )
+      .run(taskId, texto, agora, agora);
+    this.db
+      .prepare(
+        `INSERT INTO selecoes (ferramenta, task_id, data_resumo, app, estado, etapa, criado_em, atualizado_em)
+         VALUES ('teste', ?, ?, 'sandbox', 'coletando', 'info', ?, ?)`,
+      )
+      .run(taskId, dataLocal(new Date(), this.env.TZ_HUB), agora, agora);
+    await this.proximaPergunta();
+  }
+
   private selecaoAtiva(): Selecao | undefined {
     return this.db.prepare("SELECT * FROM selecoes WHERE estado = 'coletando' ORDER BY id LIMIT 1").get() as Selecao | undefined;
   }
@@ -271,8 +295,10 @@ export class Fluxo {
       case 'info':
         return this.perguntar(
           s,
-          '💬 Quer adicionar alguma informação? (o que foi falado em reunião, no Teams…)\nResponda com uma mensagem de texto ou toque em <b>Pular</b>.',
-          kbCancel(new InlineKeyboard().text('⏭ Pular', `s:${s.id}:pular`)),
+          '💬 Quer adicionar alguma informação? (o que foi falado em reunião, no Teams…)\n' +
+            'Mande <b>fotos/prints/arquivos</b> (a legenda vira texto) e/ou uma mensagem de texto, que encerra esta etapa.\n' +
+            'Sem nada a acrescentar? Toque em <b>Pular</b>.',
+          kbCancel(new InlineKeyboard().text('⏭ Pular / Continuar', `s:${s.id}:pular`)),
         );
 
       case 'destino': {
@@ -292,7 +318,7 @@ export class Fluxo {
         const empresa = this.taskDe(s).empresa;
         const kb = new InlineKeyboard();
         cat.apps
-          .filter((a) => a.empresa === empresa)
+          .filter((a) => (s.ferramenta === 'teste' ? a.ferramenta === 'teste' : a.empresa === empresa && a.ferramenta !== 'teste'))
           .forEach((a, i) => {
             kb.text(a.app === s.app ? `• ${a.app}` : a.app, `s:${s.id}:app:${a.app}`);
             if (i % 2 === 1) kb.row();
@@ -361,6 +387,8 @@ export class Fluxo {
     const linhas = ['📝 <b>Confirme:</b>'];
     if (t.link) linhas.push(`🔗 ${escapeHtml(t.link)}`);
     linhas.push(`💬 Info extra: ${s.info_extra ? `\n<blockquote>${escapeHtml(s.info_extra)}</blockquote>` : '<i>nenhuma</i>'}`);
+    const anexos = JSON.parse(s.anexos ?? '[]') as string[];
+    if (anexos.length) linhas.push(`📎 ${anexos.length} anexo(s) enviados por você`);
     linhas.push(`📁 ${escapeHtml(app?.app ?? '?')} — <code>${escapeHtml(app?.pasta ?? '?')}</code>`);
     if (t.empresa === 'funifier') {
       const gs = JSON.parse(s.gamificacoes ?? '[]') as Gamificacao[];
@@ -373,11 +401,40 @@ export class Fluxo {
     return linhas.join('\n');
   }
 
+  // Foto/arquivo do João na etapa "informação extra": salva em runs/<selecao>/ e referencia no prompt.
+  async onAnexo(fileId: string, nomeSugerido: string, legenda: string | undefined): Promise<boolean> {
+    const s = this.selecaoAtiva();
+    if (!s || s.etapa !== 'info') return false;
+    const f = await this.api.getFile(fileId);
+    if (!f.file_path) throw new Error('Telegram não devolveu file_path');
+    const res = await fetch(`https://api.telegram.org/file/bot${this.env.TELEGRAM_BOT_TOKEN}/${f.file_path}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!res.ok) throw new Error(`download do anexo falhou: HTTP ${res.status}`);
+    const anexos = JSON.parse(s.anexos ?? '[]') as string[];
+    const dir = dirAnexos(s.id);
+    mkdirSync(dir, { recursive: true });
+    const ext = extname(nomeSugerido) || extname(f.file_path) || '.bin';
+    const base = nomeSugerido.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 40) || 'anexo';
+    const arq = join(dir, `joao-${anexos.length + 1}-${base}${ext}`);
+    writeFileSync(arq, Buffer.from(await res.arrayBuffer()));
+    anexos.push(arq);
+    const info = legenda?.trim() ? [s.info_extra, legenda.trim()].filter(Boolean).join('\n\n') : s.info_extra;
+    this.atualizar(s.id, { anexos: JSON.stringify(anexos), info_extra: info });
+    log.info('anexo salvo', { selecao: s.id, arquivo: arq });
+    await this.api.sendMessage(
+      this.chatId,
+      `📎 Anexo ${anexos.length} salvo. Mande mais, escreva um texto (encerra a etapa) ou toque em <b>Pular / Continuar</b>.`,
+      HTML,
+    );
+    return true;
+  }
+
   // Texto livre do João: só vale como "informação extra" quando a pergunta atual é essa.
   async onTexto(texto: string): Promise<boolean> {
     const s = this.selecaoAtiva();
     if (!s || s.etapa !== 'info') return false;
-    this.atualizar(s.id, { info_extra: texto.trim(), etapa: 'destino' });
+    this.atualizar(s.id, { info_extra: [s.info_extra, texto.trim()].filter(Boolean).join('\n\n'), etapa: 'destino' });
     await this.proximaPergunta();
     return true;
   }
@@ -417,6 +474,7 @@ export class Fluxo {
       case 'app': {
         const app = this.appDe(cat, arg ?? null);
         if (!app || app.empresa !== empresa) return 'App inválido.';
+        if ((s.ferramenta === 'teste') !== (app.ferramenta === 'teste')) return 'Task de teste só roda no sandbox (e vice-versa).';
         this.atualizar(s.id, { app: app.app, etapa: depoisDoDestino, gamificacoes: null });
         break;
       }
@@ -439,13 +497,14 @@ export class Fluxo {
         break;
       }
       case 'reset':
-        this.atualizar(s.id, { etapa: 'info', info_extra: null, gamificacoes: null });
+        this.atualizar(s.id, { etapa: 'info', info_extra: null, gamificacoes: null, anexos: null });
         break;
       case 'desp':
         this.atualizar(s.id, { estado: 'aguardando_despacho', etapa: null });
         await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
-        await this.api.sendMessage(this.chatId, '📥 Registrada: <b>aguardando despacho</b>. (O envio ao Orca entra na Fase 5.)', HTML);
+        await this.api.sendMessage(this.chatId, `📥 Na fila de despacho de <b>${escapeHtml(s.app ?? '?')}</b>.`, HTML);
         log.info('selecao aguardando despacho', { selecao: s.id, app: s.app, ferramenta: s.ferramenta });
+        this.onDespachar(s.id);
         break;
     }
     await this.proximaPergunta();
