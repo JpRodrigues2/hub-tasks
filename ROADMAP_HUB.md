@@ -117,15 +117,15 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
 - [x] PARAR.
 
 ## Fase 3 — Esqueleto do bot
-- [ ] Antes de começar, confirmar que o João já criou o bot no @BotFather e pedir `TELEGRAM_BOT_TOKEN`. Descobrir o `TELEGRAM_CHAT_ID` pedindo que o João mande "oi" ao bot, e gravar os dois no `.env`.
-- [ ] Criar o projeto Node/TypeScript com estes módulos:
+- [x] Antes de começar, confirmar que o João já criou o bot no @BotFather e pedir `TELEGRAM_BOT_TOKEN`. Descobrir o `TELEGRAM_CHAT_ID` pedindo que o João mande "oi" ao bot, e gravar os dois no `.env`.
+- [x] Criar o projeto Node/TypeScript com estes módulos:
   - `config` — leitura e validação do `.env` e do `apps.yaml`;
   - `db` — SQLite com migrações;
   - `telegram` — grammY com filtro de chat obrigatório;
   - `pm/` — um adaptador por ferramenta (`funifier-pm.ts`, `bnexo.ts`), ambos implementando a mesma interface `listMyTasks()`, `getTask()`, `setStatus()`, `comment()`, usando o mapeamento da Fase 1;
   - `orca` — wrapper da CLI: `listTerminals(pasta)`, `readScreen(handle)`, `send(handle, linha)`, `waitIdle(handle, timeout)`, `createTerminal(pasta, comando)`, `setWorktreeStatus(pasta, status, comentario)`;
   - `logger` — logs em `logs/`, sem segredos.
-- [ ] Comandos do bot:
+- [x] Comandos do bot:
   - `/status` — mostra se o Orca e os MCPs estão acessíveis, além da fila e dos despachos em andamento;
   - `/tarefas` — dispara o resumo manualmente.
 - [ ] Testar: `/status` no Telegram responde corretamente; uma mensagem vinda de outro chat é ignorada.
