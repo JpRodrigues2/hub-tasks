@@ -17,6 +17,8 @@ const EnvSchema = z.object({
   RESUMO_HORARIO: z.string().regex(/^\d{2}:\d{2}$/).default('09:00'),
   TZ_HUB: z.string().default('America/Sao_Paulo'),
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
+  // Modo de permissão das sessões do Claude que o hub abre (auto = classificador aprova o seguro e pede aprovação para o arriscado; bypassPermissions é proibido).
+  HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
   // Trava de segurança: enquanto for false, o hub não muda status nem comenta nas ferramentas de gestão.
   HUB_ESCRITA_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   // Se definido (IDs separados por vírgula), a escrita vale SÓ para essas tasks — para testar com tasks aprovadas.

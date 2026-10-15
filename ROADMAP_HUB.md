@@ -186,7 +186,12 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
   - no Telegram: mandar o resumo com o resultado e o link da task;
   - liberar a fila do app.
 - [x] Testar no `sandbox`: conclusão normal, pergunta ao João (aviso + retomada), comando longo em segundo plano (sem falso alarme) e terminal fechado (interrompido).
-- [ ] Testar com **uma** task real de baixo risco escolhida pelo João (liberar com `HUB_ESCRITA_PM=true` + `HUB_ESCRITA_PM_SOMENTE=<id da task>`).
+- [x] Testar com **uma** task real de baixo risco escolhida pelo João (liberar com `HUB_ESCRITA_PM=true` + `HUB_ESCRITA_PM_SOMENTE=<id da task>`). Feito em 2026-10-15 com a task do Bnexo "Modelo Multifornecedor :: Tipo gráfica, grupo de acesso e catálogo de documentos por tipo" (pecas-c4); escrita desligada de novo depois do teste.
+- [x] As sessões que o hub abre usam `--permission-mode auto` (o equivalente ao auto mode); `HUB_CLAUDE_PERMISSAO` no `.env` aceita `auto`, `acceptEdits`, `manual` ou `plan`. `bypassPermissions` é recusado.
+- [ ] **Próximos passos depois da conclusão** (pedido do João no teste real): a mensagem de fechamento no Telegram deve dizer o que fazer a seguir e trazer botões:
+  - 💬 **Dar instrução:** a próxima mensagem do João vai para a mesma sessão (gravada em `runs/<id>-<n>.md`, uma linha no terminal) e o monitor volta a acompanhar até um novo `RESULTADO HUB`;
+  - 🔀 **Abrir PR:** pede ao Claude para fazer push da branch e abrir o PR contra a branch base do app (`pr_base` no `apps.yaml`), mostrando repositório e base para o João confirmar antes;
+  - ✅ **Encerrar:** fecha o ciclo sem mais ações.
 - Obs.: o `orca worktree set` desta versão do Orca não tem `--unread`; o hub marca `in-review` com comentário.
 - [ ] PARAR.
 

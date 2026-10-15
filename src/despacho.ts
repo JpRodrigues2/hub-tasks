@@ -280,12 +280,13 @@ export class Despachante {
   }
 
   private async abrirSessao(app: App, sel: Selecao, titulo: string): Promise<OrcaTerminal | null> {
-    const comando = app.sessao_resume_id
+    const base = app.sessao_resume_id
       ? `claude --resume ${app.sessao_resume_id}`
       : temSessaoAnterior(app.pasta)
         ? 'claude -c'
         : 'claude';
-    if (!/^claude( -c| --resume [A-Za-z0-9-]+)?$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
+    const comando = `${base} --permission-mode ${this.env.HUB_CLAUDE_PERMISSAO}`;
+    if (!/^claude( -c| --resume [A-Za-z0-9-]+)? --permission-mode [A-Za-z]+$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
     await this.enviar(`🖥️ Abrindo sessão do Claude em <b>${escapeHtml(app.app)}</b> (<code>${escapeHtml(comando)}</code>)…`);
     const handle = await this.orca.createTerminal(app.pasta, comando, `hub #${sel.id}`);
     log.info('despacho: sessão aberta', { app: app.app, handle, comando });
