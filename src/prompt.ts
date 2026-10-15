@@ -111,12 +111,28 @@ export function escreverPrompt(d: DadosPrompt): string {
     '',
   );
 
-  L.push('## Formato obrigatório de encerramento', '');
-  L.push('Termine a sua última mensagem com este bloco, exatamente neste formato (o hub lê a tela para encontrá-lo):', '');
-  L.push(
+  L.push(...blocoEncerramento(String(d.selecaoId), branch));
+
+  mkdirSync(RUNS_DIR, { recursive: true });
+  const arquivo = join(RUNS_DIR, `${d.selecaoId}.md`);
+  writeFileSync(arquivo, L.join('\n'));
+  return arquivo;
+}
+
+// Rodada 1 usa "#12"; continuações usam "#12.2", "#12.3"… (a tela ainda mostra o bloco da rodada anterior).
+export function tagRodada(selecaoId: number, rodada: number) {
+  return rodada > 1 ? `${selecaoId}.${rodada}` : String(selecaoId);
+}
+
+function blocoEncerramento(tag: string, branch: string) {
+  return [
+    '## Formato obrigatório de encerramento',
+    '',
+    'Termine a sua última mensagem com este bloco, exatamente neste formato (o hub lê a tela para encontrá-lo):',
+    '',
     '```',
     '### RESULTADO HUB',
-    `task: #${d.selecaoId}`,
+    `task: #${tag}`,
     'status: concluido | bloqueado | precisa_revisao',
     'resumo: <1 a 3 frases>',
     'arquivos: <lista curta dos arquivos alterados>',
@@ -124,10 +140,65 @@ export function escreverPrompt(d: DadosPrompt): string {
     'pendencias: <o que falta, ou "nenhuma">',
     '```',
     '',
-  );
+  ];
+}
 
+export interface DadosSeguimento {
+  selecaoId: number;
+  rodada: number;
+  titulo: string;
+  link: string | null;
+  app: App;
+  anterior: Record<string, string>;
+  branch: string;
+  tipo: 'instrucao' | 'pr';
+  instrucao?: string;
+  base?: string;
+  remoto?: string | null;
+}
+
+// Continuação de uma task já concluída: runs/<id>-<rodada>.md.
+export function escreverSeguimento(d: DadosSeguimento): string {
+  const tag = tagRodada(d.selecaoId, d.rodada);
+  const a = d.anterior;
+  const L: string[] = [];
+  L.push(`# Task do hub #${tag}: ${d.titulo}`, '');
+  L.push(`Continuação da task #${d.selecaoId} (prompt original: \`${join(RUNS_DIR, `${d.selecaoId}.md`)}\`).`, '');
+  if (d.link) L.push(`- **Link:** ${d.link}`);
+  L.push(`- **App:** ${d.app.app}`, `- **Pasta:** \`${d.app.pasta}\``, `- **Branch:** \`${d.branch}\``, '');
+  L.push('## Resultado da rodada anterior', '');
+  L.push(`- status: ${a.status ?? '-'}`, `- resumo: ${a.resumo ?? '-'}`, `- branch: ${a.branch ?? '-'}`, `- pendências: ${a.pendencias ?? '-'}`, '');
+
+  if (d.tipo === 'instrucao') {
+    L.push('## Instrução do João', '', (d.instrucao ?? '').trim(), '');
+    L.push('## Regras de trabalho', '');
+    L.push(
+      `- Continue na branch \`${d.branch}\`.`,
+      '- Não faça push na branch principal.',
+      '- Antes de qualquer escrita no backend, confirme o alvo (servidor, conta, gamificação).',
+      '- Se precisar de uma decisão minha, pergunte e espere — o hub me avisa no Telegram.',
+      '',
+    );
+  } else {
+    L.push('## Abrir pull request', '');
+    L.push(
+      `- **Branch do PR:** \`${d.branch}\``,
+      `- **Branch base (destino):** \`${d.base}\``,
+      ...(d.remoto ? [`- **Repositório:** ${d.remoto}`] : []),
+      '',
+      `1. Confirme que está na branch \`${d.branch}\` e que o trabalho da task está commitado. Se houver mudanças que não são desta task, pare e me pergunte.`,
+      `2. Faça push da branch para \`origin\` (nunca \`--force\`, nunca na \`${d.base}\`).`,
+      `3. Abra o PR de \`${d.branch}\` para \`${d.base}\`. No GitHub use \`gh pr create --base ${d.base} --head ${d.branch}\`; em outro serviço use a CLI disponível ou, se não houver, devolva a URL de criação do PR.`,
+      `4. Título: "${d.titulo}". Corpo: o que foi feito, como testar${d.link ? ` e o link da task (${d.link})` : ''}.`,
+      '5. **Não faça merge.**',
+      '6. Coloque a URL do PR no campo `branch` do bloco de encerramento.',
+      '',
+    );
+  }
+
+  L.push(...blocoEncerramento(tag, d.branch));
   mkdirSync(RUNS_DIR, { recursive: true });
-  const arquivo = join(RUNS_DIR, `${d.selecaoId}.md`);
+  const arquivo = join(RUNS_DIR, `${d.selecaoId}-${d.rodada}.md`);
   writeFileSync(arquivo, L.join('\n'));
   return arquivo;
 }

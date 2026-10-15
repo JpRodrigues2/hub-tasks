@@ -35,7 +35,7 @@ export function createBot(deps: Deps) {
   });
 
   bot.command('start', (ctx) =>
-    ctx.reply('Hub de tasks ativo.\n\n/status — Orca, MCPs, fila e despachos\n/tarefas — resumo das tasks agora\n/teste <texto> — task fictícia no sandbox'),
+    ctx.reply('Hub de tasks ativo.\n\n/status — Orca, MCPs, fila e despachos\n/tarefas — resumo das tasks agora\n/teste <texto> — task fictícia no sandbox\n/continuar — próximos passos (instrução, PR) das últimas tasks concluídas'),
   );
 
   bot.command('status', async (ctx) => {
@@ -52,6 +52,8 @@ export function createBot(deps: Deps) {
     await fluxo.enviarResumo('manual');
   });
 
+  bot.command('continuar', () => despachante.listarConcluidos());
+
   bot.command('teste', async (ctx) => {
     const texto = ctx.match.trim();
     if (!texto) return ctx.reply('Uso: /teste <o que o Claude deve fazer no sandbox>');
@@ -65,11 +67,14 @@ export function createBot(deps: Deps) {
     else if (tipo === 'r' && (b === 'go' || b === 'none'))
       resposta = await fluxo.finalizarResumo(Number(a), b, ctx.callbackQuery.message!.message_id);
     else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
+    else if (tipo === 'f') resposta = await despachante.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);
     await ctx.answerCallbackQuery({ text: resposta.slice(0, 190) }).catch(() => {});
   });
 
   bot.on('message:text', async (ctx) => {
     if (ctx.message.text.startsWith('/')) return ctx.reply('Comando desconhecido. Use /status ou /tarefas.');
+    // A conversa de próximos passos (instrução/PR) vem antes: o João acabou de tocar no botão.
+    if (await despachante.onTexto(ctx.message.text)) return;
     if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
   });
 
