@@ -117,6 +117,12 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE despachos ADD COLUMN aviso_motivo TEXT;   -- joao | limite (com ultimo_aviso_em: no máx. 1 aviso igual a cada 15 min)
   `,
+  // 5 — próximos passos depois da conclusão (instrução extra / abrir PR)
+  `
+  ALTER TABLE despachos ADD COLUMN rodada INTEGER NOT NULL DEFAULT 1;  -- 1 = task original; 2+ = continuações
+  ALTER TABLE despachos ADD COLUMN msg_fechamento INTEGER;              -- mensagem com os botões de próximos passos
+  ALTER TABLE despachos ADD COLUMN seguimento TEXT;                     -- JSON do próximo passo esperando a sessão (estado seguimento_fila)
+  `,
 ];
 
 export type DB = Database.Database;
