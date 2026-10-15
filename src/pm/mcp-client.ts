@@ -31,7 +31,10 @@ class FileOAuthProvider implements OAuthClientProvider {
   private file: string;
   private store: Record<string, unknown>;
 
-  constructor(name: string) {
+  constructor(
+    name: string,
+    private interactive: boolean,
+  ) {
     mkdirSync(OAUTH_DIR, { recursive: true, mode: 0o700 });
     this.file = join(OAUTH_DIR, `${name}.json`);
     this.store = existsSync(this.file) ? JSON.parse(readFileSync(this.file, 'utf8')) : {};
@@ -83,6 +86,7 @@ class FileOAuthProvider implements OAuthClientProvider {
     this.save();
   }
   redirectToAuthorization(url: URL) {
+    if (!this.interactive) return;
     console.log(`\nAbra no navegador para autorizar o hub:\n${url.toString()}\n`);
     execFile('open', [url.toString()], () => {});
   }
@@ -115,7 +119,14 @@ function waitForAuthCode(timeoutMs = 5 * 60_000): Promise<string> {
 
 export type PmName = 'funifier-pm' | 'bnexo';
 
-export async function connect(name: PmName): Promise<Client> {
+export class PmLoginRequiredError extends Error {
+  constructor(name: PmName) {
+    super(`${name}: login OAuth necessário — rode \`npm run pm:login\` no HUB`);
+  }
+}
+
+// interactive=false (bot rodando): nunca abre navegador; falha com PmLoginRequiredError.
+export async function connect(name: PmName, { interactive = true } = {}): Promise<Client> {
   const client = new Client({ name: 'hub', version: '0.1.0' });
 
   if (name === 'bnexo') {
@@ -127,13 +138,14 @@ export async function connect(name: PmName): Promise<Client> {
   }
 
   const url = new URL(requireEnv('FUNIFIER_PM_MCP_URL'));
-  const authProvider = new FileOAuthProvider('funifier-pm');
+  const authProvider = new FileOAuthProvider('funifier-pm', interactive);
   const transport = new StreamableHTTPClientTransport(url, { authProvider });
   try {
     await client.connect(transport);
     return client;
   } catch (e) {
     if (!(e instanceof UnauthorizedError)) throw e;
+    if (!interactive) throw new PmLoginRequiredError(name);
     const code = await waitForAuthCode();
     await transport.finishAuth(code);
     const retry = new Client({ name: 'hub', version: '0.1.0' });

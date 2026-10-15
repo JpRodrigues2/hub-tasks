@@ -194,3 +194,11 @@ nao_mapeados:
     - "proj-mud9vrrdzsr8"           # Funifier Studio :: Evolução
     - "69d7de2428fe032bb252954f"    # Plugin do Teams
   bnexo: []
+
+# Nomes dos projetos do Bnexo (o MCP Essencial só devolve o ID).
+nomes_projetos:
+  bnexo:
+    "69b0abb8-8fdd-461c-bd1e-8ab404efd27b": "BUSCA PEÇAS"
+    "7a4b4e84-3020-4fbe-95a4-f636f9cfca4e": "VISTA - Vistoria Veicular"
+    "08d793a7-9631-4012-ae1a-4b845b197738": "Vista Issues"
+    "e2d760e0-8ec7-4cf9-8fda-84080e5ac790": "Evolução - Registro de Contrato"
