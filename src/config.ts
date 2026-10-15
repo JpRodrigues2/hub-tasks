@@ -61,7 +61,7 @@ export function loadEnv(): Env {
   return r.data;
 }
 
-export const APPS_FILE = join(ROOT, 'apps.yaml');
+export const APPS_FILE = process.env.HUB_APPS_FILE ?? join(ROOT, 'apps.yaml');
 
 // Relido a cada uso (antes de cada resumo / /status), para pegar edições sem reiniciar o bot.
 export function loadCatalogo(): Catalogo {

@@ -61,27 +61,51 @@ function formatarPrazo(prazo: string | null, tz: string) {
   return ` · ⏰ ${d}`;
 }
 
-export function linhaTask(t: Task, cat: Catalogo, tz: string) {
-  const mapeada = !!t.projetoId && appsDoProjeto(cat, t.ferramenta, t.projetoId).length > 0;
+export interface ItemResumo {
+  idx: number; // número mostrado ao João (global no resumo)
+  task: Task;
+  app: string | null; // app sugerido; null = projeto não mapeado
+}
+
+export interface BlocoEmpresa {
+  empresa: 'funifier' | 'dac';
+  texto: string;
+  itens: ItemResumo[];
+}
+
+export function appSugerido(t: Task, cat: Catalogo): string | null {
+  return t.projetoId ? (appsDoProjeto(cat, t.ferramenta, t.projetoId)[0]?.app ?? null) : null;
+}
+
+function linhaTask(i: ItemResumo, tz: string) {
+  const t = i.task;
   const titulo = escapeHtml(t.titulo.length > 90 ? t.titulo.slice(0, 87) + '…' : t.titulo);
   const link = t.link ? `<a href="${escapeHtml(t.link)}">${titulo}</a>` : titulo;
   const projeto = escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto');
-  return `• ${link}\n   <i>${projeto}</i>${formatarPrazo(t.prazo, tz)}${mapeada ? '' : ' · <i>não mapeada</i>'}`;
+  return `<b>${i.idx}.</b> ${link}\n   <i>${projeto}</i>${formatarPrazo(t.prazo, tz)}${i.app ? '' : ' · <i>não mapeada</i>'}`;
 }
 
-// Uma mensagem por empresa.
-export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string): string[] {
+// Um bloco (mensagem) por empresa, com as tasks numeradas na ordem de exibição.
+export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string): BlocoEmpresa[] {
+  let idx = 0;
   return EMPRESAS.map(({ empresa, titulo }) => {
     const doGrupo = r.tasks.filter((t) => t.empresa === empresa);
     const partes: string[] = [titulo];
+    const itens: ItemResumo[] = [];
     const erro = r.erros.find((e) => (empresa === 'funifier' ? e.ferramenta === 'funifier-pm' : e.ferramenta === 'bnexo'));
     if (erro) partes.push(`⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}`);
     for (const g of GRUPOS) {
-      const ts = doGrupo.filter((t) => t.categoria === g.categoria);
-      if (ts.length) partes.push(`\n<b>${g.titulo} (${ts.length})</b>\n${ts.map((t) => linhaTask(t, cat, tz)).join('\n')}`);
+      const ts = doGrupo
+        .filter((t) => t.categoria === g.categoria)
+        .sort((a, b) => (a.prazo ?? '9999').localeCompare(b.prazo ?? '9999'));
+      if (!ts.length) continue;
+      const doG = ts.map((task) => ({ idx: ++idx, task, app: appSugerido(task, cat) }));
+      itens.push(...doG);
+      partes.push(`\n<b>${g.titulo} (${ts.length})</b>\n${doG.map((i) => linhaTask(i, tz)).join('\n')}`);
     }
     if (!erro && doGrupo.length === 0) partes.push('Nenhuma task aberta. 🎉');
-    return partes.join('\n');
+    else if (itens.some((i) => i.app)) partes.push('\nToque nas tasks que quer automatizar:');
+    return { empresa, texto: partes.join('\n'), itens };
   });
 }
 

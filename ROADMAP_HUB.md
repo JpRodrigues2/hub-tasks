@@ -128,22 +128,22 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
 - [x] Comandos do bot:
   - `/status` — mostra se o Orca e os MCPs estão acessíveis, além da fila e dos despachos em andamento;
   - `/tarefas` — dispara o resumo manualmente.
-- [ ] Testar: `/status` no Telegram responde corretamente; uma mensagem vinda de outro chat é ignorada.
-- [ ] PARAR.
+- [x] Testar: `/status` no Telegram responde corretamente; uma mensagem vinda de outro chat é ignorada.
+- [x] PARAR.
 
 ## Fase 4 — Resumo diário e seleção
-- [ ] Agendar o resumo diário com `node-cron`, no horário definido em `.env` (`RESUMO_HORARIO=09:00`, fuso `America/Sao_Paulo`). Se o computador estava desligado no horário, enviar assim que o bot iniciar (catch-up), uma vez por dia.
-- [ ] Montar o resumo:
+- [x] Agendar o resumo diário com `node-cron`, no horário definido em `.env` (`RESUMO_HORARIO=09:00`, fuso `America/Sao_Paulo`). Se o computador estava desligado no horário, enviar assim que o bot iniciar (catch-up), uma vez por dia.
+- [x] Montar o resumo:
   - uma mensagem por empresa, agrupada em atrasadas, em progresso, pendentes e backlog;
   - cada task com título curto, projeto, prazo e link;
   - tasks de projetos mapeados têm um botão que alterna ⬜/✅ (editando a própria mensagem);
   - no final, os botões "Iniciar selecionadas" e "Nenhuma hoje".
-- [ ] Para cada task selecionada, conduzir uma conversa em sequência:
+- [x] Para cada task selecionada, conduzir uma conversa em sequência:
   1. **Informação extra:** "Quer adicionar alguma informação?" O João responde em texto ou toca no botão "Pular".
   2. **Destino:** "Rodar em `<app>` (`<pasta>`)?", com os botões "Confirmar" e "Escolher outro" (que lista os apps da mesma empresa).
   3. **Somente Funifier — alvo:** listar as gamificações do app, com a padrão já marcada, com toggles para o João marcar todas as que podem ser alteradas. Exigir pelo menos uma marcada e mostrar servidor e conta de cada gamificação.
   4. **Confirmação final:** resumo de tudo com o botão "Despachar".
-- [ ] Gravar tudo no SQLite com o estado `aguardando_despacho`.
+- [x] Gravar tudo no SQLite com o estado `aguardando_despacho`.
 - [ ] Testar o fluxo inteiro com tasks reais, **sem despachar** (o despacho chega na Fase 5).
 - [ ] PARAR.
 

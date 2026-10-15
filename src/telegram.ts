@@ -1,13 +1,14 @@
 // Bot do Telegram (grammY, long polling). Só aceita o chat do João (TELEGRAM_CHAT_ID):
 // o bot controla terminais no computador, então qualquer outro chat é ignorado e registrado.
-import { Bot, type Context } from 'grammy';
+import { Bot } from 'grammy';
 import { existsSync } from 'node:fs';
 import { loadCatalogo, type Env } from './config.js';
 import { contagens, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Orca } from './orca.js';
 import type { PmAdapter } from './pm/types.js';
-import { buscarTasks, dividirMensagem, escapeHtml, montarResumo } from './resumo.js';
+import { Fluxo } from './fluxo.js';
+import { escapeHtml } from './resumo.js';
 
 export interface Deps {
   env: Env;
@@ -41,27 +42,33 @@ export function createBot(deps: Deps) {
     await ctx.reply(await montarStatus(deps), { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   });
 
+  const fluxo = new Fluxo(env, db, bot.api, adapters, orca);
+
   bot.command('tarefas', async (ctx) => {
     await ctx.reply('🔎 Buscando suas tasks no Funifier PM e no Bnexo…');
-    await enviarResumo(ctx, deps);
+    await fluxo.enviarResumo('manual');
   });
 
-  bot.on('message', (ctx) => ctx.reply('Não entendi. Use /status ou /tarefas.'));
+  bot.on('callback_query:data', async (ctx) => {
+    const [tipo, a, b, c] = ctx.callbackQuery.data.split(':');
+    let resposta = '';
+    if (tipo === 't') resposta = await fluxo.alternarItem(Number(a), Number(b));
+    else if (tipo === 'r' && (b === 'go' || b === 'none'))
+      resposta = await fluxo.finalizarResumo(Number(a), b, ctx.callbackQuery.message!.message_id);
+    else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
+    await ctx.answerCallbackQuery({ text: resposta.slice(0, 190) }).catch(() => {});
+  });
+
+  bot.on('message:text', async (ctx) => {
+    if (ctx.message.text.startsWith('/')) return ctx.reply('Comando desconhecido. Use /status ou /tarefas.');
+    if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
+  });
+
+  bot.on('message', (ctx) => ctx.reply('Por enquanto só entendo texto. Use /status ou /tarefas.'));
 
   bot.catch((err) => log.error('telegram: erro no handler', { ...errInfo(err.error), updateId: err.ctx.update.update_id }));
 
-  return bot;
-
-  async function enviarResumo(ctx: Context, d: Deps) {
-    const cat = loadCatalogo();
-    const r = await buscarTasks(adapters, db);
-    for (const msg of montarResumo(r, cat, d.env.TZ_HUB)) {
-      for (const parte of dividirMensagem(msg)) {
-        await ctx.reply(parte, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
-      }
-    }
-    log.info('resumo enviado', { tasks: r.tasks.length, erros: r.erros.length });
-  }
+  return { bot, fluxo };
 }
 
 async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> {

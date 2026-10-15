@@ -78,6 +78,33 @@ const MIGRATIONS: string[] = [
     valor  TEXT
   );
   `,
+  // 2 — resumo com seleção (Fase 4)
+  `
+  CREATE TABLE resumos (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    data       TEXT NOT NULL,                -- AAAA-MM-DD
+    origem     TEXT NOT NULL,                -- agendado | catch_up | manual
+    estado     TEXT NOT NULL,                -- aberto | iniciado | nenhuma | substituido
+    criado_em  TEXT NOT NULL
+  );
+
+  -- Tasks de um resumo; idx é o número mostrado ao João e vai no callback_data dos botões.
+  CREATE TABLE resumo_itens (
+    resumo_id    INTEGER NOT NULL REFERENCES resumos(id),
+    idx          INTEGER NOT NULL,
+    ferramenta   TEXT NOT NULL,
+    task_id      TEXT NOT NULL,
+    empresa      TEXT NOT NULL,
+    app_sugerido TEXT,                       -- null = projeto não mapeado (sem botão)
+    msg_id       INTEGER,                    -- mensagem do Telegram que tem o botão
+    selecionada  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (resumo_id, idx)
+  );
+
+  ALTER TABLE selecoes ADD COLUMN resumo_id INTEGER;
+  ALTER TABLE selecoes ADD COLUMN etapa TEXT;          -- info | destino | escolher_app | alvo | confirmar
+  ALTER TABLE selecoes ADD COLUMN msg_pergunta INTEGER; -- mensagem da pergunta atual (para tirar os botões)
+  `,
 ];
 
 export type DB = Database.Database;
