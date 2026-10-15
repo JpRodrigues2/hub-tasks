@@ -1,0 +1,196 @@
+# Catálogo de apps do hub: projeto da ferramenta → pasta → contexto → gamificações.
+# projetos_na_ferramenta usa IDs (estáveis); o nome vai no comentário.
+# Apps com projetos_na_ferramenta vazio não recebem tasks (ficam disponíveis só em "Escolher outro").
+# Gamificações: só nome, servidor e conta. NUNCA credenciais (apiKey/secretKey ficam nos projetos).
+#   O João vai preencher as gamificações conta por conta depois da última fase. Até lá, o hub
+#   NÃO despacha tasks da Funifier de apps com `gamificacoes: []` (avisa no Telegram).
+# Como adicionar um projeto novo: veja "Adicionando novos projetos ao hub" no ROADMAP_HUB.md.
+
+apps:
+  # ───────────────────────── DAC (Bnexo) ─────────────────────────
+  - app: pecas-c4
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta:
+      - "69b0abb8-8fdd-461c-bd1e-8ab404efd27b"   # BUSCA PEÇAS
+    pasta: /Users/joaopedro/Documents/DAC/pecas-c4
+    contexto: /Users/joaopedro/Documents/Contexto/apps/C4/pecas-c4/CONTEXT.md
+    sessao_resume_id: null
+
+  - app: vista
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta:
+      - "7a4b4e84-3020-4fbe-95a4-f636f9cfca4e"   # VISTA - Vistoria Veicular
+      - "08d793a7-9631-4012-ae1a-4b845b197738"   # Vista Issues
+    pasta: /Users/joaopedro/Documents/DAC/vista
+    contexto: null   # pasta Contexto/apps/C4/vista existe, mas sem CONTEXT.md
+    sessao_resume_id: null
+
+  - app: rdc-app-jhipster
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta:
+      - "e2d760e0-8ec7-4cf9-8fda-84080e5ac790"   # Evolução - Registro de Contrato
+    pasta: /Users/joaopedro/Documents/DAC/rdc-app-jhipster
+    contexto: null
+    sessao_resume_id: null
+
+  - app: rdc-app
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/DAC/rdc-app
+    contexto: null
+    sessao_resume_id: null
+
+  - app: bots
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/DAC/bots
+    contexto: null
+    sessao_resume_id: null
+
+  - app: executive-panel
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/DAC/executive-panel
+    contexto: null
+    sessao_resume_id: null
+
+  - app: lp-plugai
+    empresa: dac
+    ferramenta: bnexo
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/DAC/lp-plugai
+    contexto: null
+    sessao_resume_id: null
+
+  # ─────────────────────── FUNIFIER (Funifier PM) ───────────────────────
+  # Servidores vistos no código (referência para preencher as gamificações depois):
+  #   playdps-service.funifier.com (playdps-app), assban-service.funifier.com (assban*),
+  #   service2.funifier.com (brb-*, rota-viva, teensmart-app, moderation-text-analyzer)
+  - app: playdps-app
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "proj-mtdi8n12yfs0"   # PlayDPS Suporte
+    pasta: /Users/joaopedro/Documents/FUNIFIER/playdps-app
+    contexto: null   # pasta Contexto/apps/FUNIFIER/playdps existe, mas sem CONTEXT.md
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: assban-cursos-frontend
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "69d8f4b5d95d627e2bd7bdd8"   # Assban
+    pasta: /Users/joaopedro/Documents/FUNIFIER/assban-cursos-frontend
+    contexto: null   # pasta Contexto/apps/FUNIFIER/assban existe, mas sem CONTEXT.md
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: assban
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "69d8f4b5d95d627e2bd7bdd8"   # Assban
+    pasta: /Users/joaopedro/Documents/FUNIFIER/assban   # não é repositório git (backups/, migracao/)
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: brb-reconheca
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "6a7e02bd77a7a572bce1988d"   # Reconheça BRB
+    pasta: /Users/joaopedro/Documents/FUNIFIER/brb-reconheca
+    contexto: null   # pasta Contexto/apps/FUNIFIER/brb existe, mas sem CONTEXT.md
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: brb-contacomigo-dashboard
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "proj-mtsz38dndein"   # CONTA COMIGO BRB
+    pasta: /Users/joaopedro/Documents/FUNIFIER/brb-contacomigo-dashboard
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: rota-viva
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "6a0280e990c05316483cd7c4"   # Rota Viva
+    pasta: /Users/joaopedro/Documents/FUNIFIER/rota-viva
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: teensmart-app
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - "69f2470f90c053164823e2f4"   # Teensmart
+    pasta: /Users/joaopedro/Documents/FUNIFIER/teensmart-app
+    contexto: null   # pasta Contexto/apps/FUNIFIER/teensmart existe, mas sem CONTEXT.md
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: doc
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/FUNIFIER/doc
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: funifier-mcp
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/FUNIFIER/funifier-mcp
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: funifier-service
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/FUNIFIER/funifier-service
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: funifier-story-player
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/FUNIFIER/funifier-story-player
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+  - app: moderation-text-analyzer
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta: []
+    pasta: /Users/joaopedro/Documents/FUNIFIER/moderation-text-analyzer
+    contexto: null
+    sessao_resume_id: null
+    gamificacoes: []
+
+# Projetos das ferramentas sem pasta: aparecem no resumo, sem botão de automação.
+nao_mapeados:
+  funifier-pm:
+    - "proj-mud9xwnid7mn"           # Evolução :: Park Funifier
+    - "proj-mud9vrrdzsr8"           # Funifier Studio :: Evolução
+    - "69d7de2428fe032bb252954f"    # Plugin do Teams
+  bnexo: []
