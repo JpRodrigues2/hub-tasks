@@ -95,7 +95,7 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
 - [x] PARAR.
 
 ## Fase 2 — Catálogo de apps (`apps.yaml`)
-- [ ] Gerar um rascunho de `apps.yaml` com uma entrada por pasta de `FUNIFIER/` e `DAC/`:
+- [x] Gerar um rascunho de `apps.yaml` com uma entrada por pasta de `FUNIFIER/` e `DAC/`:
 ```yaml
 - app: brb-reconheca                     # identificador curto
   empresa: funifier                      # funifier | dac
@@ -110,10 +110,11 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
       conta: "BRB"
       padrao: true
 ```
-- [ ] Usar a listagem de projetos da Fase 1 para sugerir o casamento entre projeto da ferramenta e pasta, e, para a Funifier, o mapa de gamificações a partir dos CONTEXT.md existentes (seção "Mapa de servidores, contas e gamificações").
-- [ ] Marcar com `# TODO confirmar` tudo o que for suposição e apresentar ao João em forma de tabela para ele confirmar ou corrigir.
-- [ ] Projetos de ferramenta sem pasta correspondente ficam listados como "não mapeados". O hub vai mostrar essas tasks no resumo, mas não vai oferecer automação para elas.
-- [ ] PARAR.
+- [x] Usar a listagem de projetos da Fase 1 para sugerir o casamento entre projeto da ferramenta e pasta, e, para a Funifier, o mapa de gamificações a partir dos CONTEXT.md existentes (seção "Mapa de servidores, contas e gamificações").
+- [x] Marcar com `# TODO confirmar` tudo o que for suposição e apresentar ao João em forma de tabela para ele confirmar ou corrigir.
+- [x] Projetos de ferramenta sem pasta correspondente ficam listados como "não mapeados". O hub vai mostrar essas tasks no resumo, mas não vai oferecer automação para elas.
+- [x] Gamificações da Funifier: o João vai preencher conta por conta **depois da última fase**. Até lá, apps da Funifier com `gamificacoes: []` aparecem no resumo, mas o hub **não despacha** a task (avisa no Telegram que falta cadastrar a gamificação).
+- [x] PARAR.
 
 ## Fase 3 — Esqueleto do bot
 - [ ] Antes de começar, confirmar que o João já criou o bot no @BotFather e pedir `TELEGRAM_BOT_TOKEN`. Descobrir o `TELEGRAM_CHAT_ID` pedindo que o João mande "oi" ao bot, e gravar os dois no `.env`.
