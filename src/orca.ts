@@ -21,6 +21,8 @@ export interface OrcaTerminal {
   connected: boolean;
   writable: boolean;
   lastOutputAt?: number;
+  tabId?: string;
+  leafId?: string;
 }
 
 interface OrcaResponse<T> {
@@ -66,6 +68,12 @@ export class Orca {
     const alvo = resolve(pasta);
     const r = await this.run<{ terminals: OrcaTerminal[] }>(['terminal', 'list', '--worktree', `path:${alvo}`]);
     return r.terminals.filter((t) => t.worktreePath && resolve(t.worktreePath) === alvo);
+  }
+
+  // Estado dos agentes por pane ("tabId:leafId" → working | done | …), via worktree ps.
+  async agentStates(): Promise<Map<string, string>> {
+    const r = await this.run<{ worktrees: { agents?: { paneKey: string; state: string }[] }[] }>(['worktree', 'ps']);
+    return new Map(r.worktrees.flatMap((w) => (w.agents ?? []).map((a) => [a.paneKey, a.state] as [string, string])));
   }
 
   // Tela atual do terminal (últimas `linhas` linhas).

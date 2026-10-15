@@ -4,6 +4,7 @@ import {
   atrasada,
   prazoIso,
   EscritaBloqueadaError,
+  extrairImagens,
   htmlParaTexto,
   McpConexao,
   type Categoria,
@@ -89,6 +90,7 @@ export class BnexoAdapter implements PmAdapter {
       ...this.toTask(d.task, d.task.project_id ?? null),
       descricao: htmlParaTexto(d.task.observations),
       comentarios: [], // o bundle Essencial não tem leitura de comentários
+      imagens: extrairImagens(d.task.observations),
     };
   }
 

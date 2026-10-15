@@ -7,6 +7,7 @@ import { contagens, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Orca } from './orca.js';
 import type { PmAdapter } from './pm/types.js';
+import { Despachante } from './despacho.js';
 import { Fluxo } from './fluxo.js';
 import { escapeHtml } from './resumo.js';
 
@@ -34,7 +35,7 @@ export function createBot(deps: Deps) {
   });
 
   bot.command('start', (ctx) =>
-    ctx.reply('Hub de tasks ativo.\n\n/status — Orca, MCPs, fila e despachos\n/tarefas — resumo das tasks agora'),
+    ctx.reply('Hub de tasks ativo.\n\n/status — Orca, MCPs, fila e despachos\n/tarefas — resumo das tasks agora\n/teste <texto> — task fictícia no sandbox'),
   );
 
   bot.command('status', async (ctx) => {
@@ -43,10 +44,18 @@ export function createBot(deps: Deps) {
   });
 
   const fluxo = new Fluxo(env, db, bot.api, adapters, orca);
+  const despachante = new Despachante(env, db, bot.api, orca, adapters);
+  fluxo.onDespachar = (id) => despachante.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
     await ctx.reply('🔎 Buscando suas tasks no Funifier PM e no Bnexo…');
     await fluxo.enviarResumo('manual');
+  });
+
+  bot.command('teste', async (ctx) => {
+    const texto = ctx.match.trim();
+    if (!texto) return ctx.reply('Uso: /teste <o que o Claude deve fazer no sandbox>');
+    await fluxo.criarTeste(texto);
   });
 
   bot.on('callback_query:data', async (ctx) => {
@@ -64,11 +73,20 @@ export function createBot(deps: Deps) {
     if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
   });
 
-  bot.on('message', (ctx) => ctx.reply('Por enquanto só entendo texto. Use /status ou /tarefas.'));
+  bot.on(['message:photo', 'message:document'], async (ctx) => {
+    const m = ctx.message;
+    const foto = m.photo?.at(-1); // maior resolução
+    const fileId = foto?.file_id ?? m.document!.file_id;
+    const nome = m.document?.file_name ?? `foto-${m.message_id}.jpg`;
+    if (!(await fluxo.onAnexo(fileId, nome, m.caption)))
+      await ctx.reply('Só aceito anexos na etapa "Quer adicionar alguma informação?" de uma task.');
+  });
+
+  bot.on('message', (ctx) => ctx.reply('Não entendi. Use /status ou /tarefas.'));
 
   bot.catch((err) => log.error('telegram: erro no handler', { ...errInfo(err.error), updateId: err.ctx.update.update_id }));
 
-  return { bot, fluxo };
+  return { bot, fluxo, despachante };
 }
 
 async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> {

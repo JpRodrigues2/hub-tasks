@@ -14,7 +14,10 @@ const db = openDb();
 const orca = new Orca(env.ORCA_BIN);
 const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
 
-const { bot, fluxo } = createBot({ env, db, orca, adapters });
+const { bot, fluxo, despachante } = createBot({ env, db, orca, adapters });
+
+// Despacho: fila por app, a cada 30 s (e imediatamente após cada "Despachar").
+setInterval(() => void despachante.processar(), 30_000);
 
 // Resumo diário no horário configurado + verificação a cada 5 min para catch-up
 // (computador desligado/dormindo no horário). Ambos são idempotentes por dia.
@@ -25,6 +28,7 @@ cron.schedule('*/5 * * * *', () => fluxo.talvezResumoDiario('catch_up'), { timez
 await bot.api.setMyCommands([
   { command: 'status', description: 'Orca, MCPs, fila e despachos' },
   { command: 'tarefas', description: 'Resumo das tasks agora' },
+  { command: 'teste', description: 'Task fictícia no sandbox: /teste <texto>' },
 ]);
 
 async function parar(sinal: string) {
@@ -42,5 +46,6 @@ await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });
     void fluxo.talvezResumoDiario('catch_up');
+    void despachante.processar();
   },
 });

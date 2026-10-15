@@ -32,7 +32,7 @@ const GamificacaoSchema = z.object({
 const AppSchema = z.object({
   app: z.string().regex(/^[a-z0-9._-]+$/),
   empresa: z.enum(['funifier', 'dac']),
-  ferramenta: z.enum(['funifier-pm', 'bnexo']),
+  ferramenta: z.enum(['funifier-pm', 'bnexo', 'teste']), // teste = tasks fictícias (sandbox)
   projetos_na_ferramenta: z.array(z.string()).default([]),
   pasta: z.string().startsWith('/'),
   contexto: z.string().nullable().default(null),
