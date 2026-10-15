@@ -19,6 +19,11 @@ const EnvSchema = z.object({
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
   // Trava de segurança: enquanto for false, o hub não muda status nem comenta nas ferramentas de gestão.
   HUB_ESCRITA_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // Se definido (IDs separados por vírgula), a escrita vale SÓ para essas tasks — para testar com tasks aprovadas.
+  HUB_ESCRITA_PM_SOMENTE: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean) : null)),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

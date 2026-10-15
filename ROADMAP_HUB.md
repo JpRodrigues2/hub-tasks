@@ -175,17 +175,19 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
 - [ ] PARAR.
 
 ## Fase 6 — Acompanhamento e fechamento
-- [ ] Monitorar cada despacho em andamento com ciclos de `orca terminal wait --for tui-idle` (com timeout), seguidos de leitura da tela:
+- [x] Monitorar cada despacho em andamento com ciclos de `orca terminal wait --for tui-idle` (com timeout), seguidos de leitura da tela:
   - **apareceu `### RESULTADO HUB`:** extrair o resultado;
   - **ficou ocioso sem o bloco:** a sessão está esperando o João (pergunta ou permissão). Avisar no Telegram com as últimas linhas da tela: "A task X precisa de você no Orca", sem repetir o mesmo aviso mais de uma vez a cada 15 min;
   - **a tela mostra limite de uso da conta do Claude:** avisar no Telegram que a task está pausada até o João trocar de conta no Orca;
   - **o terminal sumiu (Orca reiniciou):** redescobrir pela pasta e, se não achar, marcar como `interrompido` e avisar.
-- [ ] Ao concluir, com base no status do bloco de resultado:
+- [x] Ao concluir, com base no status do bloco de resultado:
   - `orca worktree set --worktree path:<pasta> --workspace-status in-review --comment "<resumo>" --unread --json`;
   - na ferramenta de gestão: mudar a task para o status equivalente a "em revisão" (**nunca** "concluída" automaticamente) e comentar o resumo e a branch/PR;
   - no Telegram: mandar o resumo com o resultado e o link da task;
   - liberar a fila do app.
-- [ ] Testar no `sandbox` e depois com **uma** task real de baixo risco escolhida pelo João.
+- [x] Testar no `sandbox`: conclusão normal, pergunta ao João (aviso + retomada), comando longo em segundo plano (sem falso alarme) e terminal fechado (interrompido).
+- [ ] Testar com **uma** task real de baixo risco escolhida pelo João (liberar com `HUB_ESCRITA_PM=true` + `HUB_ESCRITA_PM_SOMENTE=<id da task>`).
+- Obs.: o `orca worktree set` desta versão do Orca não tem `--unread`; o hub marca `in-review` com comentário.
 - [ ] PARAR.
 
 ## Fase 7 — Rodar sempre, sozinho
