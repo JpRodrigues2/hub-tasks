@@ -1,4 +1,5 @@
-// Limpeza de runs/ (prompts, anexos e credenciais por task). Nunca toca em task em andamento.
+// Limpeza de runs/: só os prompts .md (runs/<id>.md e runs/<id>-<rodada>.md). Pastas de anexos e
+// credenciais por task ficam; o cofre data/segredos/ nunca é tocado. Nunca mexe em task em andamento.
 //   automática (B11): tasks encerradas há mais de 30 dias, todo dia às 04:00;
 //   manual (/limpar_runs): só as concluídas, ou todas menos as em andamento.
 // O histórico no banco continua.
@@ -22,10 +23,9 @@ export function limparRuns(db: DB) {
   );
   let apagados = 0;
   for (const nome of readdirSync(RUNS_DIR)) {
-    // runs/<id>.md, runs/<id>-<rodada>.md e a pasta de anexos runs/<id>/
-    const id = nome.match(/^(\d+)(?:-\d+)?(?:\.md)?$/)?.[1];
+    const id = nome.match(/^(\d+)(?:-\d+)?\.md$/)?.[1];
     if (!id || !ids.has(id)) continue;
-    rmSync(join(RUNS_DIR, nome), { recursive: true, force: true });
+    rmSync(join(RUNS_DIR, nome), { force: true });
     apagados++;
   }
   if (apagados) log.info('limpeza: runs apagados', { apagados, dias: DIAS });
@@ -58,10 +58,10 @@ export function limparRunsManual(db: DB, modo: 'concluidas' | 'todas') {
   );
   let apagados = 0;
   for (const nome of readdirSync(RUNS_DIR)) {
-    const id = nome.match(/^(\d+)(?:-\d+)?(?:\.md)?$/)?.[1];
+    const id = nome.match(/^(\d+)(?:-\d+)?\.md$/)?.[1];
     if (!id || ativos.has(id)) continue;
     if (modo === 'concluidas' && !concluidas.has(id)) continue;
-    rmSync(join(RUNS_DIR, nome), { recursive: true, force: true });
+    rmSync(join(RUNS_DIR, nome), { force: true });
     apagados++;
   }
   log.info('limpeza: runs (manual)', { modo, apagados, emAndamento: ativos.size });
