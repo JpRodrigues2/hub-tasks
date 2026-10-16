@@ -36,7 +36,8 @@ const CATEGORIA: Record<string, Categoria> = {
   cancelled: 'cancelada',
 };
 
-const STATUS: Record<StatusHub, string> = { em_progresso: 'in_progress', em_revisao: 'in_validation' };
+// Concluir via update_task(status: completed) — nunca complete_task.
+const STATUS: Record<StatusHub, string> = { em_progresso: 'in_progress', em_revisao: 'in_validation', concluida: 'completed' };
 
 export class BnexoAdapter implements PmAdapter {
   readonly nome = 'bnexo' as const;
@@ -101,7 +102,7 @@ export class BnexoAdapter implements PmAdapter {
   }
 
   async comment(id: string, texto: string) {
-    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_task_comment ${id}`);
+    if (!this.env.HUB_COMENTARIOS_PM || !escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_task_comment ${id}`);
     await this.mcp.call('add_task_comment', { task_id: id, content: texto });
   }
 

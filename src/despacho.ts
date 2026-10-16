@@ -15,7 +15,9 @@ import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import { OrcaError, type Orca, type OrcaTerminal } from './orca.js';
 import type { PmAdapter, TaskDetalhe } from './pm/types.js';
-import { baixarImagens, branchDe, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada } from './prompt.js';
+import { vincular, comVinculo } from './mensagens.js';
+import { baixarImagens, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada } from './prompt.js';
+import { ICONE, campo, cartao, curto, esc } from './msg.js';
 import { escapeHtml } from './resumo.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
@@ -75,6 +77,12 @@ export function extrairResultado(tela: string, tag: string): Record<string, stri
   return campos;
 }
 
+// runs/12.md em vez do caminho absoluto, para caber na mensagem.
+function relativo(arquivo: string) {
+  const i = arquivo.lastIndexOf('/runs/');
+  return i >= 0 ? arquivo.slice(i + 1) : arquivo;
+}
+
 function dormir(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -88,17 +96,6 @@ export function ultimasLinhas(tela: string, n = 14) {
     .slice(-n)
     .map((l) => (l.length > 110 ? l.slice(0, 109) + '…' : l))
     .join('\n');
-}
-
-export function textoComentario(r: Record<string, string>, rodada = 1) {
-  return [
-    `🤖 Hub de automação (Claude Code)${rodada > 1 ? ` — rodada ${rodada}` : ''}`,
-    `Resultado: ${r.status}`,
-    `Resumo: ${r.resumo ?? '-'}`,
-    `Branch/PR: ${r.branch ?? '-'}`,
-    `Arquivos: ${r.arquivos ?? '-'}`,
-    `Pendências: ${r.pendencias ?? 'nenhuma'}`,
-  ].join('\n');
 }
 
 // Há sessão anterior do Claude nessa pasta? (para decidir entre `claude -c` e `claude`)
@@ -137,19 +134,25 @@ interface Seguimento {
   instrucao?: string;
   base?: string;
   remoto?: string | null;
-  branch: string;
+  branch: string | null;
+  novaBranch?: string;
 }
+
+// Ferramentas de gestão reais (avulsa e teste não têm task para atualizar).
+const FERRAMENTA_REAL = new Set(['funifier-pm', 'bnexo']);
+const NOME_FERRAMENTA: Record<string, string> = { 'funifier-pm': 'Funifier PM', bnexo: 'Bnexo' };
 
 // Conversa curta depois da conclusão (guardada em meta.pos_conversa): esperando texto da instrução,
 // a branch base do PR ou a confirmação do PR.
 interface PosConversa {
   despachoId: number;
-  tipo: 'instrucao' | 'pr_base' | 'pr_confirmar';
+  tipo: 'instrucao' | 'pr_base' | 'pr_confirmar' | 'pr_branch' | 'encerrar';
   msgId?: number;
   bases?: string[];
   base?: string;
   remoto?: string | null;
-  branch?: string;
+  branch?: string | null;
+  novaBranch?: string;
 }
 
 const BASES_PREFERIDAS = ['main', 'master', 'develop', 'development', 'dev', 'homolog', 'homologacao', 'staging', 'release'];
@@ -206,7 +209,7 @@ export class Despachante {
       const apps = this.db.prepare('SELECT DISTINCT app FROM fila ORDER BY id').all() as { app: string }[];
       for (const { app } of apps) {
         try {
-          await this.processarApp(app);
+          await comVinculo({}, () => this.processarApp(app));
         } catch (e) {
           log.error('despacho: falha ao processar app', { app, ...errInfo(e) });
         }
@@ -262,16 +265,26 @@ export class Despachante {
     const sel = this.db.prepare('SELECT * FROM selecoes WHERE id = ?').get(fila.selecao_id) as Selecao;
     const app = loadCatalogo().apps.find((a) => a.app === nomeApp);
     const titulo = this.tituloDe(sel);
+    vincular({ selecaoId: sel.id });
 
     if (!app) {
-      return this.avisar(sel, 'app_inexistente', `⚠️ <b>${escapeHtml(titulo)}</b>: o app "${escapeHtml(nomeApp)}" não existe mais no apps.yaml.`);
+      return this.avisar(
+        sel,
+        'app_inexistente',
+        cartao({ icone: ICONE.falha, titulo: this.tituloHtml(sel), contexto: [esc(nomeApp), 'app não existe mais no apps.yaml'] }),
+      );
     }
     const gamifs = JSON.parse(sel.gamificacoes ?? '[]') as Gamificacao[];
     if (app.empresa === 'funifier' && !gamifs.length) {
       return this.avisar(
         sel,
         'sem_gamificacao',
-        `⛔ <b>${escapeHtml(titulo)}</b> não foi despachada: o app <b>${escapeHtml(app.app)}</b> não tem gamificação autorizada.\nCadastre no apps.yaml e refaça a seleção.`,
+        cartao({
+          icone: ICONE.bloqueado,
+          titulo: this.tituloHtml(sel),
+          contexto: [esc(app.app), 'sem gamificação autorizada'],
+          rodape: 'Cadastre no apps.yaml e selecione a task de novo.',
+        }),
       );
     }
 
@@ -285,6 +298,7 @@ export class Despachante {
     const arquivo = escreverPrompt({
       selecaoId: sel.id,
       task,
+      avulsa: !FERRAMENTA_REAL.has(sel.ferramenta),
       infoExtra: sel.info_extra,
       app,
       gamificacoes: gamifs,
@@ -294,7 +308,7 @@ export class Despachante {
 
     // Confere de novo logo antes de enviar (o João pode ter começado a usar a sessão).
     if ((await this.estadoDoHandle(alvo.handle, app.pasta)).estado !== 'ocioso') {
-      return this.avisar(sel, 'fila_ocupado', `⏳ <b>${escapeHtml(titulo)}</b> está na fila de <b>${escapeHtml(app.app)}</b>: a sessão ficou ocupada.`);
+      return this.avisar(sel, 'fila_ocupado', cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), 'na fila: a sessão ficou ocupada'] }));
     }
     await this.orca.send(alvo.handle, linhaDespacho(arquivo));
 
@@ -313,12 +327,38 @@ export class Despachante {
       return id;
     })();
     log.info('despacho: enviado', { despachoId, selecaoId: sel.id, app: app.app, terminal: alvo.handle });
+    // 4. Ferramenta de gestão: task "em progresso" (B01). Só status, nunca comentário.
+    const status = await this.moverStatus(sel, 'em_progresso');
+    const anexos = task.imagens.length + (JSON.parse(sel.anexos ?? '[]') as string[]).length;
     await this.enviar(
-      `🚀 <b>${escapeHtml(titulo)}</b> despachada para <b>${escapeHtml(app.app)}</b>${task.imagens.length || sel.anexos ? ' (com imagens/anexos)' : ''}.\nPrompt: <code>${escapeHtml(arquivo)}</code>`,
+      cartao({
+        icone: ICONE.rodando,
+        titulo: this.tituloHtml(sel),
+        contexto: [esc(app.app), 'rodando', status],
+        corpo: [campo('Prompt', `<code>${esc(relativo(arquivo))}</code>`), anexos ? campo('Anexos', String(anexos)) : null],
+      }),
     );
 
-    // 4. Acompanhamento até o RESULTADO HUB.
+    // 5. Acompanhamento até o RESULTADO HUB.
     this.monitorar(despachoId);
+  }
+
+  // Muda o status na ferramenta de gestão. Devolve um trecho para o contexto da mensagem (null = sem ferramenta).
+  private async moverStatus(sel: Selecao, status: 'em_progresso' | 'concluida'): Promise<string | null> {
+    if (!FERRAMENTA_REAL.has(sel.ferramenta)) return null;
+    const rotulo = status === 'concluida' ? 'concluída' : 'em progresso';
+    const ferramenta = NOME_FERRAMENTA[sel.ferramenta];
+    try {
+      const adapter = this.adapters.find((a) => a.nome === sel.ferramenta);
+      if (!adapter) throw new Error(`sem adaptador para ${sel.ferramenta}`);
+      await adapter.setStatus(sel.task_id, status);
+      log.info('ferramenta de gestão: status', { selecaoId: sel.id, status });
+      return `${ferramenta}: ${rotulo}`;
+    } catch (e) {
+      log.warn('ferramenta de gestão: falha ao mudar status', { selecaoId: sel.id, status, ...errInfo(e) });
+      const bloqueada = (e as Error).name === 'EscritaBloqueadaError';
+      return `${ICONE.aviso} ${ferramenta} não mudou para ${rotulo} (${bloqueada ? 'escrita desligada' : esc(curto((e as Error).message, 80))})`;
+    }
   }
 
   // Sessão do Claude ociosa na pasta (preferindo `preferida`); se não houver nenhuma, abre uma. null = avisou e espera.
@@ -329,9 +369,8 @@ export class Despachante {
     if (alvo) return alvo;
     if (sessoes.length) {
       const e = sessoes[0].estado;
-      const motivo =
-        e === 'limite' ? 'a conta do Claude atingiu o limite de uso' : e === 'aguardando' ? 'a sessão está esperando você' : 'a sessão está ocupada';
-      await this.avisar(sel, `fila_${e}`, `⏳ <b>${escapeHtml(titulo)}</b> está na fila de <b>${escapeHtml(app.app)}</b>: ${motivo} no Orca.`);
+      const motivo = e === 'limite' ? 'conta no limite de uso' : e === 'aguardando' ? 'a sessão está esperando você' : 'a sessão está ocupada';
+      await this.avisar(sel, `fila_${e}`, cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), `na fila: ${motivo}`] }));
       return null;
     }
     return this.abrirSessao(app, sel, titulo);
@@ -345,7 +384,7 @@ export class Despachante {
         : 'claude';
     const comando = `${base} --permission-mode ${this.env.HUB_CLAUDE_PERMISSAO}`;
     if (!/^claude( -c| --resume [A-Za-z0-9-]+)? --permission-mode [A-Za-z]+$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
-    await this.enviar(`🖥️ Abrindo sessão do Claude em <b>${escapeHtml(app.app)}</b> (<code>${escapeHtml(comando)}</code>)…`);
+    await this.enviar(cartao({ icone: ICONE.sessao, titulo: `Abrindo sessão em ${esc(app.app)}`, contexto: [`<code>${esc(comando)}</code>`] }));
     const handle = await this.orca.createTerminal(app.pasta, comando, `hub #${sel.id}`);
     log.info('despacho: sessão aberta', { app: app.app, handle, comando });
 
@@ -364,29 +403,40 @@ export class Despachante {
       sel,
       `nova_sessao_${estado}`,
       estado === 'aguardando'
-        ? `🙋 Abri o Claude em <b>${escapeHtml(app.app)}</b>, mas ele está pedindo algo (ex.: confiar na pasta). Responda no Orca; a task <b>${escapeHtml(titulo)}</b> segue na fila.`
-        : `⚠️ Abri o Claude em <b>${escapeHtml(app.app)}</b>, mas ele não ficou pronto (${estado}). A task <b>${escapeHtml(titulo)}</b> segue na fila.`,
+        ? cartao({
+            icone: ICONE.voce,
+            titulo: `Sessão nova em ${esc(app.app)} pede algo`,
+            contexto: [esc(curto(titulo, 60)), 'na fila'],
+            rodape: 'Responda no Orca (ex.: confiar na pasta); depois a task segue.',
+          })
+        : cartao({
+            icone: ICONE.aviso,
+            titulo: `Sessão nova em ${esc(app.app)} não ficou pronta`,
+            contexto: [esc(curto(titulo, 60)), 'na fila'],
+            rodape: 'Tento de novo em instantes.',
+          }),
     );
     return null;
   }
 
   private async detalheDaTask(sel: Selecao): Promise<TaskDetalhe> {
-    if (sel.ferramenta === 'teste') {
-      const v = this.db.prepare("SELECT titulo FROM tasks_vistas WHERE ferramenta = 'teste' AND task_id = ?").get(sel.task_id) as {
-        titulo: string;
-      };
+    if (!FERRAMENTA_REAL.has(sel.ferramenta)) {
+      // Atividade avulsa (/nova) ou task fictícia: o texto do João é a descrição.
+      const v = this.db
+        .prepare('SELECT titulo, descricao, empresa FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
+        .get(sel.ferramenta, sel.task_id) as { titulo: string; descricao: string | null; empresa: 'funifier' | 'dac' };
       return {
         ferramenta: 'bnexo',
-        empresa: 'dac',
+        empresa: v.empresa,
         id: sel.task_id,
         titulo: v.titulo,
         projetoId: null,
-        projetoNome: 'sandbox (task fictícia)',
-        status: 'teste',
+        projetoNome: null,
+        status: sel.ferramenta,
         categoria: 'em_progresso',
         prazo: null,
         link: null,
-        descricao: v.titulo,
+        descricao: v.descricao ?? v.titulo,
         comentarios: [],
         imagens: [],
       };
@@ -419,7 +469,8 @@ export class Despachante {
     if (this.monitorados.has(despachoId)) return;
     this.monitorados.add(despachoId);
     log.info('monitor: iniciado', { despachoId });
-    void this.laco(despachoId)
+    const selecaoId = this.getDespacho(despachoId)?.selecao_id;
+    void comVinculo({ selecaoId }, () => this.laco(despachoId))
       .catch((e) => log.error('monitor: laço abortado', { despachoId, ...errInfo(e) }))
       .finally(() => this.monitorados.delete(despachoId));
   }
@@ -465,13 +516,18 @@ export class Despachante {
         return;
       }
 
-      const titulo = this.tituloDe(this.getSelecaoDe(d));
+      const nome = this.tituloHtml(this.getSelecaoDe(d));
       if (leitura.estado === 'limite') {
         this.mudarEstado(d, 'pausado_limite');
         await this.avisarDespacho(
           d,
           'limite',
-          `⏸️ <b>${escapeHtml(titulo)}</b> está pausada em <b>${escapeHtml(d.app)}</b>: a conta do Claude atingiu o limite de uso.\nTroque de conta no Orca; o hub continua sozinho quando a sessão voltar a trabalhar.`,
+          cartao({
+            icone: ICONE.pausa,
+            titulo: nome,
+            contexto: [esc(d.app), 'pausada: conta no limite de uso'],
+            rodape: 'Troque de conta no Orca; eu retomo sozinho quando a sessão voltar a trabalhar.',
+          }),
         );
         await dormir(60_000);
       } else {
@@ -479,7 +535,12 @@ export class Despachante {
         await this.avisarDespacho(
           d,
           'joao',
-          `🙋 <b>${escapeHtml(titulo)}</b> precisa de você no Orca (<b>${escapeHtml(d.app)}</b>):\n<pre>${escapeHtml(ultimasLinhas(leitura.tela))}</pre>`,
+          cartao({
+            icone: ICONE.voce,
+            titulo: nome,
+            contexto: [esc(d.app), 'precisa de você no Orca'],
+            corpo: [`<pre>${esc(ultimasLinhas(leitura.tela))}</pre>`],
+          }),
         );
         await dormir(30_000);
       }
@@ -551,7 +612,12 @@ export class Despachante {
     this.falhasTerminal.delete(d.id);
     log.warn('monitor: despacho interrompido', { despachoId: d.id });
     await this.enviar(
-      `💥 <b>${escapeHtml(titulo)}</b> foi <b>interrompida</b>: o terminal do Claude em ${escapeHtml(d.app)} sumiu (o Orca reiniciou ou a aba foi fechada).\nVeja o que ficou feito na branch e selecione a task de novo se precisar.`,
+      cartao({
+        icone: ICONE.falha,
+        titulo: this.tituloHtml(sel),
+        contexto: [esc(d.app), 'interrompida: o terminal sumiu'],
+        rodape: 'O Orca reiniciou ou a aba foi fechada. Veja o que ficou na branch e selecione a task de novo se precisar.',
+      }),
     );
     void this.processar();
     return 'interrompido';
@@ -574,28 +640,14 @@ export class Despachante {
     // 1. Orca: worktree "em revisão" com o resumo.
     try {
       await this.orca.setWorktreeStatus(d.pasta, 'in-review', `hub #${sel.id} (${r.status}): ${r.resumo ?? ''}`.slice(0, 500));
-      notas.push('🟣 Orca: worktree em revisão');
+      // sucesso não precisa de linha própria
     } catch (e) {
-      notas.push(`⚠️ Orca: não marquei em revisão (${escapeHtml((e as Error).message)})`);
+      notas.push(`${ICONE.aviso} Orca: não marquei em revisão (${esc(curto((e as Error).message, 80))})`);
       log.warn('fechamento: falha no Orca', { despachoId: d.id, ...errInfo(e) });
     }
 
-    // 2. Ferramenta de gestão: status "em revisão" (NUNCA "concluída") + comentário com o resultado.
-    if (sel.ferramenta !== 'teste') {
-      const adapter = this.adapters.find((a) => a.nome === sel.ferramenta);
-      try {
-        if (!adapter) throw new Error(`sem adaptador para ${sel.ferramenta}`);
-        await adapter.comment(sel.task_id, textoComentario(r, d.rodada));
-        if (r.status !== 'bloqueado') {
-          await adapter.setStatus(sel.task_id, 'em_revisao');
-          notas.push('📋 Task movida para "em revisão" e comentada');
-        } else notas.push('📋 Task comentada (status mantido: bloqueada)');
-      } catch (e) {
-        const bloqueada = (e as Error).name === 'EscritaBloqueadaError';
-        notas.push(bloqueada ? '🔒 Ferramenta de gestão não atualizada (escrita desligada)' : `⚠️ Ferramenta de gestão: ${escapeHtml((e as Error).message)}`);
-        log.warn('fechamento: ferramenta de gestão', { despachoId: d.id, ...errInfo(e) });
-      }
-    }
+    // 2. Ferramenta de gestão: nada. A task continua "em progresso" até o João encerrar (B03/B04);
+    //    comentário só com comando explícito dele (B02).
 
     // 3. Banco + histórico.
     const agora = new Date().toISOString();
@@ -609,35 +661,38 @@ export class Despachante {
     log.info('fechamento: concluído', { despachoId: d.id, status: r.status });
 
     // 4. Telegram.
-    const icone = r.status === 'concluido' ? '✅' : r.status === 'bloqueado' ? '⛔' : '🔍';
-    const nome = link ? `<a href="${escapeHtml(link)}">${escapeHtml(titulo)}</a>` : escapeHtml(titulo);
-    const rodada = d.rodada > 1 ? ` (rodada ${d.rodada})` : '';
-    const linhas = [`${icone} <b>${nome}</b>${rodada} — ${escapeHtml(d.app)}: <b>${escapeHtml(r.status)}</b>`, '', escapeHtml(r.resumo ?? '')];
-    if (r.arquivos) linhas.push(`📄 ${escapeHtml(r.arquivos)}`);
-    if (r.branch) linhas.push(`🌿 ${escapeHtml(r.branch)}`);
-    if (r.pendencias && !/^nenhuma/i.test(r.pendencias)) linhas.push(`📌 ${escapeHtml(r.pendencias)}`);
-    linhas.push('', ...notas);
-    linhas.push(
-      '',
-      '<b>Próximos passos:</b> revise a branch no Orca e escolha abaixo — mandar outra instrução para a mesma sessão, abrir o PR (eu pergunto a branch de destino) ou encerrar.',
-    );
-    const kb = new InlineKeyboard()
-      .text('💬 Dar instrução', `f:${d.id}:i`)
-      .text('🔀 Abrir PR', `f:${d.id}:pr`)
-      .row()
-      .text('✅ Encerrar', `f:${d.id}:x`);
+    const icone = r.status === 'concluido' ? ICONE.ok : r.status === 'bloqueado' ? ICONE.bloqueado : ICONE.revisao;
+    const estado = { concluido: 'concluída', bloqueado: 'bloqueada', precisa_revisao: 'precisa de revisão' }[r.status] ?? r.status;
+    const pendencias = r.pendencias && !/^nenhuma/i.test(r.pendencias) ? r.pendencias : null;
     const m = await this.api
-      .sendMessage(this.chatId, linhas.join('\n'), { ...HTML, reply_markup: kb })
+      .sendMessage(
+        this.chatId,
+        cartao({
+          icone,
+          titulo: this.tituloHtml(sel),
+          contexto: [esc(d.app), estado, d.rodada > 1 ? `rodada ${d.rodada}` : null],
+          corpo: [
+            esc(r.resumo ?? ''),
+            '',
+            r.arquivos ? campo('Arquivos', esc(r.arquivos)) : null,
+            r.branch ? campo('Branch', `<code>${esc(r.branch)}</code>`) : null,
+            pendencias ? campo('Pendências', esc(pendencias)) : null,
+            ...notas,
+          ],
+          rodape: 'Revise no Orca e escolha o próximo passo.',
+        }),
+        { ...HTML, reply_markup: this.tecladoFechamento(d.id) },
+      )
       .catch((e) => log.error('despacho: falha no Telegram', errInfo(e)));
     if (m) this.db.prepare('UPDATE despachos SET msg_fechamento = ? WHERE id = ?').run(m.message_id, d.id);
   }
 
   // ─────────────────────────── próximos passos (depois da conclusão) ───────────────────────────
   //
-  // callback_data  f:<despacho>:i | pr | x | b:<idx> | ok | no
+  // callback_data  f:<despacho>:i | pr | x | b:<idx> | bn | ok | xs | xn | no
   //   💬 i  → espera um texto do João e manda como continuação para a mesma sessão (rodada N+1)
-  //   🔀 pr → pergunta a branch base, mostra repositório/branch/base para confirmar, e pede o PR ao Claude
-  //   ✅ x  → encerra o ciclo
+  //   🔀 pr → pergunta a branch base (b), opcionalmente o nome da branch (bn), confirma (ok) e pede o PR ao Claude
+  //   ✅ x  → encerra o ciclo; com ferramenta de gestão, pergunta se marca a task como concluída (xs) ou não (xn)
 
   private conversa(): PosConversa | null {
     const v = getMeta(this.db, 'pos_conversa');
@@ -654,19 +709,19 @@ export class Despachante {
     return new InlineKeyboard().text('💬 Dar instrução', `f:${id}:i`).text('🔀 Abrir PR', `f:${id}:pr`).row().text('✅ Encerrar', `f:${id}:x`);
   }
 
-  // Branch de trabalho da task: a última citada nos resultados (que não seja URL de PR) ou a padrão do hub.
-  private branchDaTask(d: Despacho, sel: Selecao): string {
-    const resultados = [d.resultado, ...(
+  // Branch de trabalho da task: a última citada nos resultados que não seja URL de PR. null = a sessão não informou.
+  private branchDaTask(d: Despacho, sel: Selecao): string | null {
+    const anteriores = (
       this.db
         .prepare('SELECT branch FROM historico WHERE ferramenta = ? AND task_id = ? AND branch IS NOT NULL ORDER BY id DESC')
         .all(sel.ferramenta, sel.task_id) as { branch: string }[]
-    ).map((h) => JSON.stringify({ branch: h.branch }))];
-    for (const r of resultados) {
-      const b = r ? ((JSON.parse(r) as Record<string, string>).branch ?? '') : '';
-      const nome = b.split(/[\s,]+/).find((t) => t && !t.includes('://') && /^[\w./-]+$/.test(t));
+    ).map((h) => h.branch);
+    const atual = d.resultado ? (JSON.parse(d.resultado) as Record<string, string>).branch : undefined;
+    for (const b of [atual, ...anteriores]) {
+      const nome = (b ?? '').split(/[\s,()]+/).find((t) => t && !t.includes('://') && /^[\w./-]+$/.test(t) && !t.startsWith('-'));
       if (nome) return nome;
     }
-    return branchDe(sel.id, this.tituloDe(sel));
+    return null;
   }
 
   // /continuar: reenvia os botões de próximos passos das últimas tasks concluídas.
@@ -674,14 +729,17 @@ export class Despachante {
     const ds = this.db
       .prepare("SELECT * FROM despachos WHERE estado = 'concluido' ORDER BY atualizado_em DESC LIMIT 5")
       .all() as (Despacho & { estado: string })[];
-    if (!ds.length) return this.enviar('Nenhuma task concluída para continuar.');
+    if (!ds.length) return this.enviar(cartao({ icone: ICONE.ok, titulo: 'Nada esperando próximos passos' }));
     for (const d of ds) {
       const sel = this.getSelecaoDe(d);
+      vincular({ selecaoId: sel.id });
       const r = JSON.parse(d.resultado ?? '{}') as Record<string, string>;
       if (d.msg_fechamento) await this.api.editMessageReplyMarkup(this.chatId, d.msg_fechamento).catch(() => {});
+      const branch = this.branchDaTask(d, sel);
+      const icone = r.status === 'concluido' ? ICONE.ok : r.status === 'bloqueado' ? ICONE.bloqueado : ICONE.revisao;
       const m = await this.api.sendMessage(
         this.chatId,
-        `<b>${escapeHtml(this.tituloDe(sel))}</b> — ${escapeHtml(d.app)}: <b>${escapeHtml(r.status ?? '?')}</b>\n🌿 ${escapeHtml(this.branchDaTask(d, sel))}`,
+        cartao({ icone, titulo: this.tituloHtml(sel), contexto: [esc(d.app), branch ? `<code>${esc(branch)}</code>` : null] }),
         { ...HTML, reply_markup: this.tecladoFechamento(d.id) },
       );
       this.db.prepare('UPDATE despachos SET msg_fechamento = ? WHERE id = ?').run(m.message_id, d.id);
@@ -693,24 +751,43 @@ export class Despachante {
     const d = this.getDespacho(despachoId);
     if (!d) return 'Despacho não encontrado.';
     const sel = this.getSelecaoDe(d);
+    vincular({ selecaoId: sel.id });
     const titulo = this.tituloDe(sel);
     const conv = this.conversa();
+    const kbCancelar = new InlineKeyboard().text('✖ Cancelar', `f:${d.id}:no`);
 
     if (acao === 'i' || acao === 'pr' || acao === 'x') {
       if (d.estado !== 'concluido' || d.msg_fechamento !== msgId) return 'Esses botões já foram usados.';
       await this.api.editMessageReplyMarkup(this.chatId, msgId).catch(() => {});
       if (acao === 'x') {
-        await this.setConversa(conv?.despachoId === d.id ? null : conv);
-        this.db.prepare('UPDATE despachos SET msg_fechamento = NULL WHERE id = ?').run(d.id);
-        await this.enviar(`✅ <b>${escapeHtml(titulo)}</b>: ciclo encerrado.`);
-        return 'Encerrado';
+        if (!FERRAMENTA_REAL.has(sel.ferramenta)) {
+          await this.encerrar(d, sel, false);
+          return 'Encerrado';
+        }
+        const m = await this.api.sendMessage(
+          this.chatId,
+          cartao({ icone: ICONE.pergunta, titulo: `Marcar como concluída no ${NOME_FERRAMENTA[sel.ferramenta]}?`, contexto: [this.tituloHtml(sel), 'encerrar'] }),
+          {
+            ...HTML,
+            reply_markup: new InlineKeyboard()
+              .text('✔ Sim, concluir a task', `f:${d.id}:xs`)
+              .row()
+              .text('Não, só encerrar', `f:${d.id}:xn`)
+              .text('✖ Cancelar', `f:${d.id}:no`),
+          },
+        );
+        await this.setConversa({ despachoId: d.id, tipo: 'encerrar', msgId: m.message_id });
+        return 'Concluir a task?';
       }
-      const kbCancelar = new InlineKeyboard().text('✖ Cancelar', `f:${d.id}:no`);
       if (acao === 'i') {
         const m = await this.api.sendMessage(
           this.chatId,
-          `💬 Mande a instrução para <b>${escapeHtml(titulo)}</b> numa mensagem de texto.
-Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho até o novo resultado.`,
+          cartao({
+            icone: ICONE.pergunta,
+            titulo: 'Qual a instrução?',
+            contexto: [this.tituloHtml(sel), esc(d.app)],
+            rodape: 'Mande em texto. Vai para a mesma sessão e eu acompanho até o novo resultado.',
+          }),
           { ...HTML, reply_markup: kbCancelar },
         );
         await this.setConversa({ despachoId: d.id, tipo: 'instrucao', msgId: m.message_id });
@@ -726,9 +803,12 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
       kb.row().text('✖ Cancelar', `f:${d.id}:no`);
       const m = await this.api.sendMessage(
         this.chatId,
-        `🔀 Para qual branch o PR de <b>${escapeHtml(titulo)}</b> deve ir?
-` +
-          (bases.length ? 'Toque numa das opções ou escreva o nome da branch.' : 'Escreva o nome da branch base (não achei as usuais no origin).'),
+        cartao({
+          icone: ICONE.pergunta,
+          titulo: 'PR para qual branch?',
+          contexto: [this.tituloHtml(sel), esc(d.app)],
+          rodape: bases.length ? 'Toque numa opção ou escreva o nome.' : 'Escreva o nome (não achei as branches usuais no origin).',
+        }),
         { ...HTML, reply_markup: kb },
       );
       await this.setConversa({ despachoId: d.id, tipo: 'pr_base', msgId: m.message_id, bases });
@@ -740,8 +820,13 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
       await this.setConversa(null);
       if (d.estado === 'concluido' && d.msg_fechamento)
         await this.api.editMessageReplyMarkup(this.chatId, d.msg_fechamento, { reply_markup: this.tecladoFechamento(d.id) }).catch(() => {});
-      await this.enviar('✖ Cancelado. Os botões de próximos passos voltaram na mensagem do resultado.');
+      await this.enviar(cartao({ icone: ICONE.cancelado, titulo: 'Cancelado', rodape: 'Os botões voltaram na mensagem do resultado.' }));
       return 'Cancelado';
+    }
+    if ((acao === 'xs' || acao === 'xn') && conv.tipo === 'encerrar') {
+      await this.setConversa(null);
+      await this.encerrar(d, sel, acao === 'xs');
+      return 'Encerrado';
     }
     if (acao === 'b' && conv.tipo === 'pr_base') {
       const base = conv.bases?.[Number(arg)];
@@ -749,8 +834,22 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
       await this.confirmarPr(d, sel, base);
       return base;
     }
+    if (acao === 'bn' && conv.tipo === 'pr_confirmar') {
+      const m = await this.api.sendMessage(
+        this.chatId,
+        cartao({
+          icone: ICONE.pergunta,
+          titulo: 'Qual o nome da branch?',
+          contexto: [this.tituloHtml(sel), conv.branch ? `hoje: <code>${esc(conv.branch)}</code>` : null],
+          rodape: 'O Claude renomeia antes do push.',
+        }),
+        { ...HTML, reply_markup: kbCancelar },
+      );
+      await this.setConversa({ ...conv, tipo: 'pr_branch', msgId: m.message_id });
+      return 'Escreva o nome';
+    }
     if (acao === 'ok' && conv.tipo === 'pr_confirmar') {
-      await this.enfileirarSeguimento(d, { tipo: 'pr', base: conv.base, remoto: conv.remoto, branch: conv.branch! });
+      await this.enfileirarSeguimento(d, { tipo: 'pr', base: conv.base, remoto: conv.remoto, branch: conv.branch ?? null, novaBranch: conv.novaBranch });
       return 'PR pedido';
     }
     return 'Essa pergunta já foi respondida.';
@@ -765,44 +864,84 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
       await this.setConversa(null);
       return false;
     }
+    const sel = this.getSelecaoDe(d);
+    vincular({ selecaoId: sel.id });
     const t = texto.trim();
+    const nomeValido = (n: string) => /^[\w./-]{1,100}$/.test(n) && !n.startsWith('-') && !n.includes('..');
+
     if (conv.tipo === 'instrucao') {
-      await this.enfileirarSeguimento(d, { tipo: 'instrucao', instrucao: t, branch: this.branchDaTask(d, this.getSelecaoDe(d)) });
+      await this.enfileirarSeguimento(d, { tipo: 'instrucao', instrucao: t, branch: this.branchDaTask(d, sel) });
       return true;
     }
     if (conv.tipo === 'pr_base') {
-      if (!/^[\w./-]{1,100}$/.test(t) || t.startsWith('-')) {
-        await this.enviar('Nome de branch inválido. Escreva só o nome (ex.: <code>develop</code>).');
+      if (!nomeValido(t)) {
+        await this.enviar(cartao({ icone: ICONE.aviso, titulo: 'Nome de branch inválido', rodape: 'Escreva só o nome, ex.: develop.' }));
         return true;
       }
       const remotas = await branchesRemotas(d.pasta);
       if (remotas.length && !remotas.includes(t)) {
-        await this.enviar(`Não achei <code>${escapeHtml(t)}</code> no origin de ${escapeHtml(d.app)}. Confira o nome e mande de novo.`);
+        await this.enviar(
+          cartao({ icone: ICONE.aviso, titulo: `Não achei ${esc(t)} no origin`, contexto: [esc(d.app)], rodape: 'Confira o nome e mande de novo.' }),
+        );
         return true;
       }
-      await this.confirmarPr(d, this.getSelecaoDe(d), t);
+      await this.confirmarPr(d, sel, t);
       return true;
     }
-    await this.enviar('Toque em <b>Confirmar</b> ou <b>Cancelar</b> na mensagem do PR.');
+    if (conv.tipo === 'pr_branch') {
+      if (!nomeValido(t)) {
+        await this.enviar(cartao({ icone: ICONE.aviso, titulo: 'Nome de branch inválido', rodape: 'Use letras, números, - _ . e /.' }));
+        return true;
+      }
+      await this.confirmarPr(d, sel, conv.base!, t);
+      return true;
+    }
+    await this.enviar(cartao({ icone: ICONE.aviso, titulo: 'Use os botões da última mensagem', rodape: 'Ou toque em Cancelar.' }));
     return true;
   }
 
-  private async confirmarPr(d: Despacho, sel: Selecao, base: string) {
+  private async confirmarPr(d: Despacho, sel: Selecao, base: string, novaBranch?: string) {
     const branch = this.branchDaTask(d, sel);
     const remoto = await remotoOrigin(d.pasta);
+    const de = novaBranch
+      ? `<code>${escapeHtml(novaBranch)}</code>${branch && branch !== novaBranch ? ` (renomeando <code>${escapeHtml(branch)}</code>)` : ''}`
+      : branch
+        ? `<code>${escapeHtml(branch)}</code>`
+        : 'branch de trabalho da task (nome não informado)';
     const m = await this.api.sendMessage(
       this.chatId,
-      [
-        `🔀 <b>Confirme o PR</b> de <b>${escapeHtml(this.tituloDe(sel))}</b>:`,
-        `📦 Repositório: <code>${escapeHtml(remoto ?? 'origin (URL não encontrada)')}</code>`,
-        `🌿 De: <code>${escapeHtml(branch)}</code>`,
-        `🎯 Para: <code>${escapeHtml(base)}</code>`,
-        '',
-        'O Claude vai fazer push da branch e abrir o PR (sem merge). O push pode pedir sua aprovação no Orca.',
-      ].join('\n'),
-      { ...HTML, reply_markup: new InlineKeyboard().text('✔ Confirmar', `f:${d.id}:ok`).text('✖ Cancelar', `f:${d.id}:no`) },
+      cartao({
+        icone: ICONE.pr,
+        titulo: 'Confirma o PR?',
+        contexto: [this.tituloHtml(sel), esc(d.app)],
+        corpo: [campo('Repositório', `<code>${esc(remoto ?? 'origin')}</code>`), campo('De', de), campo('Para', `<code>${esc(base)}</code>`)],
+        rodape: 'Push da branch e PR aberto, sem merge. O push pode pedir sua aprovação no Orca.',
+      }),
+      {
+        ...HTML,
+        reply_markup: new InlineKeyboard()
+          .text('✔ Confirmar', `f:${d.id}:ok`)
+          .text('✏️ Nome da branch', `f:${d.id}:bn`)
+          .row()
+          .text('✖ Cancelar', `f:${d.id}:no`),
+      },
     );
-    await this.setConversa({ despachoId: d.id, tipo: 'pr_confirmar', msgId: m.message_id, base, remoto, branch });
+    await this.setConversa({ despachoId: d.id, tipo: 'pr_confirmar', msgId: m.message_id, base, remoto, branch, novaBranch });
+  }
+
+  // Encerrar (B04): só marca a task como concluída na ferramenta de gestão se o João confirmou.
+  private async encerrar(d: Despacho, sel: Selecao, concluirTask: boolean) {
+    const status = concluirTask ? await this.moverStatus(sel, 'concluida') : null;
+    const agora = new Date().toISOString();
+    this.db.transaction(() => {
+      this.db
+        .prepare("UPDATE despachos SET estado = 'encerrado', encerrado_em = ?, msg_fechamento = NULL, atualizado_em = ? WHERE id = ?")
+        .run(agora, agora, d.id);
+      this.db.prepare("UPDATE selecoes SET estado = 'encerrada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
+    })();
+    log.info('despacho: encerrado', { despachoId: d.id, concluirTask });
+    const continua = FERRAMENTA_REAL.has(sel.ferramenta) && !concluirTask ? `${NOME_FERRAMENTA[sel.ferramenta]}: continua em progresso` : null;
+    await this.enviar(cartao({ icone: ICONE.ok, titulo: this.tituloHtml(sel), contexto: [esc(d.app), 'encerrada', status ?? continua] }));
   }
 
   private async enfileirarSeguimento(d: Despacho, seg: Seguimento) {
@@ -811,30 +950,32 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
       .prepare("UPDATE despachos SET estado = 'seguimento_fila', seguimento = ?, atualizado_em = ? WHERE id = ? AND estado = 'concluido'")
       .run(JSON.stringify(seg), new Date().toISOString(), d.id);
     log.info('seguimento: enfileirado', { despachoId: d.id, tipo: seg.tipo });
-    await this.enviar(
-      `📥 ${seg.tipo === 'pr' ? 'Pedido de PR' : 'Instrução'} na fila de <b>${escapeHtml(d.app)}</b>; mando para a sessão assim que ela estiver livre.`,
-    );
+    // Sem mensagem própria: o "rodando" chega em seguida, ou o aviso de fila se a sessão estiver ocupada.
     void this.processar();
   }
 
   private async enviarSeguimento(d: Despacho & { estado: string }) {
     const sel = this.getSelecaoDe(d);
+    vincular({ selecaoId: sel.id });
     const titulo = this.tituloDe(sel);
     const app = loadCatalogo().apps.find((a) => a.app === d.app);
     const seg = JSON.parse(d.seguimento ?? 'null') as Seguimento | null;
     if (!app || !seg) {
       this.db.prepare("UPDATE despachos SET estado = 'concluido', seguimento = NULL WHERE id = ?").run(d.id);
-      return this.enviar(`⚠️ Não consegui continuar <b>${escapeHtml(titulo)}</b>: ${!app ? 'o app sumiu do apps.yaml' : 'pedido inválido'}.`);
+      return this.enviar(
+        cartao({ icone: ICONE.falha, titulo: this.tituloHtml(sel), contexto: [esc(d.app), !app ? 'o app sumiu do apps.yaml' : 'pedido inválido'] }),
+      );
     }
     const alvo = await this.sessaoOciosa(app, sel, titulo, d.terminal_handle);
     if (!alvo) return;
 
     const rodada = d.rodada + 1;
-    const link = (
-      this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
-        | { link: string | null }
-        | undefined
-    )?.link ?? null;
+    const link =
+      (
+        this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
+          | { link: string | null }
+          | undefined
+      )?.link ?? null;
     const arquivo = escreverSeguimento({
       selecaoId: sel.id,
       rodada,
@@ -846,7 +987,7 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
     });
 
     if ((await this.estadoDoHandle(alvo.handle, app.pasta)).estado !== 'ocioso') {
-      return this.avisar(sel, 'fila_ocupado', `⏳ A continuação de <b>${escapeHtml(titulo)}</b> espera: a sessão de ${escapeHtml(app.app)} ficou ocupada.`);
+      return this.avisar(sel, 'fila_ocupado', cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), 'na fila: a sessão ficou ocupada'] }));
     }
     await this.orca.send(alvo.handle, linhaDespacho(arquivo));
 
@@ -862,13 +1003,28 @@ Ela vai para a sessão do Claude em <b>${escapeHtml(d.app)}</b>, e eu acompanho 
     })();
     log.info('seguimento: enviado', { despachoId: d.id, rodada, tipo: seg.tipo, terminal: alvo.handle });
     await this.enviar(
-      `🚀 ${seg.tipo === 'pr' ? 'Pedido de PR' : 'Instrução'} enviado para <b>${escapeHtml(titulo)}</b> em <b>${escapeHtml(app.app)}</b> (rodada ${rodada}).
-Prompt: <code>${escapeHtml(arquivo)}</code>`,
+      cartao({
+        icone: seg.tipo === 'pr' ? ICONE.pr : ICONE.rodando,
+        titulo: this.tituloHtml(sel),
+        contexto: [esc(app.app), seg.tipo === 'pr' ? 'abrindo PR' : 'rodando instrução', `rodada ${rodada}`],
+        corpo: [campo('Prompt', `<code>${esc(relativo(arquivo))}</code>`)],
+      }),
     );
     this.monitorar(d.id);
   }
 
   // ─────────────────────────── util ───────────────────────────
+
+  // Título da task para o título das mensagens: curto e com link quando houver.
+  private tituloHtml(sel: Selecao) {
+    const t = esc(curto(this.tituloDe(sel)));
+    const link = (
+      this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
+        | { link: string | null }
+        | undefined
+    )?.link;
+    return link ? `<a href="${esc(link)}">${t}</a>` : t;
+  }
 
   private tituloDe(sel: Selecao) {
     const v = this.db.prepare('SELECT titulo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as

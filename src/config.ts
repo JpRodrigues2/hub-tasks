@@ -19,8 +19,10 @@ const EnvSchema = z.object({
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
   // Modo de permissão das sessões do Claude que o hub abre (auto = classificador aprova o seguro e pede aprovação para o arriscado; bypassPermissions é proibido).
   HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
-  // Trava de segurança: enquanto for false, o hub não muda status nem comenta nas ferramentas de gestão.
+  // Trava de segurança: enquanto for false, o hub não muda status nas ferramentas de gestão.
   HUB_ESCRITA_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // Comentários nas tasks: bloqueados por padrão; o hub só comenta com comando explícito do João (B02).
+  HUB_COMENTARIOS_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   // Se definido (IDs separados por vírgula), a escrita vale SÓ para essas tasks — para testar com tasks aprovadas.
   HUB_ESCRITA_PM_SOMENTE: z
     .string()
@@ -42,7 +44,6 @@ const AppSchema = z.object({
   ferramenta: z.enum(['funifier-pm', 'bnexo', 'teste']), // teste = tasks fictícias (sandbox)
   projetos_na_ferramenta: z.array(z.string()).default([]),
   pasta: z.string().startsWith('/'),
-  contexto: z.string().nullable().default(null),
   sessao_resume_id: z.string().nullable().default(null),
   gamificacoes: z.array(GamificacaoSchema).optional(),
 });

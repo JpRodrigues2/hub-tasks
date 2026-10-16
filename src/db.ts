@@ -123,6 +123,33 @@ const MIGRATIONS: string[] = [
   ALTER TABLE despachos ADD COLUMN msg_fechamento INTEGER;              -- mensagem com os botões de próximos passos
   ALTER TABLE despachos ADD COLUMN seguimento TEXT;                     -- JSON do próximo passo esperando a sessão (estado seguimento_fila)
   `,
+  // 6 — backlog B10–B13: mensagens do chat, projetos visíveis, atividades avulsas, encerramento
+  `
+  ALTER TABLE tasks_vistas ADD COLUMN descricao TEXT;      -- instruções das atividades avulsas (/nova)
+  ALTER TABLE despachos ADD COLUMN encerrado_em TEXT;
+  ALTER TABLE resumos ADD COLUMN msg_botoes INTEGER;      -- mensagem do resumo que leva os botões Iniciar/Nenhuma
+
+  -- Mensagens do chat (do bot e do João), para o /limpar. O Telegram só apaga mensagens com menos de 48 h.
+  CREATE TABLE mensagens (
+    msg_id     INTEGER PRIMARY KEY,
+    selecao_id INTEGER,
+    resumo_id  INTEGER,
+    criado_em  TEXT NOT NULL
+  );
+
+  -- Projetos conhecidos e se entram na listagem (/projetos). Projeto novo entra ativo.
+  CREATE TABLE projetos (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    ferramenta TEXT NOT NULL,
+    projeto_id TEXT NOT NULL,              -- '' = tasks sem projeto
+    nome       TEXT,
+    ativo      INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (ferramenta, projeto_id)
+  );
+  INSERT OR IGNORE INTO projetos (ferramenta, projeto_id, nome)
+    SELECT ferramenta, COALESCE(projeto_id, ''), MAX(projeto_nome) FROM tasks_vistas
+    WHERE ferramenta IN ('funifier-pm', 'bnexo') GROUP BY ferramenta, COALESCE(projeto_id, '');
+  `,
 ];
 
 export type DB = Database.Database;
