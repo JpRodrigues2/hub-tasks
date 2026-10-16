@@ -29,6 +29,35 @@ export function regrasParaPrompt(empresa: Empresa): string {
   return lerRegras(empresa).replace(/^#[^\n]*\n+/, '').trim();
 }
 
+// O Telegram (sem Premium) não preserva Markdown: o João vê e manda texto simples, uma regra por linha.
+// desformatar() gera o que o bot mostra; formatar() devolve o Markdown que vai para o arquivo e para o prompt.
+export function desformatar(md: string): string {
+  return md
+    .split('\n')
+    .filter((l) => !/^#\s/.test(l.trim()))
+    .map((l) => l.replace(/^\s*([-*•]|\d+[.)])\s+/, '').replace(/`/g, '').trimEnd())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Nomes de arquivo, flags e cabeçalhos de commit viram `código`.
+const CODIGO = /(?<![`\w])((?:[\w-]+\/)*[\w-]+\.(?:md|ts|tsx|js|json|ya?ml|env|sh)|Co-Authored-By|--[a-z][\w-]*)(?![`\w])/g;
+
+export function formatar(empresa: Empresa, texto: string): string {
+  const linhas = texto
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l, i) => !(i === 0 && /^#?\s*regras de trabalho/i.test(l))) // título copiado junto
+    .map((l) => {
+      if (!l) return '';
+      if (/^#{1,6}\s/.test(l)) return l; // subtítulo que o João escreveu em Markdown
+      const corpo = l.replace(/^([-*•]|\d+[.)])\s+/, '');
+      return `- ${corpo.includes('`') ? corpo : corpo.replace(CODIGO, '`$1`')}`;
+    });
+  return [`# Regras de trabalho — ${NOME[empresa]}`, '', ...linhas].join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function salvarRegras(empresa: Empresa, texto: string) {
   const f = arquivo(empresa);
   if (existsSync(f)) {
@@ -37,7 +66,7 @@ function salvarRegras(empresa: Empresa, texto: string) {
     copyFileSync(f, join(hist, `${empresa}-${new Date().toISOString().replace(/[:.]/g, '-')}.md`));
   }
   mkdirSync(REGRAS_DIR, { recursive: true });
-  writeFileSync(f, texto.trim() + '\n');
+  writeFileSync(f, formatar(empresa, texto) + '\n');
   log.info('regras: atualizadas', { empresa, caracteres: texto.length });
 }
 
@@ -81,10 +110,10 @@ export class Regras {
     const conv = this.conversa();
 
     if (acao === 'ver') {
-      const texto = lerRegras(e) || '(vazio)';
+      const texto = desformatar(lerRegras(e)) || '(vazio)';
       await this.api.sendMessage(
         this.chatId,
-        cartao({ icone: ICONE.regras, titulo: `Regras · ${NOME[e]}`, corpo: [`<pre>${escapeHtml(texto)}</pre>`], rodape: 'Toque no texto para copiar.' }),
+        cartao({ icone: ICONE.regras, titulo: `Regras · ${NOME[e]}`, corpo: [`<pre>${escapeHtml(texto)}</pre>`], rodape: 'Uma regra por linha. Toque no texto para copiar; a formatação eu aplico ao salvar.' }),
         { ...HTML, reply_markup: new InlineKeyboard().text('✏️ Editar', `g:${e}:edit`) },
       );
       return NOME[e];
@@ -93,7 +122,7 @@ export class Regras {
       await this.api.editMessageReplyMarkup(this.chatId, msgId).catch(() => {});
       const m = await this.api.sendMessage(
         this.chatId,
-        cartao({ icone: ICONE.pergunta, titulo: `Novo texto das regras · ${NOME[e]}`, rodape: 'Copie o texto acima, altere o que quiser e mande de volta inteiro.' }),
+        cartao({ icone: ICONE.pergunta, titulo: `Novo texto das regras · ${NOME[e]}`, rodape: 'Copie o texto acima, altere o que quiser e mande de volta inteiro, uma regra por linha.' }),
         { ...HTML, reply_markup: new InlineKeyboard().text('✖ Cancelar', `g:${e}:no`) },
       );
       await this.setConversa({ empresa: e, etapa: 'texto', msgId: m.message_id });
