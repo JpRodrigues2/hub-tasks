@@ -1,9 +1,10 @@
 # Catálogo de apps do hub: projeto da ferramenta → pasta → gamificações.
 # projetos_na_ferramenta usa IDs (estáveis); o nome vai no comentário.
 # Apps com projetos_na_ferramenta vazio não recebem tasks (ficam disponíveis só em "Escolher outro").
-# Gamificações: só nome, servidor e conta. NUNCA credenciais (apiKey/secretKey ficam nos projetos).
-#   O João vai preencher as gamificações conta por conta depois da última fase. Até lá, o hub
-#   NÃO despacha tasks da Funifier de apps com `gamificacoes: []` (avisa no Telegram).
+# Gamificações: só nome, servidor, conta e o id da credencial. NUNCA a credencial em si: API key e secret
+#   ficam no cofre local data/segredos/ (cadastro pelo Telegram: /gamificacoes).
+#   App da Funifier sem gamificação vinculada despacha com aviso: a sessão usa a gamificação que já conhece.
+# Apps novos também podem ser criados pelo Telegram, ao iniciar uma task de projeto sem ambiente (B15).
 # Como adicionar um projeto novo: veja "Adicionando novos projetos ao hub" no ROADMAP_HUB.md.
 
 apps:

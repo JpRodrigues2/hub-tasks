@@ -83,7 +83,7 @@ function linhaTask(i: ItemResumo, tz: string) {
   const t = i.task;
   const titulo = escapeHtml(t.titulo.length > 90 ? t.titulo.slice(0, 87) + '…' : t.titulo);
   const link = t.link ? `<a href="${escapeHtml(t.link)}">${titulo}</a>` : titulo;
-  const meta = [escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto'), formatarPrazo(t.prazo, tz), i.app ? null : 'sem app no hub']
+  const meta = [escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto'), formatarPrazo(t.prazo, tz), i.app ? null : 'sem ambiente: configuro ao iniciar']
     .filter(Boolean)
     .join(' · ');
   return `${i.idx}. ${link}\n<i>${meta}</i>`;

@@ -40,6 +40,7 @@ export interface DadosPrompt {
   selecaoId: number;
   task: TaskDetalhe;
   avulsa: boolean; // atividade avulsa (/nova): sem ferramenta de gestão
+  credenciais: string | null; // runs/<id>/credenciais.json com API key/secret das gamificações autorizadas
   infoExtra: string | null;
   app: App;
   gamificacoes: Gamificacao[];
@@ -82,13 +83,19 @@ export function escreverPrompt(d: DadosPrompt): string {
   }
 
   if (app.empresa === 'funifier') {
-    L.push('## Gamificações autorizadas', '');
-    for (const g of d.gamificacoes) L.push(`- **${g.nome}** — servidor \`${g.servidor}\`, conta ${g.conta}`);
-    L.push(
-      '',
-      '**Só altere as gamificações listadas aqui. Se a gamificação conectada no seu MCP não for uma delas, pare e avise.**',
-      '',
-    );
+    if (d.gamificacoes.length) {
+      L.push('## Gamificações autorizadas', '');
+      for (const g of d.gamificacoes) L.push(`- **${g.nome}** — servidor \`${g.servidor}\`, conta ${g.conta}`);
+      L.push('', '**Só altere as gamificações listadas aqui. Se a gamificação conectada no seu MCP não for uma delas, pare e avise.**', '');
+      if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
+    } else {
+      L.push(
+        '## Gamificação',
+        '',
+        'Nenhuma gamificação foi vinculada a esta task no hub. Use a que esta sessão já conhece e confirme o alvo (servidor, conta, gamificação) antes de qualquer escrita.',
+        '',
+      );
+    }
   }
 
   L.push(...blocoRegras(app.empresa));
@@ -103,6 +110,14 @@ export function escreverPrompt(d: DadosPrompt): string {
 // Rodada 1 usa "#12"; continuações usam "#12.2", "#12.3"… (a tela ainda mostra o bloco da rodada anterior).
 export function tagRodada(selecaoId: number, rodada: number) {
   return rodada > 1 ? `${selecaoId}.${rodada}` : String(selecaoId);
+}
+
+function blocoCredenciais(arquivo: string) {
+  return [
+    `Credenciais (API key e secret) de cada gamificação acima: \`${arquivo}\`.`,
+    'Leia esse arquivo só quando precisar acessar ou trocar de gamificação. **Nunca** copie as credenciais para código, commits, PRs, logs ou mensagens.',
+    '',
+  ];
 }
 
 function blocoRegras(empresa: App['empresa']) {
@@ -142,6 +157,7 @@ export interface DadosSeguimento {
   base?: string;
   remoto?: string | null;
   novaBranch?: string; // nome escolhido pelo João no Abrir PR
+  credenciais?: string | null;
 }
 
 // Continuação de uma task já concluída: runs/<id>-<rodada>.md.
@@ -179,6 +195,7 @@ export function escreverSeguimento(d: DadosSeguimento): string {
     L.push('');
   }
 
+  if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
   L.push(...blocoRegras(d.app.empresa));
   L.push(...blocoEncerramento(tag));
   mkdirSync(RUNS_DIR, { recursive: true });

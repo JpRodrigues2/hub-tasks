@@ -1,9 +1,9 @@
 // Leitura e validação do .env e do apps.yaml.
 import 'dotenv/config';
-import { existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from 'yaml';
+import { parse, parseDocument, type Document } from 'yaml';
 import { z } from 'zod';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,6 +36,8 @@ const GamificacaoSchema = z.object({
   servidor: z.string(),
   conta: z.string(),
   padrao: z.boolean().default(false),
+  // Id das credenciais (API key + secret) no cofre local data/segredos/ — nunca a credencial em si.
+  credencial: z.string().optional(),
 });
 
 const AppSchema = z.object({
@@ -89,4 +91,64 @@ export function appsDoProjeto(cat: Catalogo, ferramenta: App['ferramenta'], proj
 
 export function pastaExiste(a: App) {
   return existsSync(a.pasta);
+}
+
+// ─────────────── edição do apps.yaml pelo Telegram (B15) ───────────────
+// Edita preservando os comentários; valida o resultado antes de gravar e guarda a versão anterior em data/.
+
+function editarCatalogo(fn: (doc: Document.Parsed) => void) {
+  const original = readFileSync(APPS_FILE, 'utf8');
+  const doc = parseDocument(original);
+  fn(doc);
+  const novo = doc.toString();
+  const r = CatalogoSchema.safeParse(parse(novo));
+  if (!r.success) throw new Error(`apps.yaml ficaria inválido — ${formatIssues(r.error)}`);
+  const hist = join(ROOT, 'data', 'apps-historico');
+  mkdirSync(hist, { recursive: true });
+  copyFileSync(APPS_FILE, join(hist, `apps-${new Date().toISOString().replace(/[:.]/g, '-')}.yaml`));
+  writeFileSync(APPS_FILE, novo);
+}
+
+function indiceApp(doc: Document.Parsed, nome: string) {
+  const apps = doc.toJS().apps as { app: string }[];
+  const i = apps.findIndex((a) => a.app === nome);
+  if (i < 0) throw new Error(`app "${nome}" não existe no apps.yaml`);
+  return i;
+}
+
+export function adicionarApp(a: { app: string; empresa: App['empresa']; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }) {
+  editarCatalogo((doc) => {
+    if ((doc.toJS().apps as { app: string }[]).some((x) => x.app === a.app)) throw new Error(`já existe um app "${a.app}"`);
+    doc.addIn(['apps'], {
+      app: a.app,
+      empresa: a.empresa,
+      ferramenta: a.ferramenta,
+      projetos_na_ferramenta: a.projeto ? [a.projeto] : [],
+      pasta: a.pasta,
+      sessao_resume_id: null,
+      gamificacoes: [],
+    });
+  });
+}
+
+export function ligarProjeto(app: string, projeto: string) {
+  editarCatalogo((doc) => {
+    const i = indiceApp(doc, app);
+    const atuais = (doc.getIn(['apps', i, 'projetos_na_ferramenta']) as { toJSON(): string[] } | undefined)?.toJSON() ?? [];
+    if (!atuais.includes(projeto)) doc.addIn(['apps', i, 'projetos_na_ferramenta'], projeto);
+  });
+}
+
+export function adicionarGamificacao(app: string, g: Gamificacao) {
+  editarCatalogo((doc) => {
+    const i = indiceApp(doc, app);
+    if (!doc.getIn(['apps', i, 'gamificacoes'])) doc.setIn(['apps', i, 'gamificacoes'], []);
+    doc.addIn(['apps', i, 'gamificacoes'], Object.fromEntries(Object.entries(g).filter(([, v]) => v !== undefined)));
+  });
+}
+
+export function removerGamificacao(app: string, indice: number) {
+  editarCatalogo((doc) => {
+    doc.deleteIn(['apps', indiceApp(doc, app), 'gamificacoes', indice]);
+  });
 }

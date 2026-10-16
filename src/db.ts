@@ -150,6 +150,10 @@ const MIGRATIONS: string[] = [
     SELECT ferramenta, COALESCE(projeto_id, ''), MAX(projeto_nome) FROM tasks_vistas
     WHERE ferramenta IN ('funifier-pm', 'bnexo') GROUP BY ferramenta, COALESCE(projeto_id, '');
   `,
+  // 7 — B15: ambiente sendo montado pelo Telegram
+  `
+  ALTER TABLE selecoes ADD COLUMN ambiente TEXT;           -- JSON { empresa, nome } enquanto monta um ambiente novo
+  `,
 ];
 
 export type DB = Database.Database;

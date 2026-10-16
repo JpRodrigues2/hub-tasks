@@ -144,6 +144,51 @@ Na lista de tasks, as bolinhas coloridas marcam o grupo (🔴 atrasadas, 🔵 em
 
 ---
 
+## 7. Ambiente
+
+### B15 — Configurar o ambiente pelo Telegram para tasks sem app · ✔️
+Hoje as tasks de projeto sem app (ex.: BB :: Joga Junto :: Evolução) aparecem na lista sem botão. A partir de agora todas ficam selecionáveis, e o ambiente que faltar é montado pelo Telegram, na hora de iniciar.
+
+**Fluxo proposto**, depois de marcar a task e tocar em Iniciar:
+1. ❓ **Ligar a um app existente ou criar um ambiente novo?**
+   - *Existente:* escolher empresa e app; o projeto passa a apontar para esse app.
+   - *Novo:* os passos 2 a 5.
+2. ❓ **Empresa:** Funifier ou DAC. Define a pasta-mãe (`~/Documents/FUNIFIER` ou `~/Documents/DAC`).
+3. ❓ **Nome do diretório:** também vira o nome do app no hub.
+4. ❓ **Tem URL do Git?**
+   - *Sim:* o hub clona (`git clone <url> <pasta>`), usando o acesso ao Git que já existe no computador.
+   - *Não:* o hub só cria a pasta. Nenhum repositório é criado no GitHub.
+5. O hub adiciona a pasta ao Orca (`orca repo add`).
+6. *Só na Funifier:* ❓ **Gamificações**, uma por vez: nome, servidor e conta, e qual vem marcada por padrão. Os servidores já conhecidos aparecem como botões.
+7. O hub grava o app no `apps.yaml` (pasta, projeto, gamificações) e segue o fluxo normal: info extra → confirmar → despachar.
+
+Da próxima vez, o projeto já tem app e vai direto.
+
+---
+
+### B16 — Gamificação sem vínculo vira aviso, não bloqueio · ✔️
+- App da Funifier sem gamificação no `apps.yaml` deixa de bloquear o despacho.
+- Na etapa de gamificação, o bot avisa e oferece **➕ Cadastrar gamificação** ou **⚠️ Seguir sem gamificação**.
+- Sem gamificação, o prompt diz para a sessão usar a gamificação que já conhece e confirmar o alvo antes de qualquer escrita.
+
+### B17 — Credenciais de gamificação pelo Telegram · ✔️
+- **Exemplo:** o PlayDPS tem mais de 6 contas e 20 gamificações, e a sessão precisa do par API key + secret de cada uma para migrar entre elas (ex.: consultar a eTIP para replicar na Finges).
+- **Cadastro:** `/gamificacoes` → app → **➕ Adicionar**. O bot pergunta nome, servidor (botões com os já conhecidos), conta, API key e secret. Também dá para cadastrar na etapa de gamificação ao despachar.
+- **Mensagens:** o bot apaga a mensagem com a API key e o secret assim que lê.
+- **Cofre:** as credenciais vão para `data/segredos/gamificacoes.json` (permissão 600, fora do git). No `apps.yaml` fica só o id.
+- **No despacho:** só as gamificações autorizadas na task vão para `runs/<id>/credenciais.json` (600). O prompt aponta para esse arquivo e proíbe copiar as credenciais para código, commits, PRs, logs ou mensagens. O arquivo é apagado quando a task é encerrada ou interrompida.
+- **Remover:** `/gamificacoes` → app → 🗑️. A credencial sai do cofre junto.
+
+### B18 — Correções de 2026-10-16 · ✔️
+- Continuações (💬 instrução, 🔀 PR) ficavam presas na fila: o despachante só olhava apps com task nova.
+- Falso "a sessão está ocupada": um shell em segundo plano (ex.: servidor de dev) ou o agente "working" no Orca contava como ocupado também na hora de **enviar**. Agora só conta no acompanhamento.
+- O `/start` quebrava por causa do texto `<instruções>`, que era lido como HTML.
+
+---
+
 ## Pontos para alinharmos
 
-Nenhum em aberto. As decisões de 2026-10-15 estão registradas em cada item.
+Respondidos em 2026-10-16:
+- **Credenciais:** viraram o B17, com o cofre local e o arquivo por task.
+- **Pasta sem Git:** só cria a pasta; o João acha que o Orca aceita pasta sem git. Se o Orca recusar, o bot mostra o erro e volta à pergunta.
+- **"Ligar a app existente":** mantida.

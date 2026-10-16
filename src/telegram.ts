@@ -9,6 +9,7 @@ import type { Orca } from './orca.js';
 import type { PmAdapter } from './pm/types.js';
 import { Despachante } from './despacho.js';
 import { Fluxo } from './fluxo.js';
+import { Gamificacoes } from './gamificacoes.js';
 import { instalarRegistro, limparMensagens } from './mensagens.js';
 import { Projetos } from './projetos.js';
 import { Regras } from './regras.js';
@@ -22,6 +23,7 @@ export const COMANDOS = [
   { command: 'status', description: 'Orca, ferramentas, fila e despachos' },
   { command: 'projetos', description: 'Projetos que entram na listagem' },
   { command: 'regras', description: 'Regras de trabalho por empresa' },
+  { command: 'gamificacoes', description: 'Gamificações e credenciais por app' },
   { command: 'limpar', description: 'Apaga as mensagens de tasks encerradas' },
   { command: 'limpar_tudo', description: 'Apaga todas as mensagens (com confirmação)' },
 ];
@@ -79,6 +81,9 @@ export function createBot(deps: Deps) {
   const fluxo = new Fluxo(env, db, bot.api, adapters, orca);
   const regras = new Regras(db, bot.api, chatId);
   const projetos = new Projetos(db, bot.api, chatId);
+  const gamificacoes = new Gamificacoes(db, bot.api, chatId);
+  fluxo.gamificacoes = gamificacoes;
+  gamificacoes.onConcluido = () => fluxo.proximaPergunta();
   const despachante = new Despachante(env, db, bot.api, orca, adapters);
   fluxo.onDespachar = (id) => despachante.enfileirar(id);
 
@@ -91,6 +96,7 @@ export function createBot(deps: Deps) {
   bot.command('continuar', () => despachante.listarConcluidos());
   bot.command('projetos', () => projetos.comando());
   bot.command('regras', () => regras.comando());
+  bot.command('gamificacoes', () => gamificacoes.comando());
 
   bot.command('limpar', async (ctx) => {
     await limparMensagens(db, bot.api, chatId, 'encerradas', [ctx.message!.message_id]);
@@ -111,6 +117,7 @@ export function createBot(deps: Deps) {
     else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
     else if (tipo === 'f') resposta = await despachante.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'g') resposta = await regras.onBotao(a, b, ctx.callbackQuery.message!.message_id);
+    else if (tipo === 'm') resposta = await gamificacoes.onBotao(a, b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'p') resposta = await projetos.alternar(Number(a), ctx.callbackQuery.message!.message_id);
     else if (tipo === 'l') {
       const msgId = ctx.callbackQuery.message!.message_id;
@@ -128,6 +135,7 @@ export function createBot(deps: Deps) {
   bot.on('message:text', async (ctx) => {
     if (ctx.message.text.startsWith('/')) return ctx.reply('Comando desconhecido. Use /start para ver os comandos.');
     // Conversas abertas por botão vêm antes da coleta de info das tasks.
+    if (await gamificacoes.onTexto(ctx.message.text, ctx.message.message_id)) return;
     if (await regras.onTexto(ctx.message.text)) return;
     if (await despachante.onTexto(ctx.message.text)) return;
     if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
@@ -179,7 +187,7 @@ async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> 
       if (foraOrca.length) catalogo.push(`${ICONE.aviso} fora do Orca: ${escapeHtml(foraOrca.join(', '))}`);
     }
     const semGamif = comProjeto.filter((a) => a.empresa === 'funifier' && !a.gamificacoes?.length).length;
-    if (semGamif) catalogo.push(`${semGamif} apps da Funifier sem gamificação (não despacham)`);
+    if (semGamif) catalogo.push(`${semGamif} apps da Funifier sem gamificação vinculada (despacham com aviso)`);
   } catch (e) {
     catalogo.push(`🔴 ${escapeHtml((e as Error).message)}`);
   }
