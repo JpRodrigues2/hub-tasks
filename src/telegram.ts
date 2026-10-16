@@ -10,6 +10,7 @@ import type { PmAdapter } from './pm/types.js';
 import { Despachante } from './despacho.js';
 import { Fluxo } from './fluxo.js';
 import { Gamificacoes } from './gamificacoes.js';
+import { limparRunsManual } from './limpeza.js';
 import { instalarRegistro, limparMensagens } from './mensagens.js';
 import { Projetos } from './projetos.js';
 import { Regras } from './regras.js';
@@ -24,8 +25,8 @@ export const COMANDOS = [
   { command: 'projetos', description: 'Projetos que entram na listagem' },
   { command: 'regras', description: 'Regras de trabalho por empresa' },
   { command: 'gamificacoes', description: 'Gamificações e credenciais por app' },
-  { command: 'limpar', description: 'Apaga as mensagens de tasks encerradas' },
-  { command: 'limpar_tudo', description: 'Apaga todas as mensagens (com confirmação)' },
+  { command: 'limpar', description: 'Limpa a conversa' },
+  { command: 'limpar_runs', description: 'Apaga os arquivos de instruções (runs/)' },
 ];
 
 export interface Deps {
@@ -98,14 +99,29 @@ export function createBot(deps: Deps) {
   bot.command('regras', () => regras.comando());
   bot.command('gamificacoes', () => gamificacoes.comando());
 
-  bot.command('limpar', async (ctx) => {
-    await limparMensagens(db, bot.api, chatId, 'encerradas', [ctx.message!.message_id]);
-  });
-  bot.command('limpar_tudo', (ctx) =>
-    ctx.reply(cartao({ icone: ICONE.pergunta, titulo: 'Apagar todas as mensagens?', rodape: 'O Telegram só deixa apagar as das últimas 48 h.' }), {
+  bot.command('limpar', (ctx) =>
+    ctx.reply(cartao({ icone: ICONE.pergunta, titulo: 'Limpar a conversa?' }), {
       parse_mode: 'HTML',
-      reply_markup: new InlineKeyboard().text('🧹 Apagar tudo', 'l:ok').text('✖ Cancelar', 'l:no'),
+      reply_markup: new InlineKeyboard().text('🧹 Limpar', 'l:ok').text('✖️ Cancelar', 'l:no'),
     }),
+  );
+  bot.command('limpar_runs', (ctx) =>
+    ctx.reply(
+      cartao({
+        icone: ICONE.pergunta,
+        titulo: 'Apagar quais arquivos de instruções?',
+        contexto: ['runs/: prompts, anexos e credenciais por task'],
+        rodape: 'Tasks em andamento nunca são apagadas.',
+      }),
+      {
+        parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard()
+          .text('Só das concluídas', 'u:concluidas')
+          .text('Todos', 'u:todas')
+          .row()
+          .text('✖️ Cancelar', 'u:no'),
+      },
+    ),
   );
 
   bot.on('callback_query:data', async (ctx) => {
@@ -122,12 +138,23 @@ export function createBot(deps: Deps) {
     else if (tipo === 'l') {
       const msgId = ctx.callbackQuery.message!.message_id;
       if (a === 'ok') {
-        await ctx.answerCallbackQuery({ text: 'Apagando…' }).catch(() => {});
-        await limparMensagens(db, bot.api, chatId, 'tudo', [msgId]);
+        await ctx.answerCallbackQuery({ text: 'Limpando…' }).catch(() => {});
+        await limparMensagens(db, bot.api, chatId, msgId);
         return;
       }
       await bot.api.deleteMessage(chatId, msgId).catch(() => {});
       resposta = 'Cancelado';
+    } else if (tipo === 'u') {
+      const msgId = ctx.callbackQuery.message!.message_id;
+      await bot.api.editMessageReplyMarkup(chatId, msgId).catch(() => {});
+      if (a === 'concluidas' || a === 'todas') {
+        const n = limparRunsManual(db, a);
+        await ctx.reply(
+          cartao({ icone: ICONE.ok, titulo: `${n} item(ns) apagado(s) de runs/`, contexto: [a === 'todas' ? 'todos, menos em andamento' : 'só das concluídas'] }),
+          { parse_mode: 'HTML' },
+        );
+        resposta = 'Feito';
+      } else resposta = 'Cancelado';
     }
     await ctx.answerCallbackQuery({ text: resposta.slice(0, 190) }).catch(() => {});
   });
