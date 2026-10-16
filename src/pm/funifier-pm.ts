@@ -33,7 +33,7 @@ const CATEGORIA: Record<string, Categoria> = {
   done: 'concluida',
 };
 
-const STATUS: Record<StatusHub, string> = { em_progresso: 'in_progress', em_revisao: 'review' };
+const STATUS: Record<StatusHub, string> = { em_progresso: 'in_progress', em_revisao: 'review', concluida: 'done' };
 
 export class FunifierPmAdapter implements PmAdapter {
   readonly nome = 'funifier-pm' as const;
@@ -93,7 +93,7 @@ export class FunifierPmAdapter implements PmAdapter {
   }
 
   async comment(id: string, texto: string) {
-    if (!escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_comment ${id}`);
+    if (!this.env.HUB_COMENTARIOS_PM || !escritaPermitida(this.env, id)) throw new EscritaBloqueadaError(`add_comment ${id}`);
     // O PM exige o "confirmation" devolvido pelo preview com exatamente os mesmos campos.
     const p = (await this.mcp.call('preview_add_comment', { taskId: id, content: texto })) as { confirmation?: string };
     if (!p.confirmation) throw new Error('preview_add_comment não devolveu confirmation');

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { App, Gamificacao } from './config.js';
 import { ROOT } from './config.js';
+import { regrasParaPrompt } from './regras.js';
 import { errInfo, log } from './logger.js';
 import type { TaskDetalhe } from './pm/types.js';
 
@@ -10,22 +11,6 @@ export const RUNS_DIR = join(ROOT, 'runs');
 
 export function dirAnexos(selecaoId: number) {
   return join(RUNS_DIR, String(selecaoId));
-}
-
-export function slug(s: string) {
-  return (
-    s
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 40) || 'task'
-  );
-}
-
-export function branchDe(selecaoId: number, titulo: string) {
-  return `hub/${selecaoId}-${slug(titulo)}`;
 }
 
 // Baixa as imagens da descrição para runs/<id>/; as que falharem ficam só como URL no prompt.
@@ -54,6 +39,7 @@ export async function baixarImagens(selecaoId: number, urls: string[]): Promise<
 export interface DadosPrompt {
   selecaoId: number;
   task: TaskDetalhe;
+  avulsa: boolean; // atividade avulsa (/nova): sem ferramenta de gestão
   infoExtra: string | null;
   app: App;
   gamificacoes: Gamificacao[];
@@ -61,18 +47,23 @@ export interface DadosPrompt {
   imagensDescricao: { locais: string[]; falhas: string[] };
 }
 
+// Prompt da task. Sem nome de branch (a sessão escolhe) e sem apontar para repositório de contexto:
+// o contexto é o da própria sessão. As regras de trabalho vêm de regras/<empresa>.md.
 export function escreverPrompt(d: DadosPrompt): string {
   const { task, app } = d;
-  const branch = branchDe(d.selecaoId, task.titulo);
   const L: string[] = [];
 
   L.push(`# Task do hub #${d.selecaoId}: ${task.titulo}`, '');
-  L.push(`- **Ferramenta:** ${task.ferramenta}${task.projetoNome ? ` — projeto "${task.projetoNome}"` : ''}`);
+  L.push(
+    d.avulsa
+      ? '- **Origem:** atividade avulsa pedida pelo João (não está em nenhuma ferramenta de gestão)'
+      : `- **Ferramenta:** ${task.ferramenta}${task.projetoNome ? ` — projeto "${task.projetoNome}"` : ''}`,
+  );
   if (task.link) L.push(`- **Link:** ${task.link}`);
   if (task.prazo) L.push(`- **Prazo:** ${task.prazo.slice(0, 10)}`);
   L.push(`- **App:** ${app.app}`, `- **Pasta:** \`${app.pasta}\``, '');
 
-  L.push('## Descrição', '', task.descricao.trim() || '_(sem descrição)_', '');
+  L.push(d.avulsa ? '## Instruções' : '## Descrição', '', task.descricao.trim() || '_(sem descrição)_', '');
 
   if (task.comentarios.length) {
     L.push('## Comentários', '');
@@ -90,7 +81,7 @@ export function escreverPrompt(d: DadosPrompt): string {
     L.push('');
   }
 
-  if (task.empresa === 'funifier') {
+  if (app.empresa === 'funifier') {
     L.push('## Gamificações autorizadas', '');
     for (const g of d.gamificacoes) L.push(`- **${g.nome}** — servidor \`${g.servidor}\`, conta ${g.conta}`);
     L.push(
@@ -100,18 +91,8 @@ export function escreverPrompt(d: DadosPrompt): string {
     );
   }
 
-  L.push('## Regras de trabalho', '');
-  L.push(
-    `- Siga o \`CLAUDE.md\` do projeto${app.contexto ? ` e o contexto em \`${app.contexto}\`` : ' e o CONTEXT.md do projeto, se existir'}.`,
-    `- Trabalhe numa branch nova: \`${branch}\` (crie a partir da branch principal atualizada).`,
-    '- Não faça push na branch principal.',
-    '- Antes de qualquer escrita no backend, confirme o alvo (servidor, conta, gamificação).',
-    '- Ao terminar, atualize o CONTEXT.md conforme a regra do projeto.',
-    '- Se precisar de uma decisão minha, pergunte e espere — o hub me avisa no Telegram.',
-    '',
-  );
-
-  L.push(...blocoEncerramento(String(d.selecaoId), branch));
+  L.push(...blocoRegras(app.empresa));
+  L.push(...blocoEncerramento(String(d.selecaoId)));
 
   mkdirSync(RUNS_DIR, { recursive: true });
   const arquivo = join(RUNS_DIR, `${d.selecaoId}.md`);
@@ -124,7 +105,12 @@ export function tagRodada(selecaoId: number, rodada: number) {
   return rodada > 1 ? `${selecaoId}.${rodada}` : String(selecaoId);
 }
 
-function blocoEncerramento(tag: string, branch: string) {
+function blocoRegras(empresa: App['empresa']) {
+  const regras = regrasParaPrompt(empresa);
+  return regras ? ['## Regras de trabalho', '', regras, ''] : [];
+}
+
+function blocoEncerramento(tag: string) {
   return [
     '## Formato obrigatório de encerramento',
     '',
@@ -136,7 +122,7 @@ function blocoEncerramento(tag: string, branch: string) {
     'status: concluido | bloqueado | precisa_revisao',
     'resumo: <1 a 3 frases>',
     'arquivos: <lista curta dos arquivos alterados>',
-    `branch: ${branch} (ou URL do PR)`,
+    'branch: <nome da branch em que você trabalhou, ou URL do PR>',
     'pendencias: <o que falta, ou "nenhuma">',
     '```',
     '',
@@ -150,53 +136,51 @@ export interface DadosSeguimento {
   link: string | null;
   app: App;
   anterior: Record<string, string>;
-  branch: string;
+  branch: string | null; // branch de trabalho informada no resultado anterior (null = não informada)
   tipo: 'instrucao' | 'pr';
   instrucao?: string;
   base?: string;
   remoto?: string | null;
+  novaBranch?: string; // nome escolhido pelo João no Abrir PR
 }
 
 // Continuação de uma task já concluída: runs/<id>-<rodada>.md.
 export function escreverSeguimento(d: DadosSeguimento): string {
   const tag = tagRodada(d.selecaoId, d.rodada);
   const a = d.anterior;
+  const branchTxt = d.branch ? `a branch de trabalho desta task (\`${d.branch}\`)` : 'a branch de trabalho desta task';
   const L: string[] = [];
   L.push(`# Task do hub #${tag}: ${d.titulo}`, '');
   L.push(`Continuação da task #${d.selecaoId} (prompt original: \`${join(RUNS_DIR, `${d.selecaoId}.md`)}\`).`, '');
   if (d.link) L.push(`- **Link:** ${d.link}`);
-  L.push(`- **App:** ${d.app.app}`, `- **Pasta:** \`${d.app.pasta}\``, `- **Branch:** \`${d.branch}\``, '');
+  L.push(`- **App:** ${d.app.app}`, `- **Pasta:** \`${d.app.pasta}\``, '');
   L.push('## Resultado da rodada anterior', '');
   L.push(`- status: ${a.status ?? '-'}`, `- resumo: ${a.resumo ?? '-'}`, `- branch: ${a.branch ?? '-'}`, `- pendências: ${a.pendencias ?? '-'}`, '');
 
   if (d.tipo === 'instrucao') {
     L.push('## Instrução do João', '', (d.instrucao ?? '').trim(), '');
-    L.push('## Regras de trabalho', '');
-    L.push(
-      `- Continue na branch \`${d.branch}\`.`,
-      '- Não faça push na branch principal.',
-      '- Antes de qualquer escrita no backend, confirme o alvo (servidor, conta, gamificação).',
-      '- Se precisar de uma decisão minha, pergunte e espere — o hub me avisa no Telegram.',
-      '',
-    );
+    L.push(`Continue em ${branchTxt}.`, '');
   } else {
+    const head = d.novaBranch ?? d.branch;
     L.push('## Abrir pull request', '');
-    L.push(
-      `- **Branch do PR:** \`${d.branch}\``,
-      `- **Branch base (destino):** \`${d.base}\``,
-      ...(d.remoto ? [`- **Repositório:** ${d.remoto}`] : []),
-      '',
-      `1. Confirme que está na branch \`${d.branch}\` e que o trabalho da task está commitado. Se houver mudanças que não são desta task, pare e me pergunte.`,
-      `2. Faça push da branch para \`origin\` (nunca \`--force\`, nunca na \`${d.base}\`).`,
-      `3. Abra o PR de \`${d.branch}\` para \`${d.base}\`. No GitHub use \`gh pr create --base ${d.base} --head ${d.branch}\`; em outro serviço use a CLI disponível ou, se não houver, devolva a URL de criação do PR.`,
-      `4. Título: "${d.titulo}". Corpo: o que foi feito, como testar${d.link ? ` e o link da task (${d.link})` : ''}.`,
-      '5. **Não faça merge.**',
-      '6. Coloque a URL do PR no campo `branch` do bloco de encerramento.',
-      '',
+    L.push(`- **Branch base (destino):** \`${d.base}\``, ...(d.remoto ? [`- **Repositório:** ${d.remoto}`] : []), '');
+    const passos: string[] = [];
+    if (d.novaBranch && d.novaBranch !== d.branch)
+      passos.push(`Renomeie ${branchTxt} para \`${d.novaBranch}\` (\`git branch -m\`).`);
+    passos.push(
+      `Confirme que está em ${head ? `\`${head}\`` : branchTxt} e que o trabalho da task está commitado. Se houver mudanças que não são desta task, pare e me pergunte.`,
+      `Faça push da branch para \`origin\` (nunca \`--force\`, nunca na \`${d.base}\`).`,
+      `Abra o PR para \`${d.base}\`. No GitHub use \`gh pr create --base ${d.base}\`; em outro serviço use a CLI disponível ou, se não houver, devolva a URL de criação do PR.`,
+      `Título: "${d.titulo}". Corpo: o que foi feito, como testar${d.link ? ` e o link da task (${d.link})` : ''}. Sem menção ao Claude ou a IA.`,
+      '**Não faça merge.**',
+      'Coloque a URL do PR no campo `branch` do bloco de encerramento.',
     );
+    passos.forEach((p, i) => L.push(`${i + 1}. ${p}`));
+    L.push('');
   }
 
-  L.push(...blocoEncerramento(tag, d.branch));
+  L.push(...blocoRegras(d.app.empresa));
+  L.push(...blocoEncerramento(tag));
   mkdirSync(RUNS_DIR, { recursive: true });
   const arquivo = join(RUNS_DIR, `${d.selecaoId}-${d.rodada}.md`);
   writeFileSync(arquivo, L.join('\n'));

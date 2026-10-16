@@ -6,7 +6,8 @@ import { Orca } from './orca.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
 import cron from 'node-cron';
-import { createBot } from './telegram.js';
+import { limparRuns } from './limpeza.js';
+import { COMANDOS, createBot } from './telegram.js';
 
 const env = loadEnv();
 loadCatalogo(); // falha cedo se o apps.yaml estiver inválido
@@ -25,11 +26,11 @@ const [hh, mm] = env.RESUMO_HORARIO.split(':').map(Number);
 cron.schedule(`${mm} ${hh} * * *`, () => fluxo.talvezResumoDiario('agendado'), { timezone: env.TZ_HUB, noOverlap: true });
 cron.schedule('*/5 * * * *', () => fluxo.talvezResumoDiario('catch_up'), { timezone: env.TZ_HUB, noOverlap: true });
 
-await bot.api.setMyCommands([
-  { command: 'status', description: 'Orca, MCPs, fila e despachos' },
-  { command: 'tarefas', description: 'Resumo das tasks agora' },
-  { command: 'teste', description: 'Task fictícia no sandbox: /teste <texto>' },
-]);
+// Limpeza de runs/ de tasks encerradas há mais de 30 dias: todo dia às 04:00 e na inicialização.
+cron.schedule('0 4 * * *', () => limparRuns(db), { timezone: env.TZ_HUB, noOverlap: true });
+limparRuns(db);
+
+await bot.api.setMyCommands(COMANDOS);
 
 async function parar(sinal: string) {
   log.info('hub: encerrando', { sinal });

@@ -4,6 +4,7 @@ import { appsDoProjeto, type Catalogo } from './config.js';
 import type { DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Categoria, PmAdapter, Task } from './pm/types.js';
+import { registrarProjetos } from './projetos.js';
 
 export interface ResultadoBusca {
   tasks: Task[];
@@ -24,6 +25,7 @@ export async function buscarTasks(adapters: PmAdapter[], db: DB): Promise<Result
     }),
   );
   registrarVistas(db, tasks);
+  registrarProjetos(db, tasks);
   return { tasks, erros };
 }
 
@@ -51,14 +53,13 @@ const GRUPOS: { categoria: Categoria; titulo: string }[] = [
 ];
 
 const EMPRESAS = [
-  { empresa: 'funifier', titulo: '🏢 <b>FUNIFIER</b> — Funifier PM' },
-  { empresa: 'dac', titulo: '🏢 <b>DAC</b> — Bnexo' },
+  { empresa: 'funifier', nome: 'FUNIFIER', ferramenta: 'Funifier PM' },
+  { empresa: 'dac', nome: 'DAC', ferramenta: 'Bnexo' },
 ] as const;
 
 function formatarPrazo(prazo: string | null, tz: string) {
-  if (!prazo) return '';
-  const d = new Intl.DateTimeFormat('pt-BR', { timeZone: tz, day: '2-digit', month: '2-digit' }).format(new Date(prazo));
-  return ` · ⏰ ${d}`;
+  if (!prazo) return null;
+  return `⏰ ${new Intl.DateTimeFormat('pt-BR', { timeZone: tz, day: '2-digit', month: '2-digit' }).format(new Date(prazo))}`;
 }
 
 export interface ItemResumo {
@@ -77,23 +78,26 @@ export function appSugerido(t: Task, cat: Catalogo): string | null {
   return t.projetoId ? (appsDoProjeto(cat, t.ferramenta, t.projetoId)[0]?.app ?? null) : null;
 }
 
+// Uma task = duas linhas (número + título com link; projeto e prazo em itálico) e uma linha em branco depois.
 function linhaTask(i: ItemResumo, tz: string) {
   const t = i.task;
   const titulo = escapeHtml(t.titulo.length > 90 ? t.titulo.slice(0, 87) + '…' : t.titulo);
   const link = t.link ? `<a href="${escapeHtml(t.link)}">${titulo}</a>` : titulo;
-  const projeto = escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto');
-  return `<b>${i.idx}.</b> ${link}\n   <i>${projeto}</i>${formatarPrazo(t.prazo, tz)}${i.app ? '' : ' · <i>não mapeada</i>'}`;
+  const meta = [escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto'), formatarPrazo(t.prazo, tz), i.app ? null : 'sem app no hub']
+    .filter(Boolean)
+    .join(' · ');
+  return `${i.idx}. ${link}\n<i>${meta}</i>`;
 }
 
 // Um bloco (mensagem) por empresa, com as tasks numeradas na ordem de exibição.
-export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string): BlocoEmpresa[] {
+export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string, rotulo = 'Suas tasks'): BlocoEmpresa[] {
   let idx = 0;
-  return EMPRESAS.map(({ empresa, titulo }) => {
+  return EMPRESAS.map(({ empresa, nome, ferramenta }) => {
     const doGrupo = r.tasks.filter((t) => t.empresa === empresa);
-    const partes: string[] = [titulo];
     const itens: ItemResumo[] = [];
+    const corpo: string[] = [];
     const erro = r.erros.find((e) => (empresa === 'funifier' ? e.ferramenta === 'funifier-pm' : e.ferramenta === 'bnexo'));
-    if (erro) partes.push(`⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}`);
+    if (erro) corpo.push(`⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}`);
     for (const g of GRUPOS) {
       const ts = doGrupo
         .filter((t) => t.categoria === g.categoria)
@@ -101,11 +105,12 @@ export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string): Bloc
       if (!ts.length) continue;
       const doG = ts.map((task) => ({ idx: ++idx, task, app: appSugerido(task, cat) }));
       itens.push(...doG);
-      partes.push(`\n<b>${g.titulo} (${ts.length})</b>\n${doG.map((i) => linhaTask(i, tz)).join('\n')}`);
+      corpo.push(`<b>${g.titulo} (${ts.length})</b>\n\n${doG.map((i) => linhaTask(i, tz)).join('\n\n')}`);
     }
-    if (!erro && doGrupo.length === 0) partes.push('Nenhuma task aberta. 🎉');
-    else if (itens.some((i) => i.app)) partes.push('\nToque nas tasks que quer automatizar:');
-    return { empresa, texto: partes.join('\n'), itens };
+    if (!erro && doGrupo.length === 0) corpo.push('Nenhuma task aberta.');
+    const n = doGrupo.length;
+    const texto = [`📋 <b>${nome}</b>\n<i>${rotulo} · ${ferramenta} · ${n} task${n === 1 ? '' : 's'}</i>`, ...corpo].join('\n\n');
+    return { empresa, texto, itens };
   });
 }
 

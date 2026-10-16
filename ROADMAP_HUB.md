@@ -8,6 +8,7 @@ Você vai construir, junto com o João, um **hub de automação de tasks**. Leia
 - Antes de instalar qualquer coisa global no computador, peça permissão.
 - **Segredos** (tokens, senhas, API keys) ficam só em `~/Documents/HUB/.env`, que precisa estar no `.gitignore`. Nunca coloque segredos em código, logs, prompts, mensagens do Telegram ou commits.
 - **Durante a construção**, nunca altere tasks reais nas ferramentas de gestão nem dados no backend da Funifier. Testes de escrita só em tasks de teste criadas pelo João e aprovadas por ele.
+  - **Decisão do João (2026-10-15, backlog B01–B04):** o hub muda o **status** de tasks reais: "em progresso" ao despachar e "concluída" só quando o João confirma no botão Encerrar. **Comentários continuam bloqueados** (só com comando explícito do João; `HUB_COMENTARIOS_PM=false`).
 - **Não altere os repositórios das empresas.** Se precisar de algum arquivo local num desses repositórios, ele tem que ser ignorado via `.git/info/exclude`, nunca via commit.
 
 ## O que o hub faz (visão geral)
@@ -157,6 +158,7 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
   - as regras de trabalho:
     - seguir o CLAUDE.md e o CONTEXT.md do projeto;
     - trabalhar numa branch nova (`hub/<id>-<slug>`);
+    - **Substituído pelo backlog B05–B08:** o prompt não define nome de branch nem aponta para o repositório Contexto; as regras de trabalho vêm de `regras/<empresa>.md`, editáveis pelo Telegram (`/regras`).
     - não fazer push na branch principal;
     - antes de qualquer escrita no backend, confirmar o alvo;
     - ao terminar, atualizar o CONTEXT.md conforme a regra do projeto;
@@ -182,7 +184,7 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
   - **o terminal sumiu (Orca reiniciou):** redescobrir pela pasta e, se não achar, marcar como `interrompido` e avisar.
 - [x] Ao concluir, com base no status do bloco de resultado:
   - `orca worktree set --worktree path:<pasta> --workspace-status in-review --comment "<resumo>" --unread --json`;
-  - na ferramenta de gestão: mudar a task para o status equivalente a "em revisão" (**nunca** "concluída" automaticamente) e comentar o resumo e a branch/PR;
+  - na ferramenta de gestão: mudar a task para o status equivalente a "em revisão" (**nunca** "concluída" automaticamente) e comentar o resumo e a branch/PR; **substituído pelo backlog B02–B04:** ao concluir nada muda na ferramenta (a task fica em progresso); o botão Encerrar pergunta se marca como concluída;
   - no Telegram: mandar o resumo com o resultado e o link da task;
   - liberar a fila do app.
 - [x] Testar no `sandbox`: conclusão normal, pergunta ao João (aviso + retomada), comando longo em segundo plano (sem falso alarme) e terminal fechado (interrompido).

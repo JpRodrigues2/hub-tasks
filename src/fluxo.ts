@@ -3,7 +3,10 @@
 // callback_data (máx. 64 bytes):
 //   t:<resumo>:<idx>         alterna ⬜/✅ de uma task do resumo
 //   r:<resumo>:go|none       "Iniciar selecionadas" / "Nenhuma hoje"
-//   s:<selecao>:<acao>[:arg] respostas da conversa (pular, ok, outro, app:<nome>, g:<i>, gok, desp, reset, cancel)
+//   s:<selecao>:<acao>[:arg] respostas da conversa (pular, ok, outro, emp:<empresa>, app:<nome>, g:<i>, gok, desp, reset, cancel)
+//
+// Atividade avulsa (/nova, B13): ferramenta 'avulsa', sem task em ferramenta de gestão.
+//   etapas: instrucoes → info → empresa → escolher_app → (alvo) → confirmar
 import { InlineKeyboard, type Api } from 'grammy';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -12,10 +15,19 @@ import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Orca } from './orca.js';
 import { dataLocal, type PmAdapter } from './pm/types.js';
+import { comVinculo, vincular } from './mensagens.js';
 import { dirAnexos } from './prompt.js';
+import { filtrarPorProjeto } from './projetos.js';
+import { ICONE, campo, cartao, curto, esc } from './msg.js';
 import { buscarTasks, dividirMensagem, escapeHtml, montarResumo } from './resumo.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
+
+// Título de uma atividade avulsa: a primeira linha das instruções.
+function tituloDe(instrucoes: string) {
+  const l = instrucoes.split('\n')[0].trim();
+  return l.length > 80 ? l.slice(0, 79) + '…' : l;
+}
 
 interface Selecao {
   id: number;
@@ -33,6 +45,7 @@ interface Selecao {
 
 interface TaskVista {
   titulo: string;
+  descricao?: string | null;
   projeto_nome: string | null;
   projeto_id: string | null;
   link: string | null;
@@ -73,13 +86,23 @@ export class Fluxo {
   }
 
   async enviarResumo(origem: 'agendado' | 'catch_up' | 'manual'): Promise<boolean> {
+    return comVinculo({}, () => this.enviarResumoInterno(origem));
+  }
+
+  private async enviarResumoInterno(origem: 'agendado' | 'catch_up' | 'manual'): Promise<boolean> {
     if (this.enviandoResumo) return false;
     this.enviandoResumo = true;
     try {
       const cat = loadCatalogo();
-      const r = await buscarTasks(this.adapters, this.db);
+      const busca = await buscarTasks(this.adapters, this.db);
+      const filtro = filtrarPorProjeto(this.db, busca.tasks);
+      const r = { ...busca, tasks: filtro.visiveis };
       if (r.erros.length === this.adapters.length) {
-        await this.api.sendMessage(this.chatId, `⚠️ Não consegui buscar as tasks:\n${r.erros.map((e) => `• ${e.ferramenta}: ${e.erro}`).join('\n')}`);
+        await this.api.sendMessage(
+          this.chatId,
+          cartao({ icone: ICONE.falha, titulo: 'Não consegui buscar as tasks', corpo: r.erros.map((e) => `${esc(e.ferramenta)}: ${esc(e.erro)}`) }),
+          HTML,
+        );
         return false;
       }
       const agora = new Date().toISOString();
@@ -92,16 +115,30 @@ export class Fluxo {
       const insItem = this.db.prepare(
         'INSERT INTO resumo_itens (resumo_id, idx, ferramenta, task_id, empresa, app_sugerido, msg_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       );
+      vincular({ resumoId });
 
-      const titulo = origem === 'manual' ? '📋 <b>Suas tasks agora</b>' : '☀️ <b>Resumo do dia</b>';
-      await this.api.sendMessage(this.chatId, titulo, HTML);
+      // Uma mensagem por empresa; a última com tasks selecionáveis leva também os botões Iniciar/Nenhuma.
+      const blocos = montarResumo(r, cat, this.env.TZ_HUB, origem === 'manual' ? 'Suas tasks agora' : 'Resumo do dia');
+      const selecionaveis = blocos.reduce((n, b) => n + b.itens.filter((i) => i.app).length, 0);
+      const ultimoComBotoes = blocos.map((b) => b.itens.some((i) => i.app)).lastIndexOf(true);
+      const rodapes: string[] = [];
+      if (filtro.ocultas.length)
+        rodapes.push(`${filtro.ocultas.length} task(s) oculta(s) em ${filtro.projetosOcultos} projeto(s) desligado(s) — /projetos`);
+      if (!selecionaveis) rodapes.push('Nenhuma task de projeto mapeado para automatizar.');
 
-      let selecionaveis = 0;
-      for (const bloco of montarResumo(r, cat, this.env.TZ_HUB)) {
-        const partes = dividirMensagem(bloco.texto);
+      for (const [bi, bloco] of blocos.entries()) {
+        const final = bi === ultimoComBotoes;
+        const ultimoBloco = bi === blocos.length - 1;
+        const extras = [
+          final ? 'Marque as tasks e toque em ▶️ Iniciar.' : null,
+          ...(ultimoBloco ? rodapes : []),
+        ].filter(Boolean);
+        const texto = extras.length ? `${bloco.texto}\n\n<i>${extras.join('\n')}</i>` : bloco.texto;
+        const partes = dividirMensagem(texto);
         const kb = this.tecladoItens(
           resumoId,
           bloco.itens.filter((i) => i.app).map((i) => ({ idx: i.idx, titulo: i.task.titulo, selecionada: false })),
+          final,
         );
         let msgId: number | null = null;
         for (let p = 0; p < partes.length; p++) {
@@ -110,17 +147,9 @@ export class Fluxo {
           if (ultima) msgId = m.message_id;
         }
         for (const i of bloco.itens) insItem.run(resumoId, i.idx, i.task.ferramenta, i.task.id, i.task.empresa, i.app, msgId);
-        selecionaveis += bloco.itens.filter((i) => i.app).length;
+        if (final) this.db.prepare('UPDATE resumos SET msg_botoes = ? WHERE id = ?').run(msgId, resumoId);
       }
-
-      if (selecionaveis > 0) {
-        await this.api.sendMessage(this.chatId, 'Quando terminar de marcar:', {
-          reply_markup: new InlineKeyboard().text('▶️ Iniciar selecionadas', `r:${resumoId}:go`).text('💤 Nenhuma hoje', `r:${resumoId}:none`),
-        });
-      } else {
-        this.db.prepare("UPDATE resumos SET estado = 'nenhuma' WHERE id = ?").run(resumoId);
-        await this.api.sendMessage(this.chatId, 'Nenhuma task de projeto mapeado para automatizar.');
-      }
+      if (!selecionaveis) this.db.prepare("UPDATE resumos SET estado = 'nenhuma' WHERE id = ?").run(resumoId);
       log.info('resumo enviado', { resumoId, origem, tasks: r.tasks.length, selecionaveis, erros: r.erros.length });
       return true;
     } catch (e) {
@@ -131,13 +160,14 @@ export class Fluxo {
     }
   }
 
-  private tecladoItens(resumoId: number, itens: { idx: number; titulo: string; selecionada: boolean }[]) {
+  private tecladoItens(resumoId: number, itens: { idx: number; titulo: string; selecionada: boolean }[], final: boolean) {
     if (!itens.length) return undefined;
     const kb = new InlineKeyboard();
     for (const i of itens) {
       const t = i.titulo.length > 42 ? i.titulo.slice(0, 41) + '…' : i.titulo;
       kb.text(`${i.selecionada ? '✅' : '⬜'} ${i.idx}. ${t}`, `t:${resumoId}:${i.idx}`).row();
     }
+    if (final) kb.text('▶️ Iniciar selecionadas', `r:${resumoId}:go`).text('💤 Nenhuma hoje', `r:${resumoId}:none`);
     return kb;
   }
 
@@ -161,16 +191,18 @@ export class Fluxo {
          WHERE ri.resumo_id = ? AND ri.msg_id = ? AND ri.app_sugerido IS NOT NULL ORDER BY ri.idx`,
       )
       .all(resumoId, item.msg_id) as { idx: number; selecionada: number; titulo: string }[];
+    const final = (this.db.prepare('SELECT msg_botoes FROM resumos WHERE id = ?').get(resumoId) as { msg_botoes: number | null }).msg_botoes;
     await this.api.editMessageReplyMarkup(this.chatId, item.msg_id, {
       reply_markup: this.tecladoItens(
         resumoId,
         itens.map((i) => ({ ...i, selecionada: !!i.selecionada })),
+        final === item.msg_id,
       ),
     });
     return item.selecionada ? `Task ${idx} desmarcada` : `Task ${idx} marcada`;
   }
 
-  async finalizarResumo(resumoId: number, acao: 'go' | 'none', msgId: number): Promise<string> {
+  async finalizarResumo(resumoId: number, acao: 'go' | 'none'): Promise<string> {
     if (!this.resumoAberto(resumoId)) return 'Esse resumo já foi fechado.';
     const marcadas = this.db
       .prepare('SELECT idx, ferramenta, task_id, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
@@ -183,10 +215,7 @@ export class Fluxo {
       .all(resumoId) as { msg_id: number }[];
     for (const m of msgs) await this.api.editMessageReplyMarkup(this.chatId, m.msg_id).catch(() => {});
 
-    if (acao === 'none') {
-      await this.api.editMessageText(this.chatId, msgId, '💤 Nenhuma task hoje.');
-      return 'Ok!';
-    }
+    if (acao === 'none') return '💤 Nenhuma task hoje';
 
     const agora = new Date().toISOString();
     const jaEmAndamento = this.db.prepare(
@@ -205,31 +234,35 @@ export class Fluxo {
         novas.push(m.idx);
       }
     }
-    let txt = novas.length ? `▶️ Vamos configurar ${novas.length} task(s): ${novas.join(', ')}` : 'Nenhuma task nova.';
-    if (repetidas.length) txt += `\n(já em andamento, ignoradas: ${repetidas.join(', ')})`;
-    await this.api.editMessageText(this.chatId, msgId, txt);
+    if (repetidas.length)
+      await this.api.sendMessage(
+        this.chatId,
+        cartao({ icone: ICONE.aviso, titulo: `Já em andamento: ${repetidas.join(', ')}`, rodape: 'Essas tasks foram ignoradas.' }),
+        HTML,
+      );
     await this.proximaPergunta();
-    return 'Iniciando';
+    return novas.length ? `Configurando ${novas.length} task(s)` : 'Nenhuma task nova';
   }
 
   // ───────────────────────────── conversa ─────────────────────────────
 
-  // /teste <texto>: task fictícia para o app sandbox, passando pela conversa inteira.
-  async criarTeste(texto: string) {
+  // /nova [instruções]: atividade avulsa (B13), sem task em ferramenta de gestão.
+  async criarAvulsa(texto: string) {
     const agora = new Date().toISOString();
-    const taskId = `teste-${Date.now()}`;
+    const taskId = `avulsa-${Date.now()}`;
+    const instr = texto.trim();
     this.db
       .prepare(
-        `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
-         VALUES ('teste', ?, 'dac', ?, NULL, 'sandbox (task fictícia)', 'teste', NULL, NULL, ?, ?)`,
+        `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, descricao, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+         VALUES ('avulsa', ?, 'dac', ?, ?, NULL, 'atividade avulsa', 'avulsa', NULL, NULL, ?, ?)`,
       )
-      .run(taskId, texto, agora, agora);
+      .run(taskId, instr ? tituloDe(instr) : 'Atividade avulsa', instr || null, agora, agora);
     this.db
       .prepare(
         `INSERT INTO selecoes (ferramenta, task_id, data_resumo, app, estado, etapa, criado_em, atualizado_em)
-         VALUES ('teste', ?, ?, 'sandbox', 'coletando', 'info', ?, ?)`,
+         VALUES ('avulsa', ?, ?, NULL, 'coletando', ?, ?, ?)`,
       )
-      .run(taskId, dataLocal(new Date(), this.env.TZ_HUB), agora, agora);
+      .run(taskId, dataLocal(new Date(), this.env.TZ_HUB), instr ? 'info' : 'instrucoes', agora, agora);
     await this.proximaPergunta();
   }
 
@@ -244,7 +277,7 @@ export class Fluxo {
   private taskDe(s: Selecao): TaskVista {
     return (
       (this.db
-        .prepare('SELECT titulo, projeto_nome, projeto_id, link, empresa, prazo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
+        .prepare('SELECT titulo, descricao, projeto_nome, projeto_id, link, empresa, prazo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
         .get(s.ferramenta, s.task_id) as TaskVista | undefined) ?? {
         titulo: s.task_id,
         projeto_nome: null,
@@ -263,16 +296,23 @@ export class Fluxo {
       .run({ ...campos, id, agora: new Date().toISOString() });
   }
 
-  private cabecalho(s: Selecao) {
+  // Contexto das perguntas: a task (com link), o projeto e quantas faltam configurar.
+  private contexto(s: Selecao) {
     const t = this.taskDe(s);
     const pendentes = (this.db.prepare("SELECT COUNT(*) n FROM selecoes WHERE estado = 'coletando'").get() as { n: number }).n;
-    const titulo = t.link ? `<a href="${escapeHtml(t.link)}">${escapeHtml(t.titulo)}</a>` : escapeHtml(t.titulo);
-    return `🧩 <b>${titulo}</b>\n<i>${escapeHtml(t.projeto_nome ?? t.projeto_id ?? '')}</i>${pendentes > 1 ? ` · faltam ${pendentes}` : ''}`;
+    const titulo = esc(curto(t.titulo, 60));
+    return [
+      t.link ? `<a href="${esc(t.link)}">${titulo}</a>` : titulo,
+      s.ferramenta === 'avulsa' ? 'avulsa' : t.projeto_nome ? esc(t.projeto_nome) : null,
+      pendentes > 1 ? `faltam ${pendentes}` : null,
+    ];
   }
 
-  private async perguntar(s: Selecao, texto: string, kb?: InlineKeyboard) {
+  // Toda pergunta: ❓ + a pergunta em negrito, a task em itálico, detalhes e uma dica no rodapé.
+  private async perguntar(s: Selecao, pergunta: string, o: { corpo?: (string | null)[]; rodape?: string; kb?: InlineKeyboard } = {}) {
     if (s.msg_pergunta) await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta).catch(() => {});
-    const m = await this.api.sendMessage(this.chatId, `${this.cabecalho(s)}\n\n${texto}`, { ...HTML, ...(kb ? { reply_markup: kb } : {}) });
+    const texto = cartao({ icone: ICONE.pergunta, titulo: pergunta, contexto: this.contexto(s), corpo: o.corpo, rodape: o.rodape });
+    const m = await this.api.sendMessage(this.chatId, texto, { ...HTML, ...(o.kb ? { reply_markup: o.kb } : {}) });
     this.atualizar(s.id, { msg_pergunta: m.message_id });
   }
 
@@ -282,48 +322,58 @@ export class Fluxo {
 
   async proximaPergunta(): Promise<void> {
     const s = this.selecaoAtiva();
-    if (!s) {
-      const n = (this.db.prepare("SELECT COUNT(*) n FROM selecoes WHERE estado = 'aguardando_despacho'").get() as { n: number }).n;
-      if (n) await this.api.sendMessage(this.chatId, `✅ Tudo configurado. ${n} task(s) aguardando despacho.`);
-      return;
-    }
+    if (!s) return;
+    vincular({ selecaoId: s.id });
     const cat = loadCatalogo();
     const app = this.appDe(cat, s.app);
-    const kbCancel = (kb: InlineKeyboard) => kb.row().text('✖ Cancelar esta task', `s:${s.id}:cancel`);
+    const kbCancel = (kb: InlineKeyboard) => kb.row().text('✖️ Cancelar task', `s:${s.id}:cancel`);
 
     switch (s.etapa) {
+      case 'instrucoes':
+        return this.perguntar(s, 'O que o Claude deve fazer?', {
+          rodape: 'Mande as instruções em texto. A primeira linha vira o título.',
+          kb: kbCancel(new InlineKeyboard()),
+        });
+
+      case 'empresa':
+        return this.perguntar(s, 'Em qual empresa?', {
+          kb: kbCancel(new InlineKeyboard().text('Funifier', `s:${s.id}:emp:funifier`).text('DAC', `s:${s.id}:emp:dac`)),
+        });
+
       case 'info':
-        return this.perguntar(
-          s,
-          '💬 Quer adicionar alguma informação? (o que foi falado em reunião, no Teams…)\n' +
-            'Mande <b>fotos/prints/arquivos</b> (a legenda vira texto) e/ou uma mensagem de texto, que encerra esta etapa.\n' +
-            'Sem nada a acrescentar? Toque em <b>Pular</b>.',
-          kbCancel(new InlineKeyboard().text('⏭ Pular / Continuar', `s:${s.id}:pular`)),
-        );
+        return this.perguntar(s, 'Algo a acrescentar?', {
+          corpo: ['O que foi falado em reunião, no Teams, prints ou arquivos.'],
+          rodape: 'Fotos e arquivos: pode mandar vários. Texto: encerra a etapa.',
+          kb: kbCancel(new InlineKeyboard().text('⏭️ Pular', `s:${s.id}:pular`)),
+        });
 
       case 'destino': {
         if (!app) {
           this.atualizar(s.id, { etapa: 'escolher_app' });
           return this.proximaPergunta();
         }
-        const avisos = await this.avisosApp(app);
-        return this.perguntar(
-          s,
-          `📁 Rodar em <b>${escapeHtml(app.app)}</b>?\n<code>${escapeHtml(app.pasta)}</code>${avisos}`,
-          kbCancel(new InlineKeyboard().text('✔ Confirmar', `s:${s.id}:ok`).text('🔀 Escolher outro', `s:${s.id}:outro`)),
-        );
+        return this.perguntar(s, `Rodar em ${esc(app.app)}?`, {
+          corpo: [`<code>${esc(app.pasta)}</code>`, ...(await this.avisosApp(app))],
+          kb: kbCancel(new InlineKeyboard().text('✔️ Sim', `s:${s.id}:ok`).text('Escolher outro', `s:${s.id}:outro`)),
+        });
       }
 
       case 'escolher_app': {
         const empresa = this.taskDe(s).empresa;
         const kb = new InlineKeyboard();
         cat.apps
-          .filter((a) => (s.ferramenta === 'teste' ? a.ferramenta === 'teste' : a.empresa === empresa && a.ferramenta !== 'teste'))
+          .filter((a) =>
+            s.ferramenta === 'avulsa'
+              ? a.empresa === empresa
+              : s.ferramenta === 'teste'
+                ? a.ferramenta === 'teste'
+                : a.empresa === empresa && a.ferramenta !== 'teste',
+          )
           .forEach((a, i) => {
             kb.text(a.app === s.app ? `• ${a.app}` : a.app, `s:${s.id}:app:${a.app}`);
             if (i % 2 === 1) kb.row();
           });
-        return this.perguntar(s, `📁 Em qual app da ${empresa.toUpperCase()} rodar?`, kbCancel(kb));
+        return this.perguntar(s, `Em qual app da ${empresa === 'dac' ? 'DAC' : 'Funifier'}?`, { kb: kbCancel(kb) });
       }
 
       case 'alvo': {
@@ -331,7 +381,12 @@ export class Fluxo {
         if (!gamifs.length) {
           await this.api.sendMessage(
             this.chatId,
-            `⚠️ <b>${escapeHtml(app?.app ?? '?')}</b> não tem gamificação cadastrada no apps.yaml.\nA task fica registrada, mas o despacho fica <b>bloqueado</b> até cadastrar.`,
+            cartao({
+              icone: ICONE.bloqueado,
+              titulo: `${esc(app?.app ?? '?')} sem gamificação cadastrada`,
+              contexto: this.contexto(s),
+              rodape: 'A task fica registrada, mas só despacha depois de cadastrar no apps.yaml.',
+            }),
             HTML,
           );
           this.atualizar(s.id, { etapa: 'confirmar', gamificacoes: '[]' });
@@ -343,35 +398,35 @@ export class Fluxo {
           kb.text(`${marcadas.has(g.nome) ? '✅' : '⬜'} ${g.nome} — ${g.conta}`, `s:${s.id}:g:${i}`).row();
         });
         kb.text('➡️ Continuar', `s:${s.id}:gok`);
-        const lista = gamifs
-          .map((g) => `• <b>${escapeHtml(g.nome)}</b> — conta ${escapeHtml(g.conta)} · <code>${escapeHtml(g.servidor)}</code>`)
-          .join('\n');
-        return this.perguntar(s, `🎯 Quais gamificações podem ser alteradas?\n${lista}\n\nMarque pelo menos uma.`, kbCancel(kb));
+        return this.perguntar(s, 'Quais gamificações podem ser alteradas?', {
+          corpo: gamifs.map((g) => `${esc(g.nome)} · conta ${esc(g.conta)} · <code>${esc(g.servidor)}</code>`),
+          rodape: 'Marque pelo menos uma.',
+          kb: kbCancel(kb),
+        });
       }
 
       case 'confirmar':
-        return this.perguntar(
-          s,
-          this.textoConfirmacao(s, cat),
-          new InlineKeyboard()
-            .text('🚀 Despachar', `s:${s.id}:desp`)
+        return this.perguntar(s, 'Confirma o despacho?', {
+          corpo: this.resumoConfirmacao(s, cat),
+          kb: new InlineKeyboard()
+            .text('▶️ Despachar', `s:${s.id}:desp`)
             .row()
             .text('↩️ Recomeçar', `s:${s.id}:reset`)
-            .text('✖ Cancelar', `s:${s.id}:cancel`),
-        );
+            .text('✖️ Cancelar', `s:${s.id}:cancel`),
+        });
     }
   }
 
-  private async avisosApp(app: App) {
+  private async avisosApp(app: App): Promise<string[]> {
     const avisos: string[] = [];
-    if (!existsSync(app.pasta)) avisos.push('⚠️ pasta não existe');
+    if (!existsSync(app.pasta)) avisos.push(`${ICONE.aviso} pasta não existe`);
     try {
       const repos = await this.orca.listRepos();
-      if (!repos.some((r) => r.path === app.pasta)) avisos.push('⚠️ não está aberto no Orca');
+      if (!repos.some((r) => r.path === app.pasta)) avisos.push(`${ICONE.aviso} não está aberto no Orca`);
     } catch {
-      avisos.push('⚠️ Orca inacessível agora');
+      avisos.push(`${ICONE.aviso} Orca inacessível agora`);
     }
-    return avisos.length ? `\n${avisos.join('\n')}` : '';
+    return avisos;
   }
 
   // Durante a etapa "alvo", selecoes.gamificacoes guarda os NOMES marcados; na confirmação, os objetos completos.
@@ -381,30 +436,30 @@ export class Fluxo {
     return new Set(v.map((x) => (typeof x === 'string' ? x : x.nome)));
   }
 
-  private textoConfirmacao(s: Selecao, cat: Catalogo) {
+  private resumoConfirmacao(s: Selecao, cat: Catalogo): string[] {
     const t = this.taskDe(s);
     const app = this.appDe(cat, s.app);
-    const linhas = ['📝 <b>Confirme:</b>'];
-    if (t.link) linhas.push(`🔗 ${escapeHtml(t.link)}`);
-    linhas.push(`💬 Info extra: ${s.info_extra ? `\n<blockquote>${escapeHtml(s.info_extra)}</blockquote>` : '<i>nenhuma</i>'}`);
     const anexos = JSON.parse(s.anexos ?? '[]') as string[];
-    if (anexos.length) linhas.push(`📎 ${anexos.length} anexo(s) enviados por você`);
-    linhas.push(`📁 ${escapeHtml(app?.app ?? '?')} — <code>${escapeHtml(app?.pasta ?? '?')}</code>`);
+    const linhas = [campo('App', `${esc(app?.app ?? '?')} · <code>${esc(app?.pasta ?? '?')}</code>`)];
+    if (s.ferramenta === 'avulsa' && t.descricao) linhas.push(campo('Instruções', `\n<blockquote>${esc(t.descricao)}</blockquote>`));
+    linhas.push(campo('Info extra', s.info_extra ? `\n<blockquote>${esc(s.info_extra)}</blockquote>` : 'nenhuma'));
+    if (anexos.length) linhas.push(campo('Anexos', String(anexos.length)));
     if (t.empresa === 'funifier') {
       const gs = JSON.parse(s.gamificacoes ?? '[]') as Gamificacao[];
       linhas.push(
         gs.length
-          ? `🎯 Gamificações autorizadas:\n${gs.map((g) => `• ${escapeHtml(g.nome)} — conta ${escapeHtml(g.conta)} · <code>${escapeHtml(g.servidor)}</code>`).join('\n')}`
-          : '🎯 <b>Nenhuma gamificação cadastrada — despacho bloqueado</b>',
+          ? campo('Gamificações', gs.map((g) => `${esc(g.nome)} (${esc(g.conta)})`).join(', '))
+          : `${ICONE.bloqueado} <b>Sem gamificação cadastrada — despacho bloqueado</b>`,
       );
     }
-    return linhas.join('\n');
+    return linhas;
   }
 
   // Foto/arquivo do João na etapa "informação extra": salva em runs/<selecao>/ e referencia no prompt.
   async onAnexo(fileId: string, nomeSugerido: string, legenda: string | undefined): Promise<boolean> {
     const s = this.selecaoAtiva();
-    if (!s || s.etapa !== 'info') return false;
+    if (!s || (s.etapa !== 'info' && s.etapa !== 'instrucoes')) return false;
+    vincular({ selecaoId: s.id });
     const f = await this.api.getFile(fileId);
     if (!f.file_path) throw new Error('Telegram não devolveu file_path');
     const res = await fetch(`https://api.telegram.org/file/bot${this.env.TELEGRAM_BOT_TOKEN}/${f.file_path}`, {
@@ -422,25 +477,31 @@ export class Fluxo {
     const info = legenda?.trim() ? [s.info_extra, legenda.trim()].filter(Boolean).join('\n\n') : s.info_extra;
     this.atualizar(s.id, { anexos: JSON.stringify(anexos), info_extra: info });
     log.info('anexo salvo', { selecao: s.id, arquivo: arq });
-    await this.api.sendMessage(
-      this.chatId,
-      `📎 Anexo ${anexos.length} salvo. Mande mais, escreva um texto (encerra a etapa) ou toque em <b>Pular / Continuar</b>.`,
-      HTML,
-    );
+    await this.api.sendMessage(this.chatId, `${ICONE.anexo} Anexo ${anexos.length} salvo.`, HTML);
     return true;
   }
 
   // Texto livre do João: só vale como "informação extra" quando a pergunta atual é essa.
   async onTexto(texto: string): Promise<boolean> {
     const s = this.selecaoAtiva();
-    if (!s || s.etapa !== 'info') return false;
-    this.atualizar(s.id, { info_extra: [s.info_extra, texto.trim()].filter(Boolean).join('\n\n'), etapa: 'destino' });
+    if (!s || (s.etapa !== 'info' && s.etapa !== 'instrucoes')) return false;
+    vincular({ selecaoId: s.id });
+    if (s.etapa === 'instrucoes') {
+      this.db
+        .prepare('UPDATE tasks_vistas SET titulo = ?, descricao = ? WHERE ferramenta = ? AND task_id = ?')
+        .run(tituloDe(texto.trim()), texto.trim(), s.ferramenta, s.task_id);
+      this.atualizar(s.id, { etapa: 'info' });
+      await this.proximaPergunta();
+      return true;
+    }
+    this.atualizar(s.id, { info_extra: [s.info_extra, texto.trim()].filter(Boolean).join('\n\n'), etapa: depoisDaInfo(s) });
     await this.proximaPergunta();
     return true;
   }
 
   async onAcao(selId: number, acao: string, arg: string | undefined): Promise<string> {
     const s = this.getSelecao(selId);
+    if (s) vincular({ selecaoId: s.id });
     const ativa = this.selecaoAtivaId();
     if (!s || s.estado !== 'coletando' || ativa !== s.id) return 'Essa pergunta já foi respondida.';
     const cat = loadCatalogo();
@@ -448,6 +509,8 @@ export class Fluxo {
     const depoisDoDestino = empresa === 'funifier' ? 'alvo' : 'confirmar';
 
     const valida: Record<string, string[]> = {
+      instrucoes: ['cancel'],
+      empresa: ['emp', 'cancel'],
       info: ['pular', 'cancel'],
       destino: ['ok', 'outro', 'cancel'],
       escolher_app: ['app', 'cancel'],
@@ -460,11 +523,21 @@ export class Fluxo {
       case 'cancel':
         this.atualizar(s.id, { estado: 'cancelada', etapa: null });
         await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
-        await this.api.sendMessage(this.chatId, '✖ Task cancelada.');
+        await this.api.sendMessage(
+          this.chatId,
+          cartao({ icone: ICONE.cancelado, titulo: 'Task cancelada', contexto: this.contexto(s) }),
+          HTML,
+        );
         break;
       case 'pular':
-        this.atualizar(s.id, { etapa: 'destino' });
+        this.atualizar(s.id, { etapa: depoisDaInfo(s) });
         break;
+      case 'emp': {
+        if (arg !== 'funifier' && arg !== 'dac') return 'Empresa inválida.';
+        this.db.prepare('UPDATE tasks_vistas SET empresa = ? WHERE ferramenta = ? AND task_id = ?').run(arg, s.ferramenta, s.task_id);
+        this.atualizar(s.id, { etapa: 'escolher_app', app: null });
+        break;
+      }
       case 'ok':
         this.atualizar(s.id, { etapa: depoisDoDestino, gamificacoes: null });
         break;
@@ -474,7 +547,8 @@ export class Fluxo {
       case 'app': {
         const app = this.appDe(cat, arg ?? null);
         if (!app || app.empresa !== empresa) return 'App inválido.';
-        if ((s.ferramenta === 'teste') !== (app.ferramenta === 'teste')) return 'Task de teste só roda no sandbox (e vice-versa).';
+        if (s.ferramenta !== 'avulsa' && (s.ferramenta === 'teste') !== (app.ferramenta === 'teste'))
+          return 'Task de teste só roda no sandbox (e vice-versa).';
         this.atualizar(s.id, { app: app.app, etapa: depoisDoDestino, gamificacoes: null });
         break;
       }
@@ -497,12 +571,11 @@ export class Fluxo {
         break;
       }
       case 'reset':
-        this.atualizar(s.id, { etapa: 'info', info_extra: null, gamificacoes: null, anexos: null });
+        this.atualizar(s.id, { etapa: 'info', info_extra: null, gamificacoes: null, anexos: null, ...(s.ferramenta === 'avulsa' ? { app: null } : {}) });
         break;
       case 'desp':
         this.atualizar(s.id, { estado: 'aguardando_despacho', etapa: null });
         await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
-        await this.api.sendMessage(this.chatId, `📥 Na fila de despacho de <b>${escapeHtml(s.app ?? '?')}</b>.`, HTML);
         log.info('selecao aguardando despacho', { selecao: s.id, app: s.app, ferramenta: s.ferramenta });
         this.onDespachar(s.id);
         break;
@@ -522,4 +595,9 @@ export class Fluxo {
     kb.text('➡️ Continuar', `s:${s.id}:gok`).row().text('✖ Cancelar esta task', `s:${s.id}:cancel`);
     if (s.msg_pergunta) await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta, { reply_markup: kb });
   }
+}
+
+// Avulsa escolhe empresa e app; task de ferramenta já tem app sugerido.
+function depoisDaInfo(s: { ferramenta: string }) {
+  return s.ferramenta === 'avulsa' ? 'empresa' : 'destino';
 }
