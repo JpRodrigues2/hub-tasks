@@ -109,7 +109,8 @@ Uma task que não está cadastrada em nenhuma ferramenta de gestão. O João esc
 ## 5. Manutenção
 
 ### B11 — Limpeza periódica de `runs/` · ✔️
-- Apagar automaticamente os `runs/<id>.md`, `runs/<id>-<n>.md` e as pastas de anexos `runs/<id>/` de tasks **encerradas** há mais de **30 dias**.
+- Apagar automaticamente os `runs/<id>.md` e `runs/<id>-<n>.md` de tasks **encerradas** há mais de **30 dias**.
+- **Só os `.md`** (decisão de 2026-10-16): pastas de anexos e credenciais ficam, e o cofre `data/segredos/` nunca é tocado.
 - Nunca apagar os de tasks em andamento.
 - O histórico no banco continua.
 - **Manual (2026-10-16):** `/limpar_runs` pergunta **Só das concluídas** ou **Todos**. "Todos" inclui os arquivos soltos, sem task. Tasks em andamento ficam de fora nos dois casos: configurando, na fila, rodando, esperando você ou com continuação na fila.
