@@ -113,6 +113,11 @@ export class Orca {
     }
   }
 
+  // Adiciona uma pasta ao Orca como projeto.
+  async addRepo(pasta: string) {
+    return this.run(['repo', 'add', '--path', resolve(pasta)]);
+  }
+
   async createTerminal(pasta: string, comando: string, titulo?: string): Promise<string> {
     const args = ['terminal', 'create', '--worktree', `path:${resolve(pasta)}`, '--command', comando];
     if (titulo) args.push('--title', titulo);

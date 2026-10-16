@@ -7,10 +7,16 @@
 //
 // Atividade avulsa (/nova, B13): ferramenta 'avulsa', sem task em ferramenta de gestão.
 //   etapas: instrucoes → info → empresa → escolher_app → (alvo) → confirmar
+//
+// Task de projeto sem app (B15): destino → ambiente → existente (escolher_app, liga o projeto ao app)
+//   ou novo: amb_empresa → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
 import { InlineKeyboard, type Api } from 'grammy';
+import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { extname, join } from 'node:path';
-import { loadCatalogo, type App, type Catalogo, type Env, type Gamificacao } from './config.js';
+import { adicionarApp, ligarProjeto, loadCatalogo, type App, type Catalogo, type Env, type Gamificacao } from './config.js';
+import type { Gamificacoes } from './gamificacoes.js';
 import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Orca } from './orca.js';
@@ -41,6 +47,7 @@ interface Selecao {
   etapa: string | null;
   msg_pergunta: number | null;
   anexos: string | null;
+  ambiente: string | null; // JSON { empresa, nome } enquanto monta um ambiente novo
 }
 
 interface TaskVista {
@@ -58,6 +65,7 @@ export class Fluxo {
   private enviandoResumo = false;
   // Chamado quando o João toca em "Despachar" (ligado ao Despachante no telegram.ts).
   onDespachar: (selecaoId: number) => void = () => {};
+  gamificacoes?: Gamificacoes; // cadastro de gamificação a partir da etapa "alvo" (ligado no telegram.ts)
 
   constructor(
     private env: Env,
@@ -119,12 +127,11 @@ export class Fluxo {
 
       // Uma mensagem por empresa; a última com tasks selecionáveis leva também os botões Iniciar/Nenhuma.
       const blocos = montarResumo(r, cat, this.env.TZ_HUB, origem === 'manual' ? 'Suas tasks agora' : 'Resumo do dia');
-      const selecionaveis = blocos.reduce((n, b) => n + b.itens.filter((i) => i.app).length, 0);
-      const ultimoComBotoes = blocos.map((b) => b.itens.some((i) => i.app)).lastIndexOf(true);
+      const selecionaveis = blocos.reduce((n, b) => n + b.itens.length, 0);
+      const ultimoComBotoes = blocos.map((b) => b.itens.length > 0).lastIndexOf(true);
       const rodapes: string[] = [];
       if (filtro.ocultas.length)
         rodapes.push(`${filtro.ocultas.length} task(s) oculta(s) em ${filtro.projetosOcultos} projeto(s) desligado(s) — /projetos`);
-      if (!selecionaveis) rodapes.push('Nenhuma task de projeto mapeado para automatizar.');
 
       for (const [bi, bloco] of blocos.entries()) {
         const final = bi === ultimoComBotoes;
@@ -137,7 +144,7 @@ export class Fluxo {
         const partes = dividirMensagem(texto);
         const kb = this.tecladoItens(
           resumoId,
-          bloco.itens.filter((i) => i.app).map((i) => ({ idx: i.idx, titulo: i.task.titulo, selecionada: false })),
+          bloco.itens.map((i) => ({ idx: i.idx, titulo: i.task.titulo, selecionada: false })),
           final,
         );
         let msgId: number | null = null;
@@ -180,7 +187,7 @@ export class Fluxo {
   async alternarItem(resumoId: number, idx: number): Promise<string> {
     if (!this.resumoAberto(resumoId)) return 'Esse resumo já foi fechado. Use /tarefas para um novo.';
     const item = this.db
-      .prepare('SELECT msg_id, selecionada FROM resumo_itens WHERE resumo_id = ? AND idx = ? AND app_sugerido IS NOT NULL')
+      .prepare('SELECT msg_id, selecionada FROM resumo_itens WHERE resumo_id = ? AND idx = ?')
       .get(resumoId, idx) as { msg_id: number; selecionada: number } | undefined;
     if (!item) return 'Task não encontrada.';
     this.db.prepare('UPDATE resumo_itens SET selecionada = 1 - selecionada WHERE resumo_id = ? AND idx = ?').run(resumoId, idx);
@@ -188,7 +195,7 @@ export class Fluxo {
       .prepare(
         `SELECT ri.idx, ri.selecionada, COALESCE(tv.titulo, ri.task_id) titulo FROM resumo_itens ri
          LEFT JOIN tasks_vistas tv ON tv.ferramenta = ri.ferramenta AND tv.task_id = ri.task_id
-         WHERE ri.resumo_id = ? AND ri.msg_id = ? AND ri.app_sugerido IS NOT NULL ORDER BY ri.idx`,
+         WHERE ri.resumo_id = ? AND ri.msg_id = ? ORDER BY ri.idx`,
       )
       .all(resumoId, item.msg_id) as { idx: number; selecionada: number; titulo: string }[];
     const final = (this.db.prepare('SELECT msg_botoes FROM resumos WHERE id = ?').get(resumoId) as { msg_botoes: number | null }).msg_botoes;
@@ -349,7 +356,7 @@ export class Fluxo {
 
       case 'destino': {
         if (!app) {
-          this.atualizar(s.id, { etapa: 'escolher_app' });
+          this.atualizar(s.id, { etapa: s.ferramenta === 'avulsa' || s.ferramenta === 'teste' ? 'escolher_app' : 'ambiente' });
           return this.proximaPergunta();
         }
         return this.perguntar(s, `Rodar em ${esc(app.app)}?`, {
@@ -357,6 +364,39 @@ export class Fluxo {
           kb: kbCancel(new InlineKeyboard().text('✔️ Sim', `s:${s.id}:ok`).text('Escolher outro', `s:${s.id}:outro`)),
         });
       }
+
+      case 'ambiente':
+        return this.perguntar(s, 'Este projeto ainda não tem ambiente', {
+          corpo: ['Ligo a um app que já existe ou monto um novo (pasta, Orca e hub)?'],
+          kb: kbCancel(new InlineKeyboard().text('📁 Usar app existente', `s:${s.id}:amb:existente`).row().text('🆕 Criar ambiente novo', `s:${s.id}:amb:novo`)),
+        });
+
+      case 'amb_empresa':
+        return this.perguntar(s, 'Em qual empresa criar a pasta?', {
+          corpo: [`<code>~/Documents/FUNIFIER</code> ou <code>~/Documents/DAC</code>`],
+          kb: kbCancel(new InlineKeyboard().text('Funifier', `s:${s.id}:aemp:funifier`).text('DAC', `s:${s.id}:aemp:dac`)),
+        });
+
+      case 'amb_nome':
+        return this.perguntar(s, 'Nome do diretório?', {
+          rodape: 'Também vira o nome do app no hub. Use minúsculas, números e - (ex.: bb-joga-junto).',
+          kb: kbCancel(new InlineKeyboard()),
+        });
+
+      case 'amb_git': {
+        const amb = JSON.parse(s.ambiente ?? '{}') as { empresa: string; nome: string };
+        return this.perguntar(s, 'Tem URL do Git para clonar?', {
+          corpo: [campo('Pasta', `<code>${esc(pastaAmbiente(amb))}</code>`)],
+          rodape: 'Sem URL eu só crio a pasta; nenhum repositório é criado.',
+          kb: kbCancel(new InlineKeyboard().text('🔗 Tenho a URL', `s:${s.id}:agit:url`).text('📁 Só criar a pasta', `s:${s.id}:agit:pasta`)),
+        });
+      }
+
+      case 'amb_url':
+        return this.perguntar(s, 'Qual a URL do Git?', {
+          rodape: 'HTTPS ou SSH. Uso o acesso ao Git que já existe no computador.',
+          kb: kbCancel(new InlineKeyboard()),
+        });
 
       case 'escolher_app': {
         const empresa = this.taskDe(s).empresa;
@@ -379,29 +419,17 @@ export class Fluxo {
       case 'alvo': {
         const gamifs = app?.gamificacoes ?? [];
         if (!gamifs.length) {
-          await this.api.sendMessage(
-            this.chatId,
-            cartao({
-              icone: ICONE.bloqueado,
-              titulo: `${esc(app?.app ?? '?')} sem gamificação cadastrada`,
-              contexto: this.contexto(s),
-              rodape: 'A task fica registrada, mas só despacha depois de cadastrar no apps.yaml.',
-            }),
-            HTML,
-          );
-          this.atualizar(s.id, { etapa: 'confirmar', gamificacoes: '[]' });
-          return this.proximaPergunta();
+          return this.perguntar(s, `${esc(app?.app ?? '?')} não tem gamificação vinculada`, {
+            corpo: ['A sessão vai usar a gamificação que já conhece. Cadastrar uma agora ou seguir assim?'],
+            kb: kbCancel(
+              new InlineKeyboard().text('➕ Cadastrar gamificação', `s:${s.id}:gnova`).row().text('⚠️ Seguir sem gamificação', `s:${s.id}:gsem`),
+            ),
+          });
         }
-        const marcadas = this.gamifsMarcadas(s, gamifs);
-        const kb = new InlineKeyboard();
-        gamifs.forEach((g, i) => {
-          kb.text(`${marcadas.has(g.nome) ? '✅' : '⬜'} ${g.nome} — ${g.conta}`, `s:${s.id}:g:${i}`).row();
-        });
-        kb.text('➡️ Continuar', `s:${s.id}:gok`);
         return this.perguntar(s, 'Quais gamificações podem ser alteradas?', {
-          corpo: gamifs.map((g) => `${esc(g.nome)} · conta ${esc(g.conta)} · <code>${esc(g.servidor)}</code>`),
+          corpo: gamifs.map((g) => `${esc(g.nome)} · conta ${esc(g.conta)} · <code>${esc(g.servidor)}</code>${g.credencial ? ' · 🔑' : ''}`),
           rodape: 'Marque pelo menos uma.',
-          kb: kbCancel(kb),
+          kb: this.tecladoAlvo(s, gamifs),
         });
       }
 
@@ -449,7 +477,7 @@ export class Fluxo {
       linhas.push(
         gs.length
           ? campo('Gamificações', gs.map((g) => `${esc(g.nome)} (${esc(g.conta)})`).join(', '))
-          : `${ICONE.bloqueado} <b>Sem gamificação cadastrada — despacho bloqueado</b>`,
+          : `${ICONE.aviso} <b>Sem gamificação vinculada</b> — a sessão decide o alvo`,
       );
     }
     return linhas;
@@ -484,6 +512,10 @@ export class Fluxo {
   // Texto livre do João: só vale como "informação extra" quando a pergunta atual é essa.
   async onTexto(texto: string): Promise<boolean> {
     const s = this.selecaoAtiva();
+    if (s?.etapa === 'amb_nome' || s?.etapa === 'amb_url') {
+      vincular({ selecaoId: s.id });
+      return this.textoAmbiente(s, texto.trim());
+    }
     if (!s || (s.etapa !== 'info' && s.etapa !== 'instrucoes')) return false;
     vincular({ selecaoId: s.id });
     if (s.etapa === 'instrucoes') {
@@ -514,7 +546,12 @@ export class Fluxo {
       info: ['pular', 'cancel'],
       destino: ['ok', 'outro', 'cancel'],
       escolher_app: ['app', 'cancel'],
-      alvo: ['g', 'gok', 'cancel'],
+      alvo: ['g', 'gok', 'gnova', 'gsem', 'cancel'],
+      ambiente: ['amb', 'cancel'],
+      amb_empresa: ['aemp', 'cancel'],
+      amb_nome: ['cancel'],
+      amb_git: ['agit', 'cancel'],
+      amb_url: ['cancel'],
       confirmar: ['desp', 'reset', 'cancel'],
     };
     if (!valida[s.etapa ?? '']?.includes(acao)) return 'Essa pergunta já foi respondida.';
@@ -550,8 +587,31 @@ export class Fluxo {
         if (s.ferramenta !== 'avulsa' && (s.ferramenta === 'teste') !== (app.ferramenta === 'teste'))
           return 'Task de teste só roda no sandbox (e vice-versa).';
         this.atualizar(s.id, { app: app.app, etapa: depoisDoDestino, gamificacoes: null });
+        await this.ligarSeSemApp(s, app);
         break;
       }
+      case 'amb':
+        this.atualizar(s.id, { etapa: arg === 'novo' ? 'amb_empresa' : 'escolher_app' });
+        break;
+      case 'aemp':
+        if (arg !== 'funifier' && arg !== 'dac') return 'Empresa inválida.';
+        this.atualizar(s.id, { etapa: 'amb_nome', ambiente: JSON.stringify({ empresa: arg }) });
+        break;
+      case 'agit':
+        if (arg === 'url') this.atualizar(s.id, { etapa: 'amb_url' });
+        else {
+          await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
+          return (await this.criarAmbiente(s, null)) ? 'Ambiente pronto' : 'Não deu certo';
+        }
+        break;
+      case 'gnova':
+        if (!this.gamificacoes || !s.app) return 'Cadastro indisponível.';
+        await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
+        await this.gamificacoes.iniciar(s.app, s.id);
+        return 'Nova gamificação';
+      case 'gsem':
+        this.atualizar(s.id, { gamificacoes: '[]', etapa: 'confirmar' });
+        break;
       case 'g': {
         const gamifs = this.appDe(cat, s.app)?.gamificacoes ?? [];
         const g = gamifs[Number(arg)];
@@ -584,20 +644,129 @@ export class Fluxo {
     return 'Ok';
   }
 
+  // ───────────────────────────── ambiente (B15) ─────────────────────────────
+
+  private async textoAmbiente(s: Selecao, t: string): Promise<boolean> {
+    const aviso = (titulo: string, rodape: string) =>
+      this.api.sendMessage(this.chatId, cartao({ icone: ICONE.aviso, titulo, rodape }), HTML).then(() => true);
+    if (s.etapa === 'amb_nome') {
+      const nome = t.toLowerCase();
+      if (!/^[a-z0-9][a-z0-9._-]{1,59}$/.test(nome)) return aviso('Nome inválido', 'Use minúsculas, números, - _ e . (ex.: bb-joga-junto).');
+      if (loadCatalogo().apps.some((a) => a.app === nome)) return aviso(`Já existe o app ${esc(nome)}`, 'Escolha outro nome, ou cancele e use "app existente".');
+      const amb = { ...(JSON.parse(s.ambiente ?? '{}') as object), nome };
+      this.atualizar(s.id, { ambiente: JSON.stringify(amb), etapa: 'amb_git' });
+      await this.proximaPergunta();
+      return true;
+    }
+    // amb_url
+    if (t.startsWith('-') || !/^(https?:\/\/\S+|ssh:\/\/\S+|[\w.-]+@[\w.-]+:\S+)$/.test(t)) return aviso('URL inválida', 'Ex.: https://github.com/org/repo.git ou git@github.com:org/repo.git');
+    await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta!).catch(() => {});
+    await this.criarAmbiente(s, t);
+    return true;
+  }
+
+  // Cria a pasta (ou clona), adiciona ao Orca e grava o app no apps.yaml ligado ao projeto da task.
+  private async criarAmbiente(s: Selecao, url: string | null): Promise<boolean> {
+    const amb = JSON.parse(s.ambiente ?? '{}') as { empresa: 'funifier' | 'dac'; nome: string };
+    const pasta = pastaAmbiente(amb);
+    const t = this.taskDe(s);
+    await this.api.sendMessage(
+      this.chatId,
+      cartao({ icone: ICONE.fila, titulo: url ? `Clonando ${esc(amb.nome)}` : `Criando ${esc(amb.nome)}`, contexto: [`<code>${esc(pasta)}</code>`] }),
+      HTML,
+    );
+    try {
+      if (existsSync(pasta)) {
+        if (url) throw new Error('a pasta já existe; escolha "Só criar a pasta" para usar a que está lá, ou outro nome');
+      } else if (url) {
+        await new Promise<void>((ok, falha) =>
+          execFile(
+            'git',
+            ['clone', '--', url, pasta],
+            { timeout: 10 * 60_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
+            (err, _o, stderr) => (err ? falha(new Error(stderr.trim().split('\n').pop() || err.message)) : ok()),
+          ),
+        );
+      } else mkdirSync(pasta, { recursive: true });
+      await this.orca.addRepo(pasta);
+      adicionarApp({
+        app: amb.nome,
+        empresa: amb.empresa,
+        ferramenta: s.ferramenta as App['ferramenta'],
+        pasta,
+        projeto: t.projeto_id,
+      });
+    } catch (e) {
+      log.warn('ambiente: falha', { selecao: s.id, pasta, ...errInfo(e) });
+      await this.api.sendMessage(
+        this.chatId,
+        cartao({ icone: ICONE.falha, titulo: `Não consegui montar ${esc(amb.nome)}`, contexto: this.contexto(s), corpo: [esc((e as Error).message)] }),
+        HTML,
+      );
+      this.atualizar(s.id, { etapa: 'amb_git' });
+      await this.proximaPergunta();
+      return false;
+    }
+    log.info('ambiente: criado', { selecao: s.id, app: amb.nome, pasta, clonado: !!url });
+    this.atualizar(s.id, { app: amb.nome, ambiente: null, etapa: amb.empresa === 'funifier' ? 'alvo' : 'confirmar', gamificacoes: null });
+    await this.api.sendMessage(
+      this.chatId,
+      cartao({
+        icone: ICONE.ok,
+        titulo: `Ambiente ${esc(amb.nome)} pronto`,
+        contexto: [url ? 'clonado' : 'pasta criada', 'no Orca', 'no apps.yaml'],
+        rodape: t.projeto_nome ? `As próximas tasks de ${esc(t.projeto_nome)} já vêm com este app.` : undefined,
+      }),
+      HTML,
+    );
+    await this.proximaPergunta();
+    return true;
+  }
+
+  // App escolhido para uma task cujo projeto ainda não tem app: liga o projeto a ele no apps.yaml.
+  private async ligarSeSemApp(s: Selecao, app: App) {
+    const t = this.taskDe(s);
+    if (!t.projeto_id || (s.ferramenta !== 'funifier-pm' && s.ferramenta !== 'bnexo') || app.ferramenta !== s.ferramenta) return;
+    if (loadCatalogo().apps.some((a) => a.ferramenta === s.ferramenta && a.projetos_na_ferramenta.includes(t.projeto_id!))) return;
+    try {
+      ligarProjeto(app.app, t.projeto_id);
+      log.info('ambiente: projeto ligado', { app: app.app, projeto: t.projeto_id });
+      await this.api.sendMessage(
+        this.chatId,
+        cartao({ icone: ICONE.ok, titulo: `${esc(t.projeto_nome ?? t.projeto_id)} ligado a ${esc(app.app)}`, rodape: 'As próximas tasks desse projeto já vêm com este app.' }),
+        HTML,
+      );
+    } catch (e) {
+      log.warn('ambiente: falha ao ligar projeto', { app: app.app, ...errInfo(e) });
+    }
+  }
+
   private selecaoAtivaId() {
     return this.selecaoAtiva()?.id;
   }
 
-  private async redesenharAlvo(s: Selecao, gamifs: Gamificacao[]) {
+  private tecladoAlvo(s: Selecao, gamifs: Gamificacao[]) {
     const marcadas = this.gamifsMarcadas(s, gamifs);
     const kb = new InlineKeyboard();
     gamifs.forEach((g, i) => kb.text(`${marcadas.has(g.nome) ? '✅' : '⬜'} ${g.nome} — ${g.conta}`, `s:${s.id}:g:${i}`).row());
-    kb.text('➡️ Continuar', `s:${s.id}:gok`).row().text('✖ Cancelar esta task', `s:${s.id}:cancel`);
-    if (s.msg_pergunta) await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta, { reply_markup: kb });
+    return kb
+      .text('➡️ Continuar', `s:${s.id}:gok`)
+      .text('➕ Nova', `s:${s.id}:gnova`)
+      .row()
+      .text('✖️ Cancelar task', `s:${s.id}:cancel`);
   }
+
+  private async redesenharAlvo(s: Selecao, gamifs: Gamificacao[]) {
+    if (s.msg_pergunta) await this.api.editMessageReplyMarkup(this.chatId, s.msg_pergunta, { reply_markup: this.tecladoAlvo(s, gamifs) });
+  }
+
 }
 
 // Avulsa escolhe empresa e app; task de ferramenta já tem app sugerido.
 function depoisDaInfo(s: { ferramenta: string }) {
   return s.ferramenta === 'avulsa' ? 'empresa' : 'destino';
+}
+
+function pastaAmbiente(a: { empresa?: string; nome?: string }) {
+  return join(homedir(), 'Documents', a.empresa === 'dac' ? 'DAC' : 'FUNIFIER', a.nome ?? '');
 }

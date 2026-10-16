@@ -16,9 +16,10 @@ import { errInfo, log } from './logger.js';
 import { OrcaError, type Orca, type OrcaTerminal } from './orca.js';
 import type { PmAdapter, TaskDetalhe } from './pm/types.js';
 import { vincular, comVinculo } from './mensagens.js';
-import { baixarImagens, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada } from './prompt.js';
+import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada } from './prompt.js';
 import { ICONE, campo, cartao, curto, esc } from './msg.js';
 import { escapeHtml } from './resumo.js';
+import { apagarCredenciaisDaTask, escreverCredenciaisDaTask } from './segredos.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
 const REPETIR_AVISO_MS = 30 * 60_000; // avisos de fila (antes do despacho)
@@ -27,7 +28,10 @@ const ESPERA_SESSAO_NOVA_MS = 120_000;
 export type EstadoSessao = 'ocioso' | 'ocupado' | 'aguardando' | 'limite';
 
 // Classificação pela tela do Claude Code (+ estado do agente no Orca, quando houver).
-export function classificarTela(telaInteira: string, estadoAgente?: string): EstadoSessao {
+// `paraEnviar`: na hora de mandar uma task, shell em segundo plano (ex.: servidor de dev) e o agente "working" que o
+// Orca mostra por causa dele não contam como ocupado — a caixa de entrada aceita mensagem. No acompanhamento contam,
+// porque o Claude volta a trabalhar quando o shell termina.
+export function classificarTela(telaInteira: string, estadoAgente?: string, paraEnviar = false): EstadoSessao {
   // Os sinais (spinner, diálogos, limite, rodapé) ficam no fim da tela; o meio é conversa e pode citar qualquer texto.
   const tela = telaInteira
     .split('\n')
@@ -41,8 +45,8 @@ export function classificarTela(telaInteira: string, estadoAgente?: string): Est
   if (/Do you want to|Would you like to|Esc to cancel|Enter to (select|confirm)|trust the files|Yes, proceed|\(y\/n\)/i.test(tela))
     return 'aguardando';
   // Trabalhando: spinner, agente "working" no Orca, ou comando em segundo plano que vai acordar o Claude.
-  if (/esc to interrupt/i.test(tela) || estadoAgente === 'working' || /\d+ shells? still running|· \d+ shells? ·/i.test(tela))
-    return 'ocupado';
+  if (/esc to interrupt/i.test(tela)) return 'ocupado';
+  if (!paraEnviar && (estadoAgente === 'working' || /\d+ shells? still running|· \d+ shells?\b/i.test(tela))) return 'ocupado';
   // Ocioso = caixa de entrada do Claude Code (❯ entre linhas ────). Só "❯" pode ser o prompt do zsh.
   if (/^\s*❯/m.test(tela) && /─{10,}/.test(tela)) return 'ocioso';
   return 'ocupado'; // desconhecido: conservador, não envia
@@ -231,20 +235,20 @@ export class Despachante {
     const out: { term: OrcaTerminal; estado: EstadoSessao }[] = [];
     for (const term of terms) {
       const tela = (await this.orca.readScreen(term.handle, 40)).join('\n');
-      out.push({ term, estado: classificarTela(tela, estados.get(`${term.tabId}:${term.leafId}`)) });
+      out.push({ term, estado: classificarTela(tela, estados.get(`${term.tabId}:${term.leafId}`), true) });
     }
     return out;
   }
 
   // Estado de um terminal específico: tela + estado do agente no Orca (via pasta → tabId:leafId).
-  private async estadoDoHandle(handle: string, pasta?: string): Promise<{ estado: EstadoSessao; tela: string }> {
+  private async estadoDoHandle(handle: string, pasta?: string, paraEnviar = false): Promise<{ estado: EstadoSessao; tela: string }> {
     const tela = (await this.orca.readScreen(handle, 60)).join('\n');
     let estadoAgente: string | undefined;
     if (pasta) {
       const t = (await this.orca.listTerminals(pasta).catch(() => [])).find((x) => x.handle === handle);
       if (t) estadoAgente = (await this.orca.agentStates().catch(() => new Map<string, string>())).get(`${t.tabId}:${t.leafId}`);
     }
-    return { estado: classificarTela(tela, estadoAgente), tela };
+    return { estado: classificarTela(tela, estadoAgente, paraEnviar), tela };
   }
 
   // ─────────────────────────── despacho ───────────────────────────
@@ -277,19 +281,8 @@ export class Despachante {
         cartao({ icone: ICONE.falha, titulo: this.tituloHtml(sel), contexto: [esc(nomeApp), 'app não existe mais no apps.yaml'] }),
       );
     }
+    // Sem gamificação vinculada é permitido (o João já foi avisado na seleção): a sessão decide o alvo.
     const gamifs = JSON.parse(sel.gamificacoes ?? '[]') as Gamificacao[];
-    if (app.empresa === 'funifier' && !gamifs.length) {
-      return this.avisar(
-        sel,
-        'sem_gamificacao',
-        cartao({
-          icone: ICONE.bloqueado,
-          titulo: this.tituloHtml(sel),
-          contexto: [esc(app.app), 'sem gamificação autorizada'],
-          rodape: 'Cadastre no apps.yaml e selecione a task de novo.',
-        }),
-      );
-    }
 
     // 1–2. Sessão do Claude ociosa nessa pasta (ou abre uma).
     const alvo = await this.sessaoOciosa(app, sel, titulo);
@@ -298,7 +291,9 @@ export class Despachante {
     // 3. Monta o prompt e envia uma única linha.
     const task = await this.detalheDaTask(sel);
     const imagens = await baixarImagens(sel.id, task.imagens);
+    const credenciais = escreverCredenciaisDaTask(sel.id, gamifs);
     const arquivo = escreverPrompt({
+      credenciais,
       selecaoId: sel.id,
       task,
       avulsa: !FERRAMENTA_REAL.has(sel.ferramenta),
@@ -310,7 +305,7 @@ export class Despachante {
     });
 
     // Confere de novo logo antes de enviar (o João pode ter começado a usar a sessão).
-    if ((await this.estadoDoHandle(alvo.handle, app.pasta)).estado !== 'ocioso') {
+    if ((await this.estadoDoHandle(alvo.handle, app.pasta, true)).estado !== 'ocioso') {
       return this.avisar(sel, 'fila_ocupado', cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), 'na fila: a sessão ficou ocupada'] }));
     }
     await this.orca.send(alvo.handle, linhaDespacho(arquivo));
@@ -613,6 +608,7 @@ export class Despachante {
         .run(sel.ferramenta, sel.task_id, titulo, d.app, agora);
     })();
     this.falhasTerminal.delete(d.id);
+    apagarCredenciaisDaTask(sel.id);
     log.warn('monitor: despacho interrompido', { despachoId: d.id });
     await this.enviar(
       cartao({
@@ -942,6 +938,7 @@ export class Despachante {
         .run(agora, agora, d.id);
       this.db.prepare("UPDATE selecoes SET estado = 'encerrada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
     })();
+    apagarCredenciaisDaTask(sel.id);
     log.info('despacho: encerrado', { despachoId: d.id, concluirTask });
     const continua = FERRAMENTA_REAL.has(sel.ferramenta) && !concluirTask ? `${NOME_FERRAMENTA[sel.ferramenta]}: continua em progresso` : null;
     await this.enviar(cartao({ icone: ICONE.ok, titulo: this.tituloHtml(sel), contexto: [esc(d.app), 'encerrada', status ?? continua] }));
@@ -986,10 +983,11 @@ export class Despachante {
       link,
       app,
       anterior: JSON.parse(d.resultado ?? '{}'),
+      credenciais: existsSync(join(dirAnexos(sel.id), 'credenciais.json')) ? join(dirAnexos(sel.id), 'credenciais.json') : null,
       ...seg,
     });
 
-    if ((await this.estadoDoHandle(alvo.handle, app.pasta)).estado !== 'ocioso') {
+    if ((await this.estadoDoHandle(alvo.handle, app.pasta, true)).estado !== 'ocioso') {
       return this.avisar(sel, 'fila_ocupado', cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), 'na fila: a sessão ficou ocupada'] }));
     }
     await this.orca.send(alvo.handle, linhaDespacho(arquivo));
