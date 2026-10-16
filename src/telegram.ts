@@ -59,7 +59,7 @@ export function createBot(deps: Deps) {
         icone: ICONE.lista,
         titulo: 'Hub de tasks',
         corpo: [
-          COMANDOS.map((c) => `/${c.command} — ${c.description}`).join('\n'),
+          COMANDOS.map((c) => `/${c.command} — ${escapeHtml(c.description)}`).join('\n'),
           '',
           '<b>Ícones</b>',
           `${ICONE.rodando} rodando · ${ICONE.fila} na fila · ${ICONE.voce} precisa de você`,
