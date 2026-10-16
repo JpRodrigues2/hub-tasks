@@ -7,6 +7,7 @@ Você vai construir, junto com o João, um **hub de automação de tasks**. Leia
 - Marque o progresso neste arquivo, trocando `[ ]` por `[x]`, para que uma sessão nova saiba onde parou.
 - Antes de instalar qualquer coisa global no computador, peça permissão.
 - **Segredos** (tokens, senhas, API keys) ficam só em `~/Documents/HUB/.env`, que precisa estar no `.gitignore`. Nunca coloque segredos em código, logs, prompts, mensagens do Telegram ou commits.
+  - **Exceção decidida pelo João (2026-10-16, backlog B17):** credenciais de gamificação (API key + secret) podem ser mandadas pelo Telegram. O bot apaga a mensagem assim que lê e guarda em `data/segredos/` (600, fora do git); cada task só recebe as das gamificações autorizadas, num arquivo apagado ao encerrar.
 - **Durante a construção**, nunca altere tasks reais nas ferramentas de gestão nem dados no backend da Funifier. Testes de escrita só em tasks de teste criadas pelo João e aprovadas por ele.
   - **Decisão do João (2026-10-15, backlog B01–B04):** o hub muda o **status** de tasks reais: "em progresso" ao despachar e "concluída" só quando o João confirma no botão Encerrar. **Comentários continuam bloqueados** (só com comando explícito do João; `HUB_COMENTARIOS_PM=false`).
 - **Não altere os repositórios das empresas.** Se precisar de algum arquivo local num desses repositórios, ele tem que ser ignorado via `.git/info/exclude`, nunca via commit.
