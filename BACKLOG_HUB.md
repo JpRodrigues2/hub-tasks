@@ -77,9 +77,10 @@ Os botões 💬 Dar instrução · 🔀 Abrir PR · ✅ Encerrar continuam, com 
 - Um comando (ex.: `/limpar`) que apaga as mensagens recentes do chat, como um `clear` de terminal.
 - Limitação do Telegram: o bot só consegue apagar mensagens com **menos de 48 h**. O hub precisa guardar os IDs das mensagens para saber o que apagar.
 
-> **Decidido:**
-> - `/limpar` apaga só as mensagens de tasks **encerradas**.
-> - Um segundo comando (ex.: `/limpar_tudo`) apaga todas as mensagens possíveis, depois de um botão **Confirmar** para não acontecer sem querer.
+> **Revisto em 2026-10-16:**
+> - `/limpar` limpa **a conversa inteira**, depois de um "tem certeza?". Apaga tudo o que o Telegram deixa: as mensagens das últimas 48 h, sem exceção.
+> - Mensagens mais antigas o bot não consegue apagar. Para limpar só do lado do João: no app, menu do chat → **Limpar histórico**.
+> - `/limpar_runs` limpa os arquivos de `runs/` (ver B11).
 
 ### B12 — Escolher pelo Telegram quais projetos entram na listagem · ✔️
 - Exemplo: "Evolução - Registro de Contrato" aparece em toda listagem, mas o João não mexe nele há 3 meses e não pode apagar as tasks de lá.
@@ -111,6 +112,7 @@ Uma task que não está cadastrada em nenhuma ferramenta de gestão. O João esc
 - Apagar automaticamente os `runs/<id>.md`, `runs/<id>-<n>.md` e as pastas de anexos `runs/<id>/` de tasks **encerradas** há mais de **30 dias**.
 - Nunca apagar os de tasks em andamento.
 - O histórico no banco continua.
+- **Manual (2026-10-16):** `/limpar_runs` pergunta **Só das concluídas** ou **Todos**. "Todos" inclui os arquivos soltos, sem task. Tasks em andamento ficam de fora nos dois casos: configurando, na fila, rodando, esperando você ou com continuação na fila.
 
 ---
 

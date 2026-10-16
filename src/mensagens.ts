@@ -55,42 +55,25 @@ export function instalarRegistro(bot: Bot, db: DB) {
   );
 }
 
-// Encerrada = task encerrada/cancelada/interrompida, resumo fechado ou mensagem solta (comandos, /status…).
-// Fica: o que é de task em andamento (inclusive concluída esperando os próximos passos) e o resumo aberto.
-const SQL_ENCERRADAS = `
-  SELECT m.msg_id FROM mensagens m
-  LEFT JOIN selecoes s ON s.id = m.selecao_id
-  LEFT JOIN resumos r ON r.id = m.resumo_id
-  WHERE m.criado_em > ? AND (
-    (m.selecao_id IS NOT NULL AND (s.id IS NULL OR s.estado IN ('encerrada', 'cancelada', 'interrompida')))
-    OR (m.selecao_id IS NULL AND m.resumo_id IS NOT NULL AND (r.id IS NULL OR r.estado <> 'aberto'))
-    OR (m.selecao_id IS NULL AND m.resumo_id IS NULL)
-  )`;
-
-export async function limparMensagens(db: DB, api: Api, chatId: number, modo: 'encerradas' | 'tudo', alemDe: number[] = []) {
+// Limpa a conversa: apaga todas as mensagens que o Telegram permite (até 48 h), registradas ou não.
+// Tenta a faixa de ids da mais antiga registrada até a atual: no chat privado os ids são sequenciais.
+export async function limparMensagens(db: DB, api: Api, chatId: number, ateId: number) {
   const corte = new Date(Date.now() - LIMITE_TELEGRAM_MS + 60_000).toISOString();
   db.prepare('DELETE FROM mensagens WHERE criado_em <= ?').run(corte);
-  const ids = (
-    modo === 'tudo'
-      ? (db.prepare('SELECT msg_id FROM mensagens WHERE criado_em > ?').all(corte) as { msg_id: number }[])
-      : (db.prepare(SQL_ENCERRADAS).all(corte) as { msg_id: number }[])
-  ).map((r) => r.msg_id);
-  const todos = [...new Set([...ids, ...alemDe])].sort((a, b) => a - b);
+  const menor = (db.prepare('SELECT MIN(msg_id) m FROM mensagens').get() as { m: number | null }).m ?? ateId;
+  const ids = Array.from({ length: Math.min(ateId - menor + 1, 5000) }, (_, i) => ateId - i).reverse();
 
   let apagadas = 0;
-  for (let i = 0; i < todos.length; i += 100) {
-    const lote = todos.slice(i, i + 100);
+  for (let i = 0; i < ids.length; i += 100) {
+    const lote = ids.slice(i, i + 100);
     try {
-      await api.deleteMessages(chatId, lote);
+      await api.deleteMessages(chatId, lote); // ids inexistentes são ignorados pelo Telegram
       apagadas += lote.length;
     } catch {
-      // Algum id do lote não pôde ser apagado: tenta um a um.
-      for (const id of lote) {
-        if (await api.deleteMessage(chatId, id).then(() => true, () => false)) apagadas++;
-      }
+      for (const id of lote) if (await api.deleteMessage(chatId, id).then(() => true, () => false)) apagadas++;
     }
   }
-  db.prepare(`DELETE FROM mensagens WHERE msg_id IN (${todos.map(() => '?').join(',') || 'NULL'})`).run(...todos);
-  log.info('limpar: mensagens apagadas', { modo, apagadas, tentadas: todos.length });
+  db.prepare('DELETE FROM mensagens').run();
+  log.info('limpar: conversa', { faixa: ids.length, apagadas });
   return apagadas;
 }
