@@ -494,6 +494,14 @@ export class Despachante {
           leitura = await this.estadoDoHandle(d.terminal_handle, d.pasta);
         }
         this.falhasTerminal.delete(id);
+        // Turno encerrado com o bloco de resultado na tela, mas com shell em segundo plano (ex.: servidor de dev):
+        // a task acabou — o shell não é dela.
+        if (
+          leitura.estado === 'ocupado' &&
+          classificarTela(leitura.tela, undefined, true) === 'ocioso' &&
+          extrairResultado(leitura.tela, tagRodada(d.selecao_id, d.rodada))
+        )
+          leitura = { ...leitura, estado: 'ocioso' };
         if (leitura.estado === 'ocupado') {
           this.mudarEstado(d, 'em_execucao');
           if (ficouOcioso) await dormir(5_000); // TUI parado mas ainda trabalhando: evita laço apertado

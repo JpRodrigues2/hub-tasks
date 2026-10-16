@@ -186,6 +186,7 @@ Da próxima vez, o projeto já tem app e vai direto.
 - Continuações (💬 instrução, 🔀 PR) ficavam presas na fila: o despachante só olhava apps com task nova.
 - Falso "a sessão está ocupada": um shell em segundo plano (ex.: servidor de dev) ou o agente "working" no Orca contava como ocupado também na hora de **enviar**. Agora só conta no acompanhamento.
 - O `/start` quebrava por causa do texto `<instruções>`, que era lido como HTML.
+- Task presa em "em execução" com o resultado já na tela: o monitor contava o shell em segundo plano como trabalho. Agora, com o bloco `RESULTADO HUB` da rodada na tela e sem o Claude gerando, a task fecha mesmo com shell rodando.
 
 ---
 
