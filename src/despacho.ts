@@ -206,7 +206,10 @@ export class Despachante {
     this.rodando = true;
     try {
       this.retomarMonitores();
-      const apps = this.db.prepare('SELECT DISTINCT app FROM fila ORDER BY id').all() as { app: string }[];
+      // Apps com task na fila ou com continuação (instrução/PR) esperando a sessão.
+      const apps = this.db
+        .prepare("SELECT app FROM fila UNION SELECT app FROM despachos WHERE estado = 'seguimento_fila'")
+        .all() as { app: string }[];
       for (const { app } of apps) {
         try {
           await comVinculo({}, () => this.processarApp(app));
