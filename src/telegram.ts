@@ -110,7 +110,7 @@ export function createBot(deps: Deps) {
       cartao({
         icone: ICONE.pergunta,
         titulo: 'Apagar quais arquivos de instruções?',
-        contexto: ['só os arquivos .md de runs/; credenciais e anexos ficam'],
+        contexto: ['prompts .md, mídias e anexos de runs/; credenciais ficam'],
         rodape: 'Os de tasks em andamento nunca são apagados.',
       }),
       {
@@ -150,7 +150,7 @@ export function createBot(deps: Deps) {
       if (a === 'concluidas' || a === 'todas') {
         const n = limparRunsManual(db, a);
         await ctx.reply(
-          cartao({ icone: ICONE.ok, titulo: `${n} arquivo(s) .md apagado(s)`, contexto: [a === 'todas' ? 'todos, menos em andamento' : 'só das concluídas'] }),
+          cartao({ icone: ICONE.ok, titulo: `${n} item(ns) apagado(s) de runs/`, contexto: [a === 'todas' ? 'todos, menos em andamento' : 'só das concluídas'] }),
           { parse_mode: 'HTML' },
         );
         resposta = 'Feito';

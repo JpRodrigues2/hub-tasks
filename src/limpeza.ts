@@ -1,15 +1,34 @@
-// Limpeza de runs/: só os prompts .md (runs/<id>.md e runs/<id>-<rodada>.md). Pastas de anexos e
-// credenciais por task ficam; o cofre data/segredos/ nunca é tocado. Nunca mexe em task em andamento.
+// Limpeza de runs/: prompts (runs/<id>.md, runs/<id>-<rodada>.md) e mídias/anexos (runs/<id>/).
+// Credenciais nunca: runs/<id>/credenciais.json fica, e o cofre data/segredos/ nunca é tocado.
+// Nunca mexe em task em andamento.
 //   automática (B11): tasks encerradas há mais de 30 dias, todo dia às 04:00;
 //   manual (/limpar_runs): só as concluídas, ou todas menos as em andamento.
 // O histórico no banco continua.
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DB } from './db.js';
 import { log } from './logger.js';
 import { RUNS_DIR } from './prompt.js';
 
 const DIAS = 30;
+const PRESERVAR = new Set(['credenciais.json']);
+
+// Apaga um item de runs/ (prompt .md ou pasta de anexos), preservando as credenciais. true = apagou algo.
+function apagarItem(nome: string): boolean {
+  const caminho = join(RUNS_DIR, nome);
+  if (!statSync(caminho).isDirectory()) {
+    rmSync(caminho, { force: true });
+    return true;
+  }
+  let apagou = false;
+  for (const f of readdirSync(caminho)) {
+    if (PRESERVAR.has(f)) continue;
+    rmSync(join(caminho, f), { recursive: true, force: true });
+    apagou = true;
+  }
+  if (!readdirSync(caminho).length) rmSync(caminho, { recursive: true, force: true });
+  return apagou;
+}
 
 export function limparRuns(db: DB) {
   if (!existsSync(RUNS_DIR)) return 0;
@@ -23,10 +42,9 @@ export function limparRuns(db: DB) {
   );
   let apagados = 0;
   for (const nome of readdirSync(RUNS_DIR)) {
-    const id = nome.match(/^(\d+)(?:-\d+)?\.md$/)?.[1];
+    const id = nome.match(/^(\d+)(?:-\d+\.md|\.md)?$/)?.[1];
     if (!id || !ids.has(id)) continue;
-    rmSync(join(RUNS_DIR, nome), { force: true });
-    apagados++;
+    if (apagarItem(nome)) apagados++;
   }
   if (apagados) log.info('limpeza: runs apagados', { apagados, dias: DIAS });
   return apagados;
@@ -58,11 +76,10 @@ export function limparRunsManual(db: DB, modo: 'concluidas' | 'todas') {
   );
   let apagados = 0;
   for (const nome of readdirSync(RUNS_DIR)) {
-    const id = nome.match(/^(\d+)(?:-\d+)?\.md$/)?.[1];
+    const id = nome.match(/^(\d+)(?:-\d+\.md|\.md)?$/)?.[1];
     if (!id || ativos.has(id)) continue;
     if (modo === 'concluidas' && !concluidas.has(id)) continue;
-    rmSync(join(RUNS_DIR, nome), { force: true });
-    apagados++;
+    if (apagarItem(nome)) apagados++;
   }
   log.info('limpeza: runs (manual)', { modo, apagados, emAndamento: ativos.size });
   return apagados;
