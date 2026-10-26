@@ -2,11 +2,14 @@
 //
 // callback_data (máx. 64 bytes):
 //   t:<resumo>:<idx>         alterna ⬜/✅ de uma task do resumo
-//   r:<resumo>:go|none       "Iniciar selecionadas" / "Nenhuma hoje"
+//   r:<resumo>:go|lote|none  "Iniciar selecionadas" / "Iniciar em lote" / "Nenhuma hoje"
 //   s:<selecao>:<acao>[:arg] respostas da conversa (pular, ok, outro, emp:<empresa>, app:<nome>, g:<i>, gok, desp, reset, cancel)
 //
 // Atividade avulsa (/nova, B13): ferramenta 'avulsa', sem task em ferramenta de gestão.
 //   etapas: instrucoes → info → empresa → escolher_app → (alvo) → confirmar
+//
+// Lote: as tasks marcadas vão juntas, num só prompt e numa só sessão. A 1ª (líder) passa pela conversa uma vez
+//   pelo lote todo (info, app, gamificação); as outras têm lote_de = líder e acompanham o estado dela.
 //
 // Task de projeto sem app (B15): destino → ambiente → existente (escolher_app, liga o projeto ao app)
 //   ou novo: amb_empresa → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
@@ -48,6 +51,7 @@ interface Selecao {
   msg_pergunta: number | null;
   anexos: string | null;
   ambiente: string | null; // JSON { empresa, nome } enquanto monta um ambiente novo
+  lote_de: number | null;
 }
 
 interface TaskVista {
@@ -137,7 +141,7 @@ export class Fluxo {
         const final = bi === ultimoComBotoes;
         const ultimoBloco = bi === blocos.length - 1;
         const extras = [
-          final ? 'Marque as tasks e toque em ▶️ Iniciar.' : null,
+          final ? 'Marque as tasks e toque em ▶️ Iniciar. Se elas se complementam, 📦 Em lote manda todas juntas para uma sessão.' : null,
           ...(ultimoBloco ? rodapes : []),
         ].filter(Boolean);
         const texto = extras.length ? `${bloco.texto}\n\n<i>${extras.join('\n')}</i>` : bloco.texto;
@@ -174,7 +178,11 @@ export class Fluxo {
       const t = i.titulo.length > 42 ? i.titulo.slice(0, 41) + '…' : i.titulo;
       kb.text(`${i.selecionada ? '✅' : '⬜'} ${i.idx}. ${t}`, `t:${resumoId}:${i.idx}`).row();
     }
-    if (final) kb.text('▶️ Iniciar selecionadas', `r:${resumoId}:go`).text('💤 Nenhuma hoje', `r:${resumoId}:none`);
+    if (final)
+      kb.text('▶️ Iniciar selecionadas', `r:${resumoId}:go`)
+        .text('📦 Em lote', `r:${resumoId}:lote`)
+        .row()
+        .text('💤 Nenhuma hoje', `r:${resumoId}:none`);
     return kb;
   }
 
@@ -209,12 +217,14 @@ export class Fluxo {
     return item.selecionada ? `Task ${idx} desmarcada` : `Task ${idx} marcada`;
   }
 
-  async finalizarResumo(resumoId: number, acao: 'go' | 'none'): Promise<string> {
+  async finalizarResumo(resumoId: number, acao: 'go' | 'lote' | 'none'): Promise<string> {
     if (!this.resumoAberto(resumoId)) return 'Esse resumo já foi fechado.';
     const marcadas = this.db
-      .prepare('SELECT idx, ferramenta, task_id, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
-      .all(resumoId) as { idx: number; ferramenta: string; task_id: string; app_sugerido: string }[];
-    if (acao === 'go' && !marcadas.length) return 'Marque pelo menos uma task (ou toque em "Nenhuma hoje").';
+      .prepare('SELECT idx, ferramenta, task_id, empresa, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
+      .all(resumoId) as { idx: number; ferramenta: string; task_id: string; empresa: string; app_sugerido: string | null }[];
+    if (acao !== 'none' && !marcadas.length) return 'Marque pelo menos uma task (ou toque em "Nenhuma hoje").';
+    if (acao === 'lote' && marcadas.length < 2) return 'Lote precisa de pelo menos duas tasks.';
+    if (acao === 'lote' && new Set(marcadas.map((m) => m.empresa)).size > 1) return 'Lote só com tasks da mesma empresa (roda num app só).';
 
     this.db.prepare('UPDATE resumos SET estado = ? WHERE id = ?').run(acao === 'go' ? 'iniciado' : 'nenhuma', resumoId);
     const msgs = this.db
@@ -234,12 +244,23 @@ export class Fluxo {
     );
     const novas: number[] = [];
     const repetidas: number[] = [];
+    // No lote, o app da líder é o primeiro app sugerido entre as tasks (dá para trocar na etapa "destino").
+    const appLote = marcadas.find((m) => m.app_sugerido)?.app_sugerido ?? null;
+    let lider: number | null = null;
     for (const m of marcadas) {
-      if (jaEmAndamento.get(m.ferramenta, m.task_id)) repetidas.push(m.idx);
-      else {
-        ins.run(m.ferramenta, m.task_id, dataLocal(new Date(), this.env.TZ_HUB), m.app_sugerido, resumoId, agora, agora);
-        novas.push(m.idx);
+      if (jaEmAndamento.get(m.ferramenta, m.task_id)) {
+        repetidas.push(m.idx);
+        continue;
       }
+      const id = Number(
+        ins.run(m.ferramenta, m.task_id, dataLocal(new Date(), this.env.TZ_HUB), acao === 'lote' ? appLote : m.app_sugerido, resumoId, agora, agora)
+          .lastInsertRowid,
+      );
+      if (acao === 'lote') {
+        if (lider === null) lider = id;
+        else this.atualizar(id, { lote_de: lider, etapa: null });
+      }
+      novas.push(m.idx);
     }
     if (repetidas.length)
       await this.api.sendMessage(
@@ -248,6 +269,7 @@ export class Fluxo {
         HTML,
       );
     await this.proximaPergunta();
+    if (acao === 'lote' && novas.length > 1) return `Configurando o lote de ${novas.length}`;
     return novas.length ? `Configurando ${novas.length} task(s)` : 'Nenhuma task nova';
   }
 
@@ -274,7 +296,7 @@ export class Fluxo {
   }
 
   private selecaoAtiva(): Selecao | undefined {
-    return this.db.prepare("SELECT * FROM selecoes WHERE estado = 'coletando' ORDER BY id LIMIT 1").get() as Selecao | undefined;
+    return this.db.prepare("SELECT * FROM selecoes WHERE estado = 'coletando' AND lote_de IS NULL ORDER BY id LIMIT 1").get() as Selecao | undefined;
   }
 
   private getSelecao(id: number) {
@@ -296,20 +318,29 @@ export class Fluxo {
     );
   }
 
+  // Mudança de estado da líder vale para o lote todo.
   private atualizar(id: number, campos: Partial<Selecao>) {
     const chaves = Object.keys(campos);
+    const agora = new Date().toISOString();
     this.db
       .prepare(`UPDATE selecoes SET ${chaves.map((k) => `${k} = @${k}`).join(', ')}, atualizado_em = @agora WHERE id = @id`)
-      .run({ ...campos, id, agora: new Date().toISOString() });
+      .run({ ...campos, id, agora });
+    if (campos.estado) this.db.prepare('UPDATE selecoes SET estado = ?, atualizado_em = ? WHERE lote_de = ?').run(campos.estado, agora, id);
+  }
+
+  // Outras tasks do lote liderado por `s` (vazio = task sozinha).
+  private membros(s: Selecao): Selecao[] {
+    return this.db.prepare('SELECT * FROM selecoes WHERE lote_de = ? ORDER BY id').all(s.id) as Selecao[];
   }
 
   // Contexto das perguntas: a task (com link), o projeto e quantas faltam configurar.
   private contexto(s: Selecao) {
     const t = this.taskDe(s);
-    const pendentes = (this.db.prepare("SELECT COUNT(*) n FROM selecoes WHERE estado = 'coletando'").get() as { n: number }).n;
+    const pendentes = (this.db.prepare("SELECT COUNT(*) n FROM selecoes WHERE estado = 'coletando' AND lote_de IS NULL").get() as { n: number }).n;
     const titulo = esc(curto(t.titulo, 60));
+    const membros = this.membros(s);
     return [
-      t.link ? `<a href="${esc(t.link)}">${titulo}</a>` : titulo,
+      membros.length ? `📦 lote: ${esc(curto(t.titulo, 40))} e mais ${membros.length}` : t.link ? `<a href="${esc(t.link)}">${titulo}</a>` : titulo,
       s.ferramenta === 'avulsa' ? 'avulsa' : t.projeto_nome ? esc(t.projeto_nome) : null,
       pendentes > 1 ? `faltam ${pendentes}` : null,
     ];
@@ -359,8 +390,19 @@ export class Fluxo {
           this.atualizar(s.id, { etapa: s.ferramenta === 'avulsa' || s.ferramenta === 'teste' ? 'escolher_app' : 'ambiente' });
           return this.proximaPergunta();
         }
+        const outrosApps = [
+          ...new Set(
+            this.membros(s)
+              .map((m) => (this.db.prepare('SELECT app_sugerido FROM resumo_itens WHERE resumo_id = ? AND task_id = ?').get(m.resumo_id, m.task_id) as { app_sugerido: string | null } | undefined)?.app_sugerido)
+              .filter((a): a is string => !!a && a !== app.app),
+          ),
+        ];
         return this.perguntar(s, `Rodar em ${esc(app.app)}?`, {
-          corpo: [`<code>${esc(app.pasta)}</code>`, ...(await this.avisosApp(app))],
+          corpo: [
+            `<code>${esc(app.pasta)}</code>`,
+            ...(await this.avisosApp(app)),
+            outrosApps.length ? `${ICONE.aviso} o lote tem tasks de ${outrosApps.map(esc).join(', ')}; ele roda num app só` : null,
+          ],
           kb: kbCancel(new InlineKeyboard().text('✔️ Sim', `s:${s.id}:ok`).text('Escolher outro', `s:${s.id}:outro`)),
         });
       }
@@ -469,6 +511,9 @@ export class Fluxo {
     const app = this.appDe(cat, s.app);
     const anexos = JSON.parse(s.anexos ?? '[]') as string[];
     const linhas = [campo('App', `${esc(app?.app ?? '?')} · <code>${esc(app?.pasta ?? '?')}</code>`)];
+    const membros = this.membros(s);
+    if (membros.length)
+      linhas.push(campo(`Lote de ${membros.length + 1}`, '\n' + [s, ...membros].map((m, i) => `${i + 1}. ${esc(curto(this.taskDe(m).titulo, 70))}`).join('\n')));
     if (s.ferramenta === 'avulsa' && t.descricao) linhas.push(campo('Instruções', `\n<blockquote>${esc(t.descricao)}</blockquote>`));
     linhas.push(campo('Info extra', s.info_extra ? `\n<blockquote>${esc(s.info_extra)}</blockquote>` : 'nenhuma'));
     if (anexos.length) linhas.push(campo('Anexos', String(anexos.length)));

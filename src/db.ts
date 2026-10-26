@@ -154,6 +154,11 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE selecoes ADD COLUMN ambiente TEXT;           -- JSON { empresa, nome } enquanto monta um ambiente novo
   `,
+  // 8 — lote: tasks complementares num só prompt/sessão. A 1ª task (líder) conduz a conversa e o despacho;
+  //     as outras apontam para ela e acompanham o estado dela.
+  `
+  ALTER TABLE selecoes ADD COLUMN lote_de INTEGER;         -- id da seleção líder (NULL = task sozinha ou líder)
+  `,
 ];
 
 export type DB = Database.Database;

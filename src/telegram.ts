@@ -128,7 +128,7 @@ export function createBot(deps: Deps) {
     const [tipo, a, b, c] = ctx.callbackQuery.data.split(':');
     let resposta = '';
     if (tipo === 't') resposta = await fluxo.alternarItem(Number(a), Number(b));
-    else if (tipo === 'r' && (b === 'go' || b === 'none'))
+    else if (tipo === 'r' && (b === 'go' || b === 'lote' || b === 'none'))
       resposta = await fluxo.finalizarResumo(Number(a), b);
     else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
     else if (tipo === 'f') resposta = await despachante.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);

@@ -16,7 +16,7 @@ import { errInfo, log } from './logger.js';
 import { OrcaError, type Orca, type OrcaTerminal } from './orca.js';
 import type { PmAdapter, TaskDetalhe } from './pm/types.js';
 import { vincular, comVinculo } from './mensagens.js';
-import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada } from './prompt.js';
+import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada, type TaskDoPrompt } from './prompt.js';
 import { ICONE, campo, cartao, curto, esc } from './msg.js';
 import { escapeHtml } from './resumo.js';
 import { apagarCredenciaisDaTask, escreverCredenciaisDaTask } from './segredos.js';
@@ -118,6 +118,7 @@ interface Selecao {
   anexos: string | null;
   aviso_em: string | null;
   aviso_motivo: string | null;
+  lote_de: number | null;
 }
 
 interface Despacho {
@@ -288,20 +289,23 @@ export class Despachante {
     const alvo = await this.sessaoOciosa(app, sel, titulo);
     if (!alvo) return;
 
-    // 3. Monta o prompt e envia uma única linha.
-    const task = await this.detalheDaTask(sel);
-    const imagens = await baixarImagens(sel.id, task.imagens);
+    // 3. Monta o prompt (uma task ou o lote inteiro) e envia uma única linha.
+    const lote = this.doLote(sel);
+    const tasks: TaskDoPrompt[] = [];
+    for (const [i, s] of lote.entries()) {
+      const task = await this.detalheDaTask(s);
+      tasks.push({ task, imagens: await baixarImagens(sel.id, task.imagens, lote.length > 1 ? `t${i + 1}-` : '') });
+    }
     const credenciais = escreverCredenciaisDaTask(sel.id, gamifs);
     const arquivo = escreverPrompt({
       credenciais,
       selecaoId: sel.id,
-      task,
+      tasks,
       avulsa: !FERRAMENTA_REAL.has(sel.ferramenta),
       infoExtra: sel.info_extra,
       app,
       gamificacoes: gamifs,
       anexosJoao: JSON.parse(sel.anexos ?? '[]'),
-      imagensDescricao: imagens,
     });
 
     // Confere de novo logo antes de enviar (o João pode ter começado a usar a sessão).
@@ -321,13 +325,13 @@ export class Despachante {
           .run(sel.id, app.app, app.pasta, alvo!.handle, alvo!.title, arquivo, agora, agora).lastInsertRowid,
       );
       this.db.prepare('DELETE FROM fila WHERE id = ?').run(fila.id);
-      this.db.prepare("UPDATE selecoes SET estado = 'despachada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
+      this.db.prepare("UPDATE selecoes SET estado = 'despachada', atualizado_em = ? WHERE id = ? OR lote_de = ?").run(agora, sel.id, sel.id);
       return id;
     })();
-    log.info('despacho: enviado', { despachoId, selecaoId: sel.id, app: app.app, terminal: alvo.handle });
+    log.info('despacho: enviado', { despachoId, selecaoId: sel.id, app: app.app, terminal: alvo.handle, tasks: lote.length });
     // 4. Ferramenta de gestão: task "em progresso" (B01). Só status, nunca comentário.
     const status = await this.moverStatus(sel, 'em_progresso');
-    const anexos = task.imagens.length + (JSON.parse(sel.anexos ?? '[]') as string[]).length;
+    const anexos = tasks.reduce((n, t) => n + t.task.imagens.length, 0) + (JSON.parse(sel.anexos ?? '[]') as string[]).length;
     await this.enviar(
       cartao({
         icone: ICONE.rodando,
@@ -341,22 +345,32 @@ export class Despachante {
     this.monitorar(despachoId);
   }
 
-  // Muda o status na ferramenta de gestão. Devolve um trecho para o contexto da mensagem (null = sem ferramenta).
+  // Muda o status na ferramenta de gestão (de cada task do lote). Devolve um trecho para o contexto da mensagem
+  // (null = sem ferramenta).
   private async moverStatus(sel: Selecao, status: 'em_progresso' | 'concluida'): Promise<string | null> {
-    if (!FERRAMENTA_REAL.has(sel.ferramenta)) return null;
+    const reais = this.doLote(sel).filter((s) => FERRAMENTA_REAL.has(s.ferramenta));
+    if (!reais.length) return null;
     const rotulo = status === 'concluida' ? 'concluída' : 'em progresso';
-    const ferramenta = NOME_FERRAMENTA[sel.ferramenta];
-    try {
-      const adapter = this.adapters.find((a) => a.nome === sel.ferramenta);
-      if (!adapter) throw new Error(`sem adaptador para ${sel.ferramenta}`);
-      await adapter.setStatus(sel.task_id, status);
-      log.info('ferramenta de gestão: status', { selecaoId: sel.id, status });
-      return `${ferramenta}: ${rotulo}`;
-    } catch (e) {
-      log.warn('ferramenta de gestão: falha ao mudar status', { selecaoId: sel.id, status, ...errInfo(e) });
-      const bloqueada = (e as Error).name === 'EscritaBloqueadaError';
-      return `${ICONE.aviso} ${ferramenta} não mudou para ${rotulo} (${bloqueada ? 'escrita desligada' : esc(curto((e as Error).message, 80))})`;
+    const ok: string[] = [];
+    const falhas: string[] = [];
+    for (const s of reais) {
+      const ferramenta = NOME_FERRAMENTA[s.ferramenta];
+      try {
+        const adapter = this.adapters.find((a) => a.nome === s.ferramenta);
+        if (!adapter) throw new Error(`sem adaptador para ${s.ferramenta}`);
+        await adapter.setStatus(s.task_id, status);
+        log.info('ferramenta de gestão: status', { selecaoId: s.id, status });
+        ok.push(ferramenta);
+      } catch (e) {
+        log.warn('ferramenta de gestão: falha ao mudar status', { selecaoId: s.id, status, ...errInfo(e) });
+        const bloqueada = (e as Error).name === 'EscritaBloqueadaError';
+        const quem = reais.length > 1 ? `${esc(curto(this.tituloDe(s), 30))} ` : '';
+        falhas.push(`${ICONE.aviso} ${quem}${ferramenta} não mudou para ${rotulo} (${bloqueada ? 'escrita desligada' : esc(curto((e as Error).message, 80))})`);
+      }
     }
+    const ferramentas = [...new Set(ok)].join('/');
+    const feito = ok.length ? `${ferramentas}: ${reais.length > 1 ? `${ok.length} ${status === 'concluida' ? 'concluídas' : 'em progresso'}` : rotulo}` : null;
+    return [feito, ...falhas].filter(Boolean).join(' · ');
   }
 
   // Sessão do Claude ociosa na pasta (preferindo `preferida`); se não houver nenhuma, abre uma. null = avisou e espera.
@@ -606,14 +620,14 @@ export class Despachante {
     if (falhas < 3) return 'esperar';
 
     const sel = this.getSelecaoDe(d);
-    const titulo = this.tituloDe(sel);
     const agora = new Date().toISOString();
     this.db.transaction(() => {
       this.db.prepare("UPDATE despachos SET estado = 'interrompido', atualizado_em = ? WHERE id = ?").run(agora, d.id);
-      this.db.prepare("UPDATE selecoes SET estado = 'interrompida', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
-      this.db
-        .prepare("INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, criado_em) VALUES (?, ?, ?, ?, 'interrompido', ?)")
-        .run(sel.ferramenta, sel.task_id, titulo, d.app, agora);
+      this.db.prepare("UPDATE selecoes SET estado = 'interrompida', atualizado_em = ? WHERE id = ? OR lote_de = ?").run(agora, sel.id, sel.id);
+      for (const s of this.doLote(sel))
+        this.db
+          .prepare("INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, criado_em) VALUES (?, ?, ?, ?, 'interrompido', ?)")
+          .run(s.ferramenta, s.task_id, this.tituloTask(s), d.app, agora);
     })();
     this.falhasTerminal.delete(d.id);
     apagarCredenciaisDaTask(sel.id);
@@ -636,12 +650,6 @@ export class Despachante {
 
   private async concluir(d: Despacho, r: Record<string, string>) {
     const sel = this.getSelecaoDe(d);
-    const titulo = this.tituloDe(sel);
-    const link = (
-      this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
-        | { link: string | null }
-        | undefined
-    )?.link;
     const notas: string[] = [];
 
     // 1. Orca: worktree "em revisão" com o resumo.
@@ -660,10 +668,11 @@ export class Despachante {
     const agora = new Date().toISOString();
     this.db.transaction(() => {
       this.db.prepare("UPDATE despachos SET estado = 'concluido', resultado = ?, atualizado_em = ? WHERE id = ?").run(JSON.stringify(r), agora, d.id);
-      this.db.prepare("UPDATE selecoes SET estado = 'finalizada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
-      this.db
-        .prepare('INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, resumo, branch, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(sel.ferramenta, sel.task_id, titulo, d.app, r.status, r.resumo ?? null, r.branch ?? null, agora);
+      this.db.prepare("UPDATE selecoes SET estado = 'finalizada', atualizado_em = ? WHERE id = ? OR lote_de = ?").run(agora, sel.id, sel.id);
+      for (const s of this.doLote(sel))
+        this.db
+          .prepare('INSERT INTO historico (ferramenta, task_id, titulo, app, status_final, resumo, branch, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(s.ferramenta, s.task_id, this.tituloTask(s), d.app, r.status, r.resumo ?? null, r.branch ?? null, agora);
     })();
     log.info('fechamento: concluído', { despachoId: d.id, status: r.status });
 
@@ -767,13 +776,19 @@ export class Despachante {
       if (d.estado !== 'concluido' || d.msg_fechamento !== msgId) return 'Esses botões já foram usados.';
       await this.api.editMessageReplyMarkup(this.chatId, msgId).catch(() => {});
       if (acao === 'x') {
-        if (!FERRAMENTA_REAL.has(sel.ferramenta)) {
+        const reais = this.doLote(sel).filter((s) => FERRAMENTA_REAL.has(s.ferramenta));
+        if (!reais.length) {
           await this.encerrar(d, sel, false);
           return 'Encerrado';
         }
+        const onde = [...new Set(reais.map((s) => NOME_FERRAMENTA[s.ferramenta]))].join('/');
         const m = await this.api.sendMessage(
           this.chatId,
-          cartao({ icone: ICONE.pergunta, titulo: `Marcar como concluída no ${NOME_FERRAMENTA[sel.ferramenta]}?`, contexto: [this.tituloHtml(sel), 'encerrar'] }),
+          cartao({
+            icone: ICONE.pergunta,
+            titulo: reais.length > 1 ? `Marcar as ${reais.length} tasks como concluídas no ${onde}?` : `Marcar como concluída no ${onde}?`,
+            contexto: [this.tituloHtml(sel), 'encerrar'],
+          }),
           {
             ...HTML,
             reply_markup: new InlineKeyboard()
@@ -944,11 +959,15 @@ export class Despachante {
       this.db
         .prepare("UPDATE despachos SET estado = 'encerrado', encerrado_em = ?, msg_fechamento = NULL, atualizado_em = ? WHERE id = ?")
         .run(agora, agora, d.id);
-      this.db.prepare("UPDATE selecoes SET estado = 'encerrada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
+      this.db.prepare("UPDATE selecoes SET estado = 'encerrada', atualizado_em = ? WHERE id = ? OR lote_de = ?").run(agora, sel.id, sel.id);
     })();
     apagarCredenciaisDaTask(sel.id);
     log.info('despacho: encerrado', { despachoId: d.id, concluirTask });
-    const continua = FERRAMENTA_REAL.has(sel.ferramenta) && !concluirTask ? `${NOME_FERRAMENTA[sel.ferramenta]}: continua em progresso` : null;
+    const reais = this.doLote(sel).filter((s) => FERRAMENTA_REAL.has(s.ferramenta));
+    const continua =
+      reais.length && !concluirTask
+        ? `${[...new Set(reais.map((s) => NOME_FERRAMENTA[s.ferramenta]))].join('/')}: ${reais.length > 1 ? 'continuam' : 'continua'} em progresso`
+        : null;
     await this.enviar(cartao({ icone: ICONE.ok, titulo: this.tituloHtml(sel), contexto: [esc(d.app), 'encerrada', status ?? continua] }));
   }
 
@@ -987,7 +1006,7 @@ export class Despachante {
     const arquivo = escreverSeguimento({
       selecaoId: sel.id,
       rodada,
-      titulo,
+      titulo: titulo.replace(/^📦 /, ''),
       link,
       app,
       anterior: JSON.parse(d.resultado ?? '{}'),
@@ -1008,7 +1027,7 @@ export class Despachante {
              msg_fechamento = NULL, aviso_motivo = NULL, ultimo_aviso_em = NULL, atualizado_em = ? WHERE id = ?`,
         )
         .run(rodada, arquivo, alvo.handle, alvo.title, agora, d.id);
-      this.db.prepare("UPDATE selecoes SET estado = 'despachada', atualizado_em = ? WHERE id = ?").run(agora, sel.id);
+      this.db.prepare("UPDATE selecoes SET estado = 'despachada', atualizado_em = ? WHERE id = ? OR lote_de = ?").run(agora, sel.id, sel.id);
     })();
     log.info('seguimento: enviado', { despachoId: d.id, rodada, tipo: seg.tipo, terminal: alvo.handle });
     await this.enviar(
@@ -1024,8 +1043,14 @@ export class Despachante {
 
   // ─────────────────────────── util ───────────────────────────
 
-  // Título da task para o título das mensagens: curto e com link quando houver.
+  // A task e, se ela lidera um lote, as outras tasks do lote (na ordem em que foram marcadas).
+  private doLote(sel: Selecao): Selecao[] {
+    return [sel, ...(this.db.prepare('SELECT * FROM selecoes WHERE lote_de = ? ORDER BY id').all(sel.id) as Selecao[])];
+  }
+
+  // Título para o título das mensagens: curto e com link quando houver; lote vira "📦 Lote de N: …".
   private tituloHtml(sel: Selecao) {
+    if (this.doLote(sel).length > 1) return esc(curto(this.tituloDe(sel)));
     const t = esc(curto(this.tituloDe(sel)));
     const link = (
       this.db.prepare('SELECT link FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
@@ -1036,6 +1061,11 @@ export class Despachante {
   }
 
   private tituloDe(sel: Selecao) {
+    const lote = this.doLote(sel);
+    return lote.length > 1 ? `📦 Lote de ${lote.length}: ${lote.map((s) => this.tituloTask(s)).join(' + ')}` : this.tituloTask(sel);
+  }
+
+  private tituloTask(sel: Selecao) {
     const v = this.db.prepare('SELECT titulo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?').get(sel.ferramenta, sel.task_id) as
       | { titulo: string }
       | undefined;
