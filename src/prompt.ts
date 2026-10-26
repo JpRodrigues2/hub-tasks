@@ -14,7 +14,8 @@ export function dirAnexos(selecaoId: number) {
 }
 
 // Baixa as imagens da descrição para runs/<id>/; as que falharem ficam só como URL no prompt.
-export async function baixarImagens(selecaoId: number, urls: string[]): Promise<{ locais: string[]; falhas: string[] }> {
+// `prefixo` separa as imagens de cada task de um lote (descricao-t2-1.png).
+export async function baixarImagens(selecaoId: number, urls: string[], prefixo = ''): Promise<{ locais: string[]; falhas: string[] }> {
   const locais: string[] = [];
   const falhas: string[] = [];
   const dir = dirAnexos(selecaoId);
@@ -25,7 +26,7 @@ export async function baixarImagens(selecaoId: number, urls: string[]): Promise<
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const ext = (res.headers.get('content-type') ?? '').match(/image\/(png|jpe?g|gif|webp)/)?.[1] ?? 'bin';
       mkdirSync(dir, { recursive: true });
-      const arq = join(dir, `descricao-${i + 1}.${ext.replace('jpeg', 'jpg')}`);
+      const arq = join(dir, `descricao-${prefixo}${i + 1}.${ext.replace('jpeg', 'jpg')}`);
       writeFileSync(arq, Buffer.from(await res.arrayBuffer()));
       locais.push(arq);
     } catch (e) {
@@ -36,49 +37,71 @@ export async function baixarImagens(selecaoId: number, urls: string[]): Promise<
   return { locais, falhas };
 }
 
+export interface TaskDoPrompt {
+  task: TaskDetalhe;
+  imagens: { locais: string[]; falhas: string[] };
+}
+
 export interface DadosPrompt {
   selecaoId: number;
-  task: TaskDetalhe;
+  tasks: TaskDoPrompt[]; // 1 = task sozinha; 2+ = lote (tasks que se complementam)
   avulsa: boolean; // atividade avulsa (/nova): sem ferramenta de gestão
   credenciais: string | null; // runs/<id>/credenciais.json com API key/secret das gamificações autorizadas
   infoExtra: string | null;
   app: App;
   gamificacoes: Gamificacao[];
   anexosJoao: string[];
-  imagensDescricao: { locais: string[]; falhas: string[] };
 }
 
-// Prompt da task. Sem nome de branch (a sessão escolhe) e sem apontar para repositório de contexto:
+// Prompt da task (ou do lote). Sem nome de branch (a sessão escolhe) e sem apontar para repositório de contexto:
 // o contexto é o da própria sessão. As regras de trabalho vêm de regras/<empresa>.md.
 export function escreverPrompt(d: DadosPrompt): string {
-  const { task, app } = d;
+  const { app } = d;
+  const lote = d.tasks.length > 1;
   const L: string[] = [];
 
-  L.push(`# Task do hub #${d.selecaoId}: ${task.titulo}`, '');
-  L.push(
-    d.avulsa
-      ? '- **Origem:** atividade avulsa pedida pelo João (não está em nenhuma ferramenta de gestão)'
-      : `- **Ferramenta:** ${task.ferramenta}${task.projetoNome ? ` — projeto "${task.projetoNome}"` : ''}`,
-  );
-  if (task.link) L.push(`- **Link:** ${task.link}`);
-  if (task.prazo) L.push(`- **Prazo:** ${task.prazo.slice(0, 10)}`);
-  L.push(`- **App:** ${app.app}`, `- **Pasta:** \`${app.pasta}\``, '');
-
-  L.push(d.avulsa ? '## Instruções' : '## Descrição', '', task.descricao.trim() || '_(sem descrição)_', '');
-
-  if (task.comentarios.length) {
-    L.push('## Comentários', '');
-    for (const c of task.comentarios) L.push(`**${c.autor}** (${c.data.slice(0, 10)}):`, '', c.texto.trim(), '');
+  if (lote) {
+    L.push(`# Lote do hub #${d.selecaoId}: ${d.tasks.length} tasks relacionadas`, '');
+    L.push(
+      'Estas tasks se complementam e foram mandadas juntas de propósito. Leia todas antes de começar, planeje a ordem e faça tudo nesta sessão, numa mesma branch. Se alguma não fizer sentido junto com as outras, pare e me pergunte.',
+      '',
+    );
+    L.push(`- **App:** ${app.app}`, `- **Pasta:** \`${app.pasta}\``, '');
   }
 
-  if (d.infoExtra) L.push('## Informação extra do João', '', d.infoExtra.trim(), '');
+  d.tasks.forEach(({ task, imagens }, i) => {
+    const h = lote ? '###' : '##';
+    L.push(lote ? `## Task ${i + 1}: ${task.titulo}` : `# Task do hub #${d.selecaoId}: ${task.titulo}`, '');
+    L.push(
+      d.avulsa
+        ? '- **Origem:** atividade avulsa pedida pelo João (não está em nenhuma ferramenta de gestão)'
+        : `- **Ferramenta:** ${task.ferramenta}${task.projetoNome ? ` — projeto "${task.projetoNome}"` : ''}`,
+    );
+    if (task.link) L.push(`- **Link:** ${task.link}`);
+    if (task.prazo) L.push(`- **Prazo:** ${task.prazo.slice(0, 10)}`);
+    if (!lote) L.push(`- **App:** ${app.app}`, `- **Pasta:** \`${app.pasta}\``);
+    L.push('');
 
-  const imgs = [...d.imagensDescricao.locais, ...d.anexosJoao];
-  if (imgs.length || d.imagensDescricao.falhas.length) {
-    L.push('## Imagens e anexos', '', 'Abra e analise cada arquivo abaixo antes de começar — fazem parte da especificação:', '');
-    for (const a of d.imagensDescricao.locais) L.push(`- \`${a}\` (imagem da descrição da task)`);
-    for (const a of d.anexosJoao) L.push(`- \`${a}\` (enviado pelo João: ${basename(a)})`);
-    for (const u of d.imagensDescricao.falhas) L.push(`- ${u} (não consegui baixar; tente abrir a URL)`);
+    L.push(d.avulsa ? `${h} Instruções` : `${h} Descrição`, '', task.descricao.trim() || '_(sem descrição)_', '');
+
+    if (task.comentarios.length) {
+      L.push(`${h} Comentários`, '');
+      for (const c of task.comentarios) L.push(`**${c.autor}** (${c.data.slice(0, 10)}):`, '', c.texto.trim(), '');
+    }
+
+    if (imagens.locais.length || imagens.falhas.length) {
+      L.push(`${h} Imagens da descrição`, '', 'Abra e analise cada arquivo abaixo antes de começar — fazem parte da especificação:', '');
+      for (const a of imagens.locais) L.push(`- \`${a}\``);
+      for (const u of imagens.falhas) L.push(`- ${u} (não consegui baixar; tente abrir a URL)`);
+      L.push('');
+    }
+  });
+
+  if (d.infoExtra) L.push(`## Informação extra do João${lote ? ' (vale para o lote)' : ''}`, '', d.infoExtra.trim(), '');
+
+  if (d.anexosJoao.length) {
+    L.push('## Anexos do João', '', 'Abra e analise cada arquivo abaixo antes de começar — fazem parte da especificação:', '');
+    for (const a of d.anexosJoao) L.push(`- \`${a}\` (${basename(a)})`);
     L.push('');
   }
 
@@ -99,6 +122,7 @@ export function escreverPrompt(d: DadosPrompt): string {
   }
 
   L.push(...blocoRegras(app.empresa));
+  if (lote) L.push('No bloco de encerramento, use um único bloco para o lote e diga no `resumo` o que foi feito em cada task.', '');
   L.push(...blocoEncerramento(String(d.selecaoId)));
 
   mkdirSync(RUNS_DIR, { recursive: true });

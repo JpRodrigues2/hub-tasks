@@ -190,6 +190,18 @@ Da próxima vez, o projeto já tem app e vai direto.
 
 ---
 
+## 8. Despacho
+
+### B19 — Disparar tasks em lote · ✔️
+Tasks que se complementam vão juntas, num só prompt e numa só sessão, em vez de uma de cada vez.
+- **No resumo:** marque as tasks e toque em **📦 Em lote**, ao lado de ▶️ Iniciar. Precisa de pelo menos duas tasks, todas da mesma empresa.
+- **Configuração:** uma vez só para o lote: info extra, app, gamificações e confirmação, que lista as tasks. Se as tasks forem de apps diferentes, o bot avisa que o lote roda num app só.
+- **Prompt:** `runs/<id>.md` com uma seção por task (descrição, comentários, imagens). Pede para ler todas, planejar a ordem e trabalhar numa mesma branch. Fecha com um único `RESULTADO HUB`, que diz no resumo o que foi feito em cada task.
+- **Status:** ao despachar, todas as tasks do lote vão para "em progresso". No ✅ Encerrar, o bot pergunta se marca **as N tasks** como concluídas.
+- **Depois:** 💬 instrução e 🔀 PR valem para o lote inteiro. O histórico guarda uma linha por task.
+
+---
+
 ## Pontos para alinharmos
 
 Respondidos em 2026-10-16:
