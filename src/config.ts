@@ -142,7 +142,9 @@ export function ligarProjeto(app: string, projeto: string) {
 export function adicionarGamificacao(app: string, g: Gamificacao) {
   editarCatalogo((doc) => {
     const i = indiceApp(doc, app);
-    if (!doc.getIn(['apps', i, 'gamificacoes'])) doc.setIn(['apps', i, 'gamificacoes'], []);
+    // `gamificacoes: []` é uma lista entre colchetes; a primeira gamificação troca por lista em bloco (uma por linha).
+    const atual = doc.getIn(['apps', i, 'gamificacoes']) as { items?: unknown[] } | undefined;
+    if (!atual?.items?.length) doc.setIn(['apps', i, 'gamificacoes'], doc.createNode([], { flow: false }));
     doc.addIn(['apps', i, 'gamificacoes'], Object.fromEntries(Object.entries(g).filter(([, v]) => v !== undefined)));
   });
 }
