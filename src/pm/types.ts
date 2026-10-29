@@ -1,4 +1,4 @@
-// Interface comum dos adaptadores de ferramenta de gestão (mapeamento em docs/mcp-mapping.md).
+// Interface comum dos adaptadores de ferramenta de gestão (mapeamento em docs/referencia/mcp-ferramentas-de-gestao.md).
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { connect, type PmName } from './mcp-client.js';
 import { log } from '../logger.js';

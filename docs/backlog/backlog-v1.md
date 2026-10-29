@@ -5,7 +5,7 @@ O João vai ditando os itens; o Claude organiza, lapida com ele e só implementa
 
 **Status:** 🆕 anotado · 💬 em discussão · ✅ aprovado · 🔨 fazendo · ✔️ feito
 
-Quando um item mudar uma regra do `ROADMAP_HUB.md`, o roadmap é atualizado junto com a implementação.
+Quando um item mudar uma regra do [roadmap](../roadmap/roadmap-v1.md), o roadmap é atualizado junto com a implementação. Como o código funciona: [arquitetura](../arquitetura/arquitetura-e-codigo.md).
 
 ---
 
