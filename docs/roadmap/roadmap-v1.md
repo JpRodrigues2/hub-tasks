@@ -2,6 +2,8 @@
 
 Você vai construir, junto com o João, um **hub de automação de tasks**. Leia este arquivo inteiro antes de começar.
 
+> Este é o roadmap original da v1 (fases 0–9). O que mudou depois dele está no [backlog](../backlog/backlog-v1.md) (B01–B19), que prevalece em caso de conflito. Como o código funciona hoje: [arquitetura](../arquitetura/arquitetura-e-codigo.md). Próxima versão: [v2](../v2/README.md).
+
 ## Como trabalhar neste roadmap
 - Execute **uma fase por vez**. Ao terminar cada fase, mostre um resumo do que foi feito, o que ficou pendente e o que precisa do João, e **PARE**. Só avance quando o João disser "próxima fase".
 - Marque o progresso neste arquivo, trocando `[ ]` por `[x]`, para que uma sessão nova saiba onde parou.
@@ -63,11 +65,10 @@ Você vai construir, junto com o João, um **hub de automação de tasks**. Leia
 O hub só automatiza tasks de projetos que estejam **abertos no Orca** e **cadastrados no `apps.yaml`**. Para incluir um projeto novo:
 1. **Pasta:** clone o repositório em `~/Documents/FUNIFIER/<app>` ou `~/Documents/DAC/<app>`.
 2. **Orca:** adicione o projeto pela interface do Orca ou com `orca repo add --path ~/Documents/<EMPRESA>/<app>`. Confira com `orca repo list --json`.
-3. **Contexto (opcional, recomendado):** crie `~/Documents/Contexto/apps/<EMPRESA>/<app>/CONTEXT.md`. Na Funifier, inclua a seção "Mapa de servidores, contas e gamificações".
-4. **Catálogo:** adicione uma entrada no `~/Documents/HUB/apps.yaml` (formato na Fase 2), com `projetos_na_ferramenta` exatamente igual ao nome/ID do projeto no Funifier PM ou no Bnexo. Na Funifier, liste as gamificações (só nomes, servidor e conta — **nunca** credenciais) e marque uma como `padrao: true`.
-5. **Recarregar:** o hub relê o `apps.yaml` antes de cada resumo; use `/status` no Telegram para conferir se o app aparece e se a pasta foi encontrada no Orca.
+3. **Catálogo:** adicione uma entrada no `~/Documents/HUB/apps.yaml` (formato na Fase 2), com `projetos_na_ferramenta` exatamente igual ao nome/ID do projeto no Funifier PM ou no Bnexo. Na Funifier, liste as gamificações (só nomes, servidor e conta — **nunca** credenciais; as credenciais vão pelo `/gamificacoes`) e marque uma como `padrao: true`.
+4. **Recarregar:** o hub relê o `apps.yaml` antes de cada resumo; use `/status` no Telegram para conferir se o app aparece e se a pasta foi encontrada no Orca.
 
-Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo como "não mapeadas", sem botão de automação.
+Pelo Telegram dá para pular os passos 1 a 3: uma task de projeto sem app oferece ligar a um app existente ou criar o ambiente na hora (clone, Orca e `apps.yaml`; backlog B15).
 
 ---
 
@@ -93,7 +94,7 @@ Enquanto o passo 4 não for feito, as tasks desse projeto aparecem no resumo com
   - (e) listar projetos;
   - (f) identificar o usuário logado (para filtrar "minhas tasks").
 - [x] Testar só as leituras: listar as tasks do João em cada ferramenta e mostrar a contagem por status.
-- [x] Documentar tudo em `docs/mcp-mapping.md`, incluindo os nomes de status de cada ferramenta (qual status significa backlog, em progresso, em revisão, concluída) e como detectar atraso.
+- [x] Documentar tudo em `docs/mcp-mapping.md` (hoje `docs/referencia/mcp-ferramentas-de-gestao.md`), incluindo os nomes de status de cada ferramenta (qual status significa backlog, em progresso, em revisão, concluída) e como detectar atraso.
 - [x] PARAR.
 
 ## Fase 2 — Catálogo de apps (`apps.yaml`)
