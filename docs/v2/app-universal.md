@@ -90,7 +90,7 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 - **Telegram:** só responde ao chat do colaborador; mensagens com credenciais são apagadas.
 - **Repositórios:** arquivos locais só via `.git/info/exclude`.
 
-## B.7 Distribuição e atualização (D-A6 🟡)
+## B.7 Distribuição e atualização (D-A6 ❌, ver D-A19 em [implantação](implantacao.md))
 
 | Opção | Prós | Contras |
 |---|---|---|
@@ -124,11 +124,12 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 | D-A3 🟡 | Executor | Só Orca · Orca + terminal/tmux | Só Orca na v2, com a interface `Executor` pronta para o terminal. |
 | D-A4 🟡 | Acesso ao Funifier PM | OAuth pessoal · conta de serviço | OAuth pessoal (já é como a v1 funciona; cada um vê as próprias tasks). |
 | D-A5 🟡 | Cofre | Keychain · arquivo 600 | Keychain no Mac. Ampliada em D-A14 (uso) e D-A15 (entrada). |
-| D-A6 🟡 | Distribuição | Repositório · npm privado · Homebrew · app | npm privado na org da Funifier. |
+| D-A6 ❌ | Distribuição | Repositório · npm privado · Homebrew · app | Substituída pela D-A19 ([implantação](implantacao.md)). |
 | D-A7 🟡 | Nome do produto | — | — |
 | D-A8 🟡 | Quem aprova na Funifier e quem dá suporte | — | — |
 | D-A9 🟡 | O João passa a usar a v2 com o Bnexo como plugin, ou mantém a v1 | v2 + plugin · v1 em paralelo | v2 + plugin, para ter um código só. |
 | D-A10 🟡 | Interface além do Telegram (Slack, Teams) | Só Telegram · outra | Só Telegram na v2. |
 | D-A11 🟡 | Framework | NestJS · TypeScript + bibliotecas focadas | TypeScript + bibliotecas ([arquitetura v2](arquitetura-v2.md#5-framework-e-ferramentas-d-a11-)). |
 | D-A12 🟡 | Arquitetura | Implícita (v1) · hexagonal por módulos | Hexagonal ([arquitetura v2](arquitetura-v2.md#3-arquitetura-proposta-hexagonal-portas-e-adaptadores-por-módulos-d-a12-)). |
-| D-A13 a D-A17 🟡 | Banco, credenciais, ferramentas, SaaS | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |
+| D-A13 a D-A17 | Banco e ORM ✅, credenciais 🟡, Jira ✅, SaaS 🟡 | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |
+| D-A18 a D-A21 | Modos local e servidor ✅, distribuição, site, sistemas operacionais 🟡 | — | Ver [implantação](implantacao.md#8-decisões). |

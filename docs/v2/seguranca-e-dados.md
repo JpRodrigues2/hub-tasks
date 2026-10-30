@@ -6,6 +6,16 @@ Legenda: 🟡 em aberto · ✅ decidida · ❌ descartada.
 
 ---
 
+## 0. Ponto de atenção principal
+
+**O hub vai guardar muitas credenciais, de muitas pessoas, de várias empresas diferentes.** Cada uma pode fazer qualquer coisa no backend de uma gamificação, inclusive em produção. Esse é o maior risco do produto, e toda decisão da v2 precisa considerar:
+
+1. **onde** as credenciais ficam guardadas;
+2. **como** elas circulam entre o hub, a sessão do Claude e o backend (cada cópia é um vazamento possível);
+3. **quem** tem acesso a elas: o colaborador, o hub, o agente, nós (se um dia houver SaaS).
+
+As camadas abaixo (C1 a C5) são a proposta inicial. **A decisão final sobre segurança fica para mais adiante** (decisão do João, 30/10/2026), mas nenhuma implementação da v2 deve aumentar o número de lugares por onde uma credencial passa.
+
 ## 1. Situação na v1
 
 | Segredo | Onde fica | Poder de quem o tiver |
@@ -127,7 +137,12 @@ Trocar de banco **não resolve** a segurança das credenciais:
 
 - **SQLite** enquanto o modelo for "cada um roda o próprio hub" (código-fonte ou pacote).
 - **Postgres** quando virar SaaS (D-A17).
-- A troca fica barata com o **Repository** e o **Kysely** ([arquitetura v2](arquitetura-v2.md)): o Kysely tem dialetos para os dois bancos, e o SQL fica todo no adaptador de persistência.
+- **ORM: Prisma** (decisão do João). O Prisma 7 suporta SQLite pelo adaptador oficial `@prisma/adapter-better-sqlite3`, e a migração para o Postgres troca o `provider` do schema e o adaptador. Todo acesso ao banco fica nos repositórios ([arquitetura v2](arquitetura-v2.md)).
+
+**A validar com o Prisma (teste P1, antes de começar a v2):**
+- **Migrações por banco:** o histórico de migrações do Prisma é específico do provider. Na troca para o Postgres, gera-se um histórico novo (baseline) e os dados são copiados.
+- **Diferenças de tipos:** conferir no SQLite os tipos usados no schema (enums, JSON, datas).
+- **Empacotamento:** o `prisma migrate deploy` usa o CLI do Prisma. No pacote do colaborador, as migrações precisam rodar sozinhas na inicialização, sem o colaborador instalar nada. Validar junto com o formato de distribuição ([implantação](implantacao.md)).
 
 ## 5. Se virar SaaS (D-A17 🟡)
 
@@ -139,11 +154,11 @@ Registrado para não perder. Não é escopo da v2.
 
 ## 6. Ferramentas de gestão da v2 (D-A16 🟡)
 
-**Meta:** sair com **Funifier PM + Bnexo + uma ferramenta de mercado**, escolhidas no onboarding. O onboarding será detalhado depois.
+**Meta:** sair com **Funifier PM + Bnexo + Jira**, escolhidas no onboarding. O onboarding será detalhado depois.
 
 | Candidata | Conexão | Observação |
 |---|---|---|
-| Jira | MCP oficial da Atlassian (remoto, OAuth) e API REST v3 | Mais comum em empresas. Recomendada (verificar o MCP oficial na implementação). |
+| **Jira ✅** | MCP oficial da Atlassian (remoto, OAuth) e API REST v3 | Escolhida. Verificar o MCP oficial na implementação. |
 | ClickUp | API REST com OAuth ou token pessoal | Verificar se há MCP oficial. |
 | Trello | API REST com chave e token, ou OAuth | Mais simples; menos usado em times de desenvolvimento. |
 
@@ -156,8 +171,8 @@ Registrado para não perder. Não é escopo da v2.
 
 | Id | Decisão | Opções | Recomendação |
 |---|---|---|---|
-| D-A13 🟡 | Banco | SQLite · Postgres | SQLite no self-hosted; Postgres no SaaS; Kysely para trocar. |
-| D-A14 🟡 | Uso das credenciais | Arquivo para o agente (v1) · gateway MCP do hub | Gateway: o agente nunca vê a credencial. |
+| D-A13 ✅ | Banco e ORM | SQLite · Postgres · Prisma · Kysely | **Prisma + SQLite** na v2; Postgres quando houver SaaS. Pendente o teste P1. |
+| D-A14 🟡 (decidir mais adiante) | Uso das credenciais | Arquivo para o agente (v1) · gateway MCP do hub | Gateway: o agente nunca vê a credencial. |
 | D-A15 🟡 | Entrada das credenciais | Telegram (v1) · onboarding local · OAuth | OAuth quando houver; senão, onboarding local. Nunca pelo chat. |
-| D-A16 🟡 | Terceira ferramenta de gestão | Jira · ClickUp · Trello | Jira. |
+| D-A16 ✅ | Terceira ferramenta de gestão | Jira · ClickUp · Trello | **Jira** (decidido em 30/10/2026). |
 | D-A17 🟡 | Modelo futuro | Self-hosted · SaaS (nuvem + runner local) | Self-hosted na v2; SaaS registrado para depois. |

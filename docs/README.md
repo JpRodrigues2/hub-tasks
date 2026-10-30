@@ -15,7 +15,8 @@ docs/
 │   ├── README.md                          visão geral e ordem de trabalho da v2
 │   ├── app-universal.md                   Parte B: pacote instalável para os colaboradores da Funifier
 │   ├── arquitetura-v2.md                  impeditivos, arquitetura hexagonal, padrões, framework
-│   └── seguranca-e-dados.md               credenciais, banco, SaaS, ferramentas de gestão
+│   ├── seguranca-e-dados.md               credenciais, banco, SaaS, ferramentas de gestão
+│   └── implantacao.md                     modo local ou servidor do usuário, distribuição, site de suporte
 └── hospedagem/
     └── servidor-nuvem.md                  Parte A: hub e sessões num servidor, Orca do Mac pareado
 ```
@@ -26,6 +27,6 @@ docs/
 | Saber o que a v1 faz e o que falta (Fases 7–9) | [roadmap](roadmap/roadmap-v1.md) |
 | Ver por que algo funciona do jeito que funciona | [backlog](backlog/backlog-v1.md) (cada item tem o pedido e a decisão) |
 | Mexer na integração com o PM ou o Bnexo | [referência dos MCPs](referencia/mcp-ferramentas-de-gestao.md) |
-| Acompanhar a v2 | [v2](v2/README.md) → [servidor](hospedagem/servidor-nuvem.md), [app universal](v2/app-universal.md), [arquitetura v2](v2/arquitetura-v2.md), [segurança e dados](v2/seguranca-e-dados.md) |
+| Acompanhar a v2 | [v2](v2/README.md) → [servidor](hospedagem/servidor-nuvem.md), [app universal](v2/app-universal.md), [arquitetura v2](v2/arquitetura-v2.md), [segurança e dados](v2/seguranca-e-dados.md), [implantação](v2/implantacao.md) |
 
 Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` e `regras/*.md`.
