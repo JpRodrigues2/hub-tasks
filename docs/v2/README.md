@@ -28,7 +28,7 @@ Legenda das decisões: 🟡 em aberto · ✅ decidida · ❌ descartada. Cada de
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Criar os documentos da v2 e organizar a documentação (`docs/`), com a arquitetura da v1 | ✔️ |
-| 2 | Servidor: decidir escopo, testar e validar as decisões, contratar o serviço de cloud, implementar. Vira o piloto do **modo servidor** da v2.1 ([implantação](implantacao.md)); o teste T4 é prioridade | ⬜ |
+| 2 | Servidor: decidir escopo, testar e validar as decisões, contratar o serviço de cloud, implementar. Vira o piloto do **modo servidor** da v2.1 ([implantação](implantacao.md)); o teste T4 é prioridade. Plano em [plano de execução](../hospedagem/plano-execucao.md) | ⬜ |
 | 3 | Documentar a v1 inteira, versionar no git do João (repositório remoto) e criar a branch `v2` | ⬜ |
 | 4 | Decidir tudo da v2 (app universal): fechar as decisões D-A | ⬜ |
 | 5 | Implementar a v2 | ⬜ |

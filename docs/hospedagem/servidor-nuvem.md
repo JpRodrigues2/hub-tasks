@@ -58,6 +58,8 @@ Critérios para decidir:
 
 ## A.5 Testes de validação (antes de contratar)
 
+> **Pesquisa de 30/10/2026:** várias lacunas já têm resposta na documentação oficial, e há um plano de execução por fases em [plano de execução](plano-execucao.md).
+
 Cada teste confirma ou derruba uma decisão. A ideia é fazer no próprio MacBook, numa VM ou numa VPS cobrada por hora, antes de contratar qualquer coisa. **Ordem: primeiro o que pode inviabilizar tudo.**
 
 ### Bloco 1: o Orca roda no servidor? (decide D-S1 e se o executor tmux entra na v2.1)
@@ -118,7 +120,7 @@ Pouco:
 
 Levantados em 30/10/2026. Os testes de A.5 que resolvem cada um estão entre parênteses.
 
-1. **Orca sem tela no Linux não está confirmado** (T0, T4). Sem ele, o servidor tem de ser um Mac (Mac mini ou Mac na nuvem), ou o executor tmux entra antes da hora.
+1. **Orca sem tela no Linux:** documentado oficialmente (`orca-ide serve`, builds x64 e arm64); falta rodar (T4). Sem ele, o servidor tem de ser um Mac (Mac mini ou Mac na nuvem), ou o executor tmux entra antes da hora.
 2. **Fase 7 não existe.** Não há serviço (LaunchAgent/systemd) nem espera do Orca ficar pronto, nem o aviso "Hub online". Hoje o hub sobe com `nohup`.
 3. **Caminhos do Mac no código e na configuração:**
    - `ORCA_BIN` padrão é o caminho do app no macOS;
@@ -132,7 +134,7 @@ Levantados em 30/10/2026. Os testes de A.5 que resolvem cada um estão entre par
 9. **Servidores de dev das sessões:** consomem memória (T5) e precisam ser acessíveis do Mac (T6).
 10. **Leitura da tela no `orca serve`:** o `classificarTela` foi calibrado com o Orca do Mac. Confirmar que a tela vem igual (T3c) e que o estado dos agentes existe sem janela (T3b).
 11. **Quem vigia o vigia:** se o hub cair no servidor, o Telegram só fica em silêncio. Falta um aviso externo (healthcheck) ou, no mínimo, o "Hub online" da Fase 7.
-12. **Compilação no Linux:** `better-sqlite3` é módulo nativo e precisa de ferramentas de build (ou binário pré-compilado) na instalação.
+12. ~~Compilação no Linux~~: resolvido, o `better-sqlite3` já traz binários `linux-x64` e `linux-arm64`.
 13. **Backup:** snapshot do provedor e cópia de `data/` com o cofre cifrado (D-S7).
 
 ## A.8 Decisões do servidor
