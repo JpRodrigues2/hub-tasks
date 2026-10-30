@@ -7,7 +7,7 @@ Parte da [v2](README.md). Legenda: 🟡 em aberto · ✅ decidida · ❌ descart
 Qualquer colaborador da Funifier instala o hub e, em poucos minutos, recebe as próprias tasks do Funifier PM no Telegram e as despacha para sessões do Claude Code, com as mesmas proteções da v1.
 
 **Fica de fora:**
-- tudo da DAC (Bnexo, regras da DAC, pasta `DAC/`);
+- regras e pastas da DAC (o Bnexo passa a ser uma das ferramentas escolhidas no onboarding, D-A16);
 - configurações pessoais do João.
 
 ## B.2 Público e premissas
@@ -48,7 +48,7 @@ A v1 já tem a interface `PmAdapter` (`src/pm/types.ts`) para as ferramentas de 
 | Textos com "João" | ~30 ocorrências em 13 arquivos (prompts, regras, mensagens) | Nome do usuário configurado. |
 | `ORCA_BIN` | Caminho fixo do Mac | Detectado na instalação. |
 | `apps.yaml` | Escrito à mão pelo João | Gerado pelo assistente de instalação (B.5). |
-| Cofre (`data/segredos/gamificacoes.json`) | Arquivo JSON 600 | Keychain do macOS (D-A5). |
+| Cofre (`data/segredos/gamificacoes.json`) | Arquivo JSON 600; cópia entregue à sessão | Porta `Cofre` (Keychain no Mac) e gateway: o agente nunca vê a chave ([segurança e dados](seguranca-e-dados.md), D-A14). |
 | `TELEGRAM_CHAT_ID` | Do João | Descoberto na instalação (o colaborador manda `/start`). |
 | Commits sem coautor | Regra nos `regras/*.md` | Padrão de fábrica nas regras. |
 
@@ -123,9 +123,12 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 | D-A2 🟡 | Bot do Telegram | Um bot por colaborador · bot único da Funifier | Um por colaborador; o bot único exige o hub central. |
 | D-A3 🟡 | Executor | Só Orca · Orca + terminal/tmux | Só Orca na v2, com a interface `Executor` pronta para o terminal. |
 | D-A4 🟡 | Acesso ao Funifier PM | OAuth pessoal · conta de serviço | OAuth pessoal (já é como a v1 funciona; cada um vê as próprias tasks). |
-| D-A5 🟡 | Cofre | Keychain · arquivo 600 | Keychain. |
+| D-A5 🟡 | Cofre | Keychain · arquivo 600 | Keychain no Mac. Ampliada em D-A14 (uso) e D-A15 (entrada). |
 | D-A6 🟡 | Distribuição | Repositório · npm privado · Homebrew · app | npm privado na org da Funifier. |
 | D-A7 🟡 | Nome do produto | — | — |
 | D-A8 🟡 | Quem aprova na Funifier e quem dá suporte | — | — |
 | D-A9 🟡 | O João passa a usar a v2 com o Bnexo como plugin, ou mantém a v1 | v2 + plugin · v1 em paralelo | v2 + plugin, para ter um código só. |
 | D-A10 🟡 | Interface além do Telegram (Slack, Teams) | Só Telegram · outra | Só Telegram na v2. |
+| D-A11 🟡 | Framework | NestJS · TypeScript + bibliotecas focadas | TypeScript + bibliotecas ([arquitetura v2](arquitetura-v2.md#5-framework-e-ferramentas-d-a11-)). |
+| D-A12 🟡 | Arquitetura | Implícita (v1) · hexagonal por módulos | Hexagonal ([arquitetura v2](arquitetura-v2.md#3-arquitetura-proposta-hexagonal-portas-e-adaptadores-por-módulos-d-a12-)). |
+| D-A13 a D-A17 🟡 | Banco, credenciais, ferramentas, SaaS | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |

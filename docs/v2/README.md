@@ -6,6 +6,10 @@ A v2 tem duas frentes:
 - **[A. Servidor](../hospedagem/servidor-nuvem.md):** o hub e as sessões do Claude rodam 24 h num servidor; o Orca do MacBook vê e usa essas mesmas sessões.
 - **[B. App universal](app-universal.md):** o hub vira um pacote instalável e configurável, só com as funcionalidades da Funifier, para todos os colaboradores.
 
+Documentos transversais:
+- **[Arquitetura v2](arquitetura-v2.md):** o que impede o app universal (I1–I13), diagnóstico da v1, arquitetura hexagonal, padrões e ferramentas (D-A11, D-A12).
+- **[Segurança e dados](seguranca-e-dados.md):** credenciais (o agente nunca vê a chave), banco SQLite × Postgres, SaaS e a terceira ferramenta de gestão (D-A13 a D-A17).
+
 Legenda das decisões: 🟡 em aberto · ✅ decidida · ❌ descartada. Cada decisão tem um id (D-S para o servidor, D-A para o app) para citarmos nas conversas e nos commits.
 
 ---
