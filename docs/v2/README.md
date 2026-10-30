@@ -8,7 +8,16 @@ A v2 tem duas frentes:
 
 Documentos transversais:
 - **[Arquitetura v2](arquitetura-v2.md):** o que impede o app universal (I1–I13), diagnóstico da v1, arquitetura hexagonal, padrões e ferramentas (D-A11, D-A12).
-- **[Segurança e dados](seguranca-e-dados.md):** credenciais (o agente nunca vê a chave), banco SQLite × Postgres, SaaS e a terceira ferramenta de gestão (D-A13 a D-A17).
+- **[Segurança e dados](seguranca-e-dados.md):** credenciais (o principal risco do produto), banco e ORM (Prisma + SQLite), SaaS e ferramentas de gestão (D-A13 a D-A17).
+- **[Implantação](implantacao.md):** modo local ou servidor do usuário, escolhido na instalação; distribuição, site de suporte e sistemas operacionais (D-A18 a D-A21).
+
+### v2.1: primeira entrega
+
+- App universal com assistente de instalação.
+- Dois modos de execução: **local** ou **servidor do usuário** (D-A18).
+- Ferramentas de gestão: **Funifier PM, Bnexo e Jira** (D-A16).
+- **Prisma + SQLite** (D-A13).
+- Arquitetura hexagonal e testes automatizados ([arquitetura v2](arquitetura-v2.md)).
 
 Legenda das decisões: 🟡 em aberto · ✅ decidida · ❌ descartada. Cada decisão tem um id (D-S para o servidor, D-A para o app) para citarmos nas conversas e nos commits.
 
@@ -19,7 +28,7 @@ Legenda das decisões: 🟡 em aberto · ✅ decidida · ❌ descartada. Cada de
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Criar os documentos da v2 e organizar a documentação (`docs/`), com a arquitetura da v1 | ✔️ |
-| 2 | Servidor: decidir escopo, testar e validar as decisões, contratar o serviço de cloud, implementar | ⬜ |
+| 2 | Servidor: decidir escopo, testar e validar as decisões, contratar o serviço de cloud, implementar. Vira o piloto do **modo servidor** da v2.1 ([implantação](implantacao.md)); o teste T4 é prioridade | ⬜ |
 | 3 | Documentar a v1 inteira, versionar no git do João (repositório remoto) e criar a branch `v2` | ⬜ |
 | 4 | Decidir tudo da v2 (app universal): fechar as decisões D-A | ⬜ |
 | 5 | Implementar a v2 | ⬜ |

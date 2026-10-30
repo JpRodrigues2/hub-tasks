@@ -58,8 +58,8 @@ A v1 não tem uma arquitetura declarada. Tem uma arquitetura **implícita**, que
 
 **Por que hexagonal aqui:** tudo o que a v2 quer é trocar peças de fora sem mexer no meio:
 
-- Orca local → Orca remoto (servidor);
-- Funifier PM → + Bnexo + uma terceira ferramenta (D-A16);
+- execução local → servidor do usuário, escolhida na instalação ([implantação](implantacao.md));
+- Funifier PM → + Bnexo + Jira (D-A16);
 - arquivo → cofre seguro (D-A14);
 - Telegram → talvez Slack (D-A10);
 - Orca → terminal/tmux (D-A3).
@@ -86,10 +86,10 @@ src/
 ├── adaptadores/                o mundo de fora, cada um implementando uma porta
 │   ├── gestao/funifier-pm/       implements GestorTasks
 │   ├── gestao/bnexo/             plugin
-│   ├── gestao/<terceira>/        D-A16
+│   ├── gestao/jira/              D-A16
 │   ├── executor/orca/            implements Executor
 │   ├── chat/telegram/            implements Notificador + roteador de comandos e botões
-│   ├── persistencia/sqlite/      implements os repositórios (todo o SQL mora aqui)
+│   ├── persistencia/prisma/      implements os repositórios (todo o acesso ao banco mora aqui)
 │   └── cofre/                    implements Cofre (D-A14)
 │
 └── main.ts                     raiz de composição: o único lugar que dá `new` e liga tudo
@@ -131,7 +131,7 @@ O hub não inicia nenhum servidor, e `fs`/`execFile` são a biblioteca padrão d
 | Problema | Ferramenta | Substitui |
 |---|---|---|
 | Testes | Vitest | Validação manual pelo Telegram |
-| SQL tipado e migrações | Kysely (dialetos SQLite e Postgres, ver D-A13) ou Drizzle | Strings SQL + `PRAGMA user_version` à mão |
+| ORM e migrações | **Prisma** com SQLite (D-A13 ✅); Postgres quando houver SaaS | Strings SQL + `PRAGMA user_version` à mão |
 | Logs estruturados | pino | `logger.ts` |
 | Processos filhos | execa (sem shell, API de Promise) | `new Promise` em volta do `execFile` |
 | Máquina de estados | Tabela tipada própria; XState só se as máquinas crescerem muito | `UPDATE`s soltos |
