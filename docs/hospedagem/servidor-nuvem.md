@@ -58,18 +58,45 @@ Critérios para decidir:
 
 ## A.5 Testes de validação (antes de contratar)
 
-Cada teste confirma ou derruba uma decisão. A ideia é fazer no próprio MacBook, ou numa máquina emprestada, antes de pagar qualquer coisa.
+Cada teste confirma ou derruba uma decisão. A ideia é fazer no próprio MacBook, numa VM ou numa VPS cobrada por hora, antes de contratar qualquer coisa. **Ordem: primeiro o que pode inviabilizar tudo.**
 
-| # | Teste | Confirma |
-|---|---|---|
-| T1 | `orca serve` num segundo usuário do Mac (ou outra máquina) + `orca environment add` no Orca do MacBook | O pareamento funciona e o Orca local mostra os terminais remotos. |
-| T2 | Abrir uma sessão do Claude no servidor, digitar nela pelo Orca do MacBook e ver o hub ler a tela | "Mesma janela de contexto" de verdade, com o João e o hub na mesma sessão. |
-| T3 | Hub rodando no servidor: despachar uma task do sandbox ponta a ponta | O hub funciona sem mudanças fora do MacBook. |
-| T4 | `orca serve` num Linux (VM local ou VPS de teste por hora) | Se o Linux é uma opção (D-S1). |
-| T5 | Medir memória e CPU com 2–3 sessões e um servidor de dev rodando | O tamanho da máquina. |
-| T6 | Acessar do MacBook um servidor de dev que roda no servidor (via Tailscale) | Testar o front no navegador continua possível. |
-| T7 | Reiniciar o servidor e ver o hub e o `orca serve` subirem sozinhos, retomando os despachos | A Fase 7 no servidor. |
-| T8 | Login do Claude no servidor (`orca account add` ou `claude login`) e uma sessão longa | A conta funciona fora do MacBook, sem pedir login de novo. |
+### Bloco 1: o Orca roda no servidor? (decide D-S1 e se o executor tmux entra na v2.1)
+
+| # | Teste | Como | Passa se |
+|---|---|---|---|
+| T0 | Existe Orca para Linux? | Procurar build Linux (AppImage, .deb) e se ela inclui o CLI e o `orca serve` | Há build com `orca serve` |
+| T4 | `orca serve` num Linux **sem tela** | VPS Ubuntu por hora; rodar `orca serve` por SSH. Se falhar, repetir com Xvfb (tela virtual) | Sobe e imprime o código de pareamento sem precisar de display |
+| T4b | `orca serve` como serviço | Unidade systemd; sair do SSH; reiniciar o serviço | Continua de pé depois do logout e volta sozinho |
+| T1 | Pareamento | Tailscale nos dois lados; `orca environment add --pairing-code` no Mac | O Orca do Mac lista os terminais do servidor (`orca host list`) |
+
+### Bloco 2: o hub consegue operar o Orca do servidor?
+
+| # | Teste | Como | Passa se |
+|---|---|---|---|
+| T3a | Os 9 métodos do `orca.ts` contra o `orca serve` | No servidor: `status`, `repo list/add`, `terminal list/read/send/wait/create`, `worktree ps/set`, todos com `--json` | Mesmo formato de JSON do Mac |
+| T3b | Estado dos agentes sem tela | `orca worktree ps` com um Claude trabalhando e parado | `agents[].state` muda entre `working` e `done` |
+| T3c | Leitura da tela | `terminal read --screen` de uma sessão do Claude; passar pelo `classificarTela` | Classifica ocioso, ocupado, aguardando e limite como no Mac |
+| T2 | Mesma janela de contexto | Abrir uma sessão no servidor, digitar nela pelo Orca do Mac, e o hub ler a tela | O João e o hub veem e usam a mesma sessão ao vivo |
+| T3 | Ponta a ponta | Hub no servidor despachando uma task do sandbox até o Encerrar | Fluxo completo sem mudar código, só configuração |
+
+### Bloco 3: contas, repositórios e recursos
+
+| # | Teste | Como | Passa se |
+|---|---|---|---|
+| T8 | Login do Claude sem navegador | `claude login` (ou `orca account add`) por SSH; sessão de algumas horas | Não pede login de novo; `--permission-mode auto` funciona |
+| T9 | Git e PRs no servidor | Chave SSH ou deploy keys para os repositórios da Funifier e da DAC; `gh auth login` | Clona, faz push de branch e abre PR |
+| T10 | Login do Funifier PM sem navegador | `npm run pm:login` no servidor, ou login no Mac e cópia de `data/oauth/` | O hub lista as tasks a partir do servidor |
+| T5 | Memória e CPU | 2–3 sessões do Claude e um servidor de dev rodando | Define o tamanho da máquina |
+| T6 | Servidor de dev pelo Tailscale | Abrir no navegador do Mac o front que roda no servidor | Testar o front continua possível |
+
+### Bloco 4: recuperação
+
+| # | Teste | Como | Passa se |
+|---|---|---|---|
+| T7 | Reinício da máquina | Reiniciar o servidor com um despacho em andamento | Hub e `orca serve` sobem sozinhos; o hub retoma ou marca `interrompido` com aviso |
+| T11 | Reinício só do `orca serve` | Reiniciar o serviço com uma sessão aberta | Saber se as sessões sobrevivem ou se o hub cai no `redescobrir` |
+| T12 | Mac dormindo e acordando | Fechar a tampa do Mac com tasks rodando no servidor | O servidor não é afetado; o Orca do Mac reconecta sozinho |
+| T13 | Versões | Orca do Mac e `orca serve` em versões diferentes | Saber se precisam estar iguais |
 
 ## A.6 O que muda no hub para rodar no servidor
 
@@ -86,6 +113,27 @@ Pouco:
 - **Segredos:** `.env` e cofre com permissão 600, no disco criptografado (FileVault no Mac, LUKS ou o equivalente do provedor no Linux).
 - **Permissões das sessões:** continua `--permission-mode auto`. bypass continua proibido.
 - **Acesso ao servidor:** só o João. Backup do `data/` com o cofre criptografado.
+
+## A.7b Gargalos para colocar a v1 no servidor hoje
+
+Levantados em 30/10/2026. Os testes de A.5 que resolvem cada um estão entre parênteses.
+
+1. **Orca sem tela no Linux não está confirmado** (T0, T4). Sem ele, o servidor tem de ser um Mac (Mac mini ou Mac na nuvem), ou o executor tmux entra antes da hora.
+2. **Fase 7 não existe.** Não há serviço (LaunchAgent/systemd) nem espera do Orca ficar pronto, nem o aviso "Hub online". Hoje o hub sobe com `nohup`.
+3. **Caminhos do Mac no código e na configuração:**
+   - `ORCA_BIN` padrão é o caminho do app no macOS;
+   - `pastaAmbiente` fixa `~/Documents/FUNIFIER` e `~/Documents/DAC` (`fluxo.ts:816`);
+   - todas as `pasta` do `apps.yaml` são caminhos absolutos do Mac (`/Users/joaopedro/...`): precisam ser reescritas.
+4. **Repositórios:** clonar todos no servidor, com acesso git às duas empresas e `gh` para os PRs (T9). Depende da autorização das empresas (D-S6).
+5. **Logins sem navegador:** Claude Code (T8) e OAuth do Funifier PM (T10).
+6. **Credenciais num servidor de terceiros:** o cofre é JSON em texto puro (600). Exige disco criptografado e acesso só pelo Tailscale. Os históricos do Claude com credenciais (ver [segurança e dados](../v2/seguranca-e-dados.md)) passam a existir também no servidor.
+7. **Uma instância de cada vez:** só um processo pode fazer long polling no bot. Na virada, o hub do Mac precisa ser parado antes de o do servidor subir (senão, `409 Conflict`).
+8. **Migração dos dados:** `data/hub.db`, `data/segredos/`, `data/oauth/`, `runs/` (despachos `concluido` ainda dependem deles), `apps.yaml`, `regras/` e `.env`.
+9. **Servidores de dev das sessões:** consomem memória (T5) e precisam ser acessíveis do Mac (T6).
+10. **Leitura da tela no `orca serve`:** o `classificarTela` foi calibrado com o Orca do Mac. Confirmar que a tela vem igual (T3c) e que o estado dos agentes existe sem janela (T3b).
+11. **Quem vigia o vigia:** se o hub cair no servidor, o Telegram só fica em silêncio. Falta um aviso externo (healthcheck) ou, no mínimo, o "Hub online" da Fase 7.
+12. **Compilação no Linux:** `better-sqlite3` é módulo nativo e precisa de ferramentas de build (ou binário pré-compilado) na instalação.
+13. **Backup:** snapshot do provedor e cópia de `data/` com o cofre cifrado (D-S7).
 
 ## A.8 Decisões do servidor
 
