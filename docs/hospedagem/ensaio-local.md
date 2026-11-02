@@ -44,10 +44,47 @@ limactl delete hub-ensaio         # apagar tudo (e remover hub-ensaio do Tailsca
 8. Existe `orca serve service install` (serviço gerenciado) e `--supervise` (reinício próprio, para systemd). Avaliar no script.
 9. Link de pareamento é uma senha: gerar, usar e apagar o log (`umask 077`).
 
-## Falta testar no ensaio
+## Testes da etapa 1 (02/11/2026, VMs novas e descartáveis)
 
-- Script de preparação do zero numa VM nova, e de novo (idempotência).
-- `orca-ide serve` como serviço systemd e reinício da VM (T7, T11).
-- Dois usuários: `hub` falando com o Orca do usuário `agente`.
-- Cofre com `systemd-creds` (serviço do sistema com `User=hub`).
-- Hub da `v2` rodando contra o Orca da VM, com bot de teste (T3a–T3c, T2).
+| # | Teste | Resultado | Como foi verificado |
+|---|---|---|---|
+| 1 | **Dois usuários** (`hub` e `agente`) | ✅ | Sem pareamento, o hub nem enxerga o Orca do agente. Com um pareamento próprio (`orca-ide environment add --name agente`), o hub cria terminais, envia texto e lê telas; o terminal roda como `agente`, que recebe "Permission denied" ao tentar ler `/home/hub` |
+| 2 | **Serviços (systemd)** | ✅ | `orca.service` (`User=agente`). Reboot da VM: o Orca volta sozinho e o pareamento do hub continua válido. `kill -9` no Orca: volta em 10 s e **o terminal aberto sobrevive** |
+| 3 | **Cofre** (`systemd-creds` + AES-256-GCM) | ✅ | Só um serviço com `User=hub` e `LoadCredentialEncrypted` abre o cofre. Ataques que falharam como deviam: o agente ler o cofre, ler a chave cifrada ou ler `/run/credentials/` de um serviço do hub rodando; o hub decifrar a chave fora do serviço; cofre com 1 byte alterado; chave de outra máquina |
+| 3b | **Cópia de recuperação da chave** | ✅ | Exportada (44 caracteres em base64), chave e segredo da máquina apagados ("máquina nova"); o script com `COFRE_CHAVE_B64` reabriu o cofre antigo. Sem a cópia, o cofre antigo não abre |
+| 4 | **Script do zero** ([`deploy/preparar-vm.sh`](../../deploy/preparar-vm.sh)) | ✅ | VM nova: 1ª execução em 2min38s, 2ª em 7s, sem chave nova, sem reiniciar o Orca e sem parear de novo. Depois de um reboot, tudo volta |
+
+Erros que os testes pegaram (já corrigidos no script):
+- a 2ª execução reiniciava o Orca e testava a conexão antes de ele estar pronto;
+- o comando de exportar a chave precisava de `--name=cofre-chave`;
+- no `ExecStart` do systemd, `$` precisa ser escrito `$$`.
+
+### Desenho que saiu dos testes
+
+| Pasta | Dono | Quem acessa |
+|---|---|---|
+| `/home/hub/app` | hub | código do hub, trocado a cada deploy |
+| `/home/hub/dados` (700) | hub | banco, cofre cifrado, logs |
+| `/etc/hub/cofre-chave.cred` (600) | root | chave-mestra, entregue só ao `hub.service` |
+| `/srv/hub/repos` (2775, grupo `hub-agente`) | agente | o agente escreve; o hub cria pastas novas |
+| `/srv/hub/runs` (2750, grupo `hub-agente`) | hub | o hub escreve anexos e prompts; o agente só lê |
+| `/home/agente/.claude/projects` | agente | o hub só lê (ACL), para retomar sessões |
+
+- O hub fala com o Orca pelo pareamento `agente`, apontado para `ws://127.0.0.1:6768`: não depende do Tailscale estar de pé.
+- O deploy (usuário `hub`) só pode reiniciar `hub.service` e `orca.service` (`/etc/sudoers.d/hub-deploy`).
+- O link de pareamento fica no journal do `orca.service`, que só o root e o grupo `adm` leem.
+- A VM do ensaio não tem TPM; o segredo da máquina (`/var/lib/systemd/credential.secret`, só root) fica no disco. Na Oracle, conferir com `systemd-creds has-tpm2`.
+
+### O que o hub precisa mudar para rodar assim (refatoração)
+
+- `ORCA_ENVIRONMENT`: passar `--environment agente` em todo comando do Orca.
+- `HUB_DADOS_DIR`, `HUB_REPOS_DIR`, `HUB_RUNS_DIR` no lugar de `ROOT/data`, `~/Documents/...` e `ROOT/runs`.
+- Ler o histórico do Claude do agente (`/home/agente/.claude/projects`), não do próprio usuário.
+- Marcar cada repositório como confiável no Claude do agente.
+- Cofre lendo a chave de `$CREDENTIALS_DIRECTORY/cofre-chave`.
+- `deploy/atualizar.sh` já usa `sudo -n systemctl restart hub.service`.
+
+## Falta testar
+
+- Tudo acima na **Oracle**, mais o celular reconectando sozinho depois de um reboot (no ensaio, o Tailscale não estava nas VMs de teste).
+- Hub da `v2` rodando contra o Orca da VM, com bot de teste (T3a–T3c, T2), depois da refatoração.

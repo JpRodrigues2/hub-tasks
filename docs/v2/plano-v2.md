@@ -27,9 +27,9 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 | | Item | Detalhe |
 |---|---|---|
 | ⬜ | Porta `Cofre` | `obter(id)`, `salvar(id, valor)`, `remover(id)`, `listar()` (só ids e datas) |
-| ⬜ | Adaptador do servidor | Arquivo cifrado AES-256-GCM; chave-mestra fora do disco (`systemd-creds`) |
+| 🔄 | Adaptador do servidor | Arquivo cifrado AES-256-GCM; chave-mestra fora do disco (`systemd-creds`). Protótipo e ataques ✔️ no [ensaio](../hospedagem/ensaio-local.md) |
 | ⬜ | Cópia de recuperação da chave-mestra | Nota segura no app Senhas da Apple, feita uma vez |
-| ⬜ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub` |
+| ✔️ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub`. Testado no [ensaio](../hospedagem/ensaio-local.md); feito pelo `deploy/preparar-vm.sh` |
 | ⬜ | Adaptador do Mac | Keychain do macOS |
 | ⬜ | Migração | `data/segredos/gamificacoes.json` (texto puro) → cofre cifrado; apagar o arquivo antigo |
 | ⬜ | Investigar a API da Funifier | Autenticação (API key + secret → token de curta duração?) e se o MCP de gamificação atual pode ser embrulhado |
