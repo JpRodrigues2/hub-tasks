@@ -10,8 +10,8 @@
 apps:
   # ───────────────────────── TESTE ─────────────────────────
   - app: sandbox
-    empresa: dac          # dac = sem exigência de gamificação
-    ferramenta: teste     # tasks fictícias criadas por scripts/despacho-teste.ts
+    empresa: dac # dac = sem exigência de gamificação
+    ferramenta: teste # tasks fictícias criadas por scripts/despacho-teste.ts
     projetos_na_ferramenta: []
     pasta: /Users/joaopedro/Documents/HUB/sandbox
     sessao_resume_id: null
@@ -21,7 +21,7 @@ apps:
     empresa: dac
     ferramenta: bnexo
     projetos_na_ferramenta:
-      - "69b0abb8-8fdd-461c-bd1e-8ab404efd27b"   # BUSCA PEÇAS
+      - "69b0abb8-8fdd-461c-bd1e-8ab404efd27b" # BUSCA PEÇAS
     pasta: /Users/joaopedro/Documents/DAC/pecas-c4
     sessao_resume_id: null
 
@@ -29,8 +29,8 @@ apps:
     empresa: dac
     ferramenta: bnexo
     projetos_na_ferramenta:
-      - "7a4b4e84-3020-4fbe-95a4-f636f9cfca4e"   # VISTA - Vistoria Veicular
-      - "08d793a7-9631-4012-ae1a-4b845b197738"   # Vista Issues
+      - "7a4b4e84-3020-4fbe-95a4-f636f9cfca4e" # VISTA - Vistoria Veicular
+      - "08d793a7-9631-4012-ae1a-4b845b197738" # Vista Issues
     pasta: /Users/joaopedro/Documents/DAC/vista
     sessao_resume_id: null
 
@@ -38,7 +38,7 @@ apps:
     empresa: dac
     ferramenta: bnexo
     projetos_na_ferramenta:
-      - "e2d760e0-8ec7-4cf9-8fda-84080e5ac790"   # Evolução - Registro de Contrato
+      - "e2d760e0-8ec7-4cf9-8fda-84080e5ac790" # Evolução - Registro de Contrato
     pasta: /Users/joaopedro/Documents/DAC/rdc-app-jhipster
     sessao_resume_id: null
 
@@ -78,7 +78,7 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "proj-mtdi8n12yfs0"   # PlayDPS Suporte
+      - "proj-mtdi8n12yfs0" # PlayDPS Suporte
     pasta: /Users/joaopedro/Documents/FUNIFIER/playdps-app
     sessao_resume_id: null
     gamificacoes: []
@@ -87,7 +87,7 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "69d8f4b5d95d627e2bd7bdd8"   # Assban
+      - "69d8f4b5d95d627e2bd7bdd8" # Assban
     pasta: /Users/joaopedro/Documents/FUNIFIER/assban-cursos-frontend
     sessao_resume_id: null
     gamificacoes: []
@@ -96,8 +96,8 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "69d8f4b5d95d627e2bd7bdd8"   # Assban
-    pasta: /Users/joaopedro/Documents/FUNIFIER/assban   # não é repositório git (backups/, migracao/)
+      - "69d8f4b5d95d627e2bd7bdd8" # Assban
+    pasta: /Users/joaopedro/Documents/FUNIFIER/assban # não é repositório git (backups/, migracao/)
     sessao_resume_id: null
     gamificacoes: []
 
@@ -105,7 +105,7 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "6a7e02bd77a7a572bce1988d"   # Reconheça BRB
+      - "6a7e02bd77a7a572bce1988d" # Reconheça BRB
     pasta: /Users/joaopedro/Documents/FUNIFIER/brb-reconheca
     sessao_resume_id: null
     gamificacoes: []
@@ -114,7 +114,7 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "proj-mtsz38dndein"   # CONTA COMIGO BRB
+      - "proj-mtsz38dndein" # CONTA COMIGO BRB
     pasta: /Users/joaopedro/Documents/FUNIFIER/brb-contacomigo-dashboard
     sessao_resume_id: null
     gamificacoes: []
@@ -123,7 +123,7 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "6a0280e990c05316483cd7c4"   # Rota Viva
+      - "6a0280e990c05316483cd7c4" # Rota Viva
     pasta: /Users/joaopedro/Documents/FUNIFIER/rota-viva
     sessao_resume_id: null
     gamificacoes: []
@@ -132,10 +132,20 @@ apps:
     empresa: funifier
     ferramenta: funifier-pm
     projetos_na_ferramenta:
-      - "69f2470f90c053164823e2f4"   # Teensmart
+      - "69f2470f90c053164823e2f4" # Teensmart
     pasta: /Users/joaopedro/Documents/FUNIFIER/teensmart-app
     sessao_resume_id: null
-    gamificacoes: []
+    gamificacoes:
+      - nome: prod
+        servidor: service2.funifier.com
+        conta: teensmart
+        padrao: false
+        credencial: teensmart-app-prod-mvqlytcn
+      - nome: dev
+        servidor: service2.funifier.com
+        conta: teensmart
+        padrao: true
+        credencial: teensmart-app-dev-mvqlytdn
 
   - app: doc
     empresa: funifier
@@ -176,13 +186,30 @@ apps:
     pasta: /Users/joaopedro/Documents/FUNIFIER/moderation-text-analyzer
     sessao_resume_id: null
     gamificacoes: []
+  - app: bb-jogajunto
+    empresa: funifier
+    ferramenta: funifier-pm
+    projetos_na_ferramenta:
+      - proj-muo49ytpo4fa
+    pasta: /Users/joaopedro/Documents/FUNIFIER/bb-jogajunto
+    sessao_resume_id: null
+    gamificacoes:
+      [
+        {
+            nome: Joga Junto,
+            servidor: bb-service.funifier.com,
+            conta: BB-JogaJunto,
+            padrao: false,
+            credencial: bb-jogajunto-joga-junto-mvb9u0kg
+          }
+      ]
 
 # Projetos das ferramentas sem pasta: aparecem no resumo, sem botão de automação.
 nao_mapeados:
   funifier-pm:
-    - "proj-mud9xwnid7mn"           # Evolução :: Park Funifier
-    - "proj-mud9vrrdzsr8"           # Funifier Studio :: Evolução
-    - "69d7de2428fe032bb252954f"    # Plugin do Teams
+    - "proj-mud9xwnid7mn" # Evolução :: Park Funifier
+    - "proj-mud9vrrdzsr8" # Funifier Studio :: Evolução
+    - "69d7de2428fe032bb252954f" # Plugin do Teams
   bnexo: []
 
 # Nomes dos projetos do Bnexo (o MCP Essencial só devolve o ID).
