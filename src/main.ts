@@ -1,21 +1,36 @@
-// Ponto de entrada do hub.
-import { loadCatalogo, loadEnv } from './config.js';
+// Raiz de composição: o único lugar que escolhe os adaptadores concretos (Orca, cofre, ferramentas) e liga tudo.
+// O resto do código só conhece as portas (src/aplicacao/portas.ts e PmAdapter).
+import cron from 'node-cron';
+import { join } from 'node:path';
+import type { Cofre } from './aplicacao/portas.js';
+import { CofreArquivoCifrado } from './adaptadores/cofre/arquivo-cifrado.js';
+import { CofreKeychain } from './adaptadores/cofre/keychain.js';
+import { Orca } from './adaptadores/executor/orca.js';
+import { CAMINHOS } from './caminhos.js';
+import { loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
+import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
-import { Orca } from './orca.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
-import cron from 'node-cron';
-import { limparRuns } from './limpeza.js';
+import { migrarCofreAntigo } from './segredos.js';
 import { COMANDOS, createBot } from './telegram.js';
+
+function criarCofre(env: Env): Cofre {
+  return env.HUB_COFRE === 'keychain'
+    ? new CofreKeychain(process.env.HUB_KEYCHAIN_SERVICO)
+    : CofreArquivoCifrado.doSystemd(join(CAMINHOS.dados, 'cofre.enc'));
+}
 
 const env = loadEnv();
 loadCatalogo(); // falha cedo se o apps.yaml estiver inválido
 const db = openDb();
-const orca = new Orca(env.ORCA_BIN);
+const orca = new Orca(env.ORCA_BIN, env.ORCA_ENVIRONMENT);
+const cofre = criarCofre(env);
+await migrarCofreAntigo(cofre);
 const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
 
-const { bot, fluxo, despachante } = createBot({ env, db, orca, adapters });
+const { bot, fluxo, despachante } = createBot({ env, db, orca, cofre, adapters });
 
 // Despacho: fila por app, a cada 30 s (e imediatamente após cada "Despachar").
 setInterval(() => void despachante.processar(), 30_000);
@@ -42,7 +57,7 @@ process.once('SIGINT', () => void parar('SIGINT'));
 process.once('SIGTERM', () => void parar('SIGTERM'));
 process.on('unhandledRejection', (e) => log.error('hub: promise rejeitada', errInfo(e)));
 
-log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM });
+log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM, cofre: env.HUB_COFRE, dados: CAMINHOS.dados });
 await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });

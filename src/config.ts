@@ -1,12 +1,10 @@
 // Leitura e validação do .env e do apps.yaml.
 import 'dotenv/config';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { parse, parseDocument, type Document } from 'yaml';
 import { z } from 'zod';
-
-export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+import { CAMINHOS, resolverPasta } from './caminhos.js';
 
 const EnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(20),
@@ -17,6 +15,12 @@ const EnvSchema = z.object({
   RESUMO_HORARIO: z.string().regex(/^\d{2}:\d{2}$/).default('09:00'),
   TZ_HUB: z.string().default('America/Sao_Paulo'),
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
+  // Pareamento salvo no CLI do Orca (`orca environment add`) quando o Orca roda com outro usuário (servidor).
+  ORCA_ENVIRONMENT: z.string().optional(),
+  // Comando que marca a pasta como confiável no Claude de quem roda as sessões, antes de abrir o Claude (servidor).
+  HUB_CONFIAR_PASTA_CMD: z.string().optional(),
+  // Cofre das credenciais: Keychain no Mac, arquivo cifrado no servidor (chave-mestra do systemd-creds).
+  HUB_COFRE: z.enum(['keychain', 'arquivo-cifrado']).default(process.platform === 'darwin' ? 'keychain' : 'arquivo-cifrado'),
   // Modo de permissão das sessões do Claude que o hub abre (auto = classificador aprova o seguro e pede aprovação para o arriscado; bypassPermissions é proibido).
   HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
   // Trava de segurança: enquanto for false, o hub não muda status nas ferramentas de gestão.
@@ -36,7 +40,7 @@ const GamificacaoSchema = z.object({
   servidor: z.string(),
   conta: z.string(),
   padrao: z.boolean().default(false),
-  // Id das credenciais (API key + secret) no cofre local data/segredos/ — nunca a credencial em si.
+  // Id das credenciais (API key + secret) no Cofre — nunca a credencial em si.
   credencial: z.string().optional(),
 });
 
@@ -45,7 +49,7 @@ const AppSchema = z.object({
   empresa: z.enum(['funifier', 'dac']),
   ferramenta: z.enum(['funifier-pm', 'bnexo', 'teste']), // teste = tasks fictícias (sandbox)
   projetos_na_ferramenta: z.array(z.string()).default([]),
-  pasta: z.string().startsWith('/'),
+  pasta: z.string().min(1).transform((p) => resolverPasta(p)), // relativa: dentro de HUB_REPOS_DIR
   sessao_resume_id: z.string().nullable().default(null),
   gamificacoes: z.array(GamificacaoSchema).optional(),
 });
@@ -71,11 +75,17 @@ export function loadEnv(): Env {
   return r.data;
 }
 
-export const APPS_FILE = process.env.HUB_APPS_FILE ?? join(ROOT, 'apps.yaml');
+export const APPS_FILE = CAMINHOS.apps;
+const CATALOGO_VAZIO = 'apps: []\n';
+
+function lerArquivoCatalogo() {
+  return existsSync(APPS_FILE) ? readFileSync(APPS_FILE, 'utf8') : CATALOGO_VAZIO;
+}
 
 // Relido a cada uso (antes de cada resumo / /status), para pegar edições sem reiniciar o bot.
+// Sem apps.yaml (servidor novo), o catálogo começa vazio e o arquivo nasce na primeira edição.
 export function loadCatalogo(): Catalogo {
-  const r = CatalogoSchema.safeParse(parse(readFileSync(APPS_FILE, 'utf8')));
+  const r = CatalogoSchema.safeParse(parse(lerArquivoCatalogo()));
   if (!r.success) throw new Error(`apps.yaml inválido — ${formatIssues(r.error)}`);
   const nomes = new Set<string>();
   for (const a of r.data.apps) {
@@ -97,15 +107,17 @@ export function pastaExiste(a: App) {
 // Edita preservando os comentários; valida o resultado antes de gravar e guarda a versão anterior em data/.
 
 function editarCatalogo(fn: (doc: Document.Parsed) => void) {
-  const original = readFileSync(APPS_FILE, 'utf8');
+  const original = lerArquivoCatalogo();
   const doc = parseDocument(original);
   fn(doc);
   const novo = doc.toString();
   const r = CatalogoSchema.safeParse(parse(novo));
   if (!r.success) throw new Error(`apps.yaml ficaria inválido — ${formatIssues(r.error)}`);
-  const hist = join(ROOT, 'data', 'apps-historico');
-  mkdirSync(hist, { recursive: true });
-  copyFileSync(APPS_FILE, join(hist, `apps-${new Date().toISOString().replace(/[:.]/g, '-')}.yaml`));
+  if (existsSync(APPS_FILE)) {
+    const hist = join(CAMINHOS.dados, 'apps-historico');
+    mkdirSync(hist, { recursive: true });
+    copyFileSync(APPS_FILE, join(hist, `apps-${new Date().toISOString().replace(/[:.]/g, '-')}.yaml`));
+  }
   writeFileSync(APPS_FILE, novo);
 }
 

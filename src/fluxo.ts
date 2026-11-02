@@ -17,13 +17,13 @@ import { acaoValida } from './dominio/selecao.js';
 import { InlineKeyboard, type Api } from 'grammy';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { CAMINHOS } from './caminhos.js';
 import { extname, join } from 'node:path';
 import { adicionarApp, ligarProjeto, loadCatalogo, type App, type Catalogo, type Env, type Gamificacao } from './config.js';
 import type { Gamificacoes } from './gamificacoes.js';
 import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
-import type { Orca } from './orca.js';
+import type { Executor } from './aplicacao/portas.js';
 import { dataLocal, type PmAdapter } from './pm/types.js';
 import { comVinculo, vincular } from './mensagens.js';
 import { dirAnexos } from './prompt.js';
@@ -77,7 +77,7 @@ export class Fluxo {
     private db: DB,
     private api: Api,
     private adapters: PmAdapter[],
-    private orca: Orca,
+    private orca: Executor,
   ) {
     this.chatId = Number(env.TELEGRAM_CHAT_ID);
   }
@@ -416,7 +416,7 @@ export class Fluxo {
 
       case 'amb_empresa':
         return this.perguntar(s, 'Em qual empresa criar a pasta?', {
-          corpo: [`<code>~/Documents/FUNIFIER</code> ou <code>~/Documents/DAC</code>`],
+          corpo: [`<code>${esc(join(CAMINHOS.repos, 'FUNIFIER'))}</code> ou <code>${esc(join(CAMINHOS.repos, 'DAC'))}</code>`],
           kb: kbCancel(new InlineKeyboard().text('Funifier', `s:${s.id}:aemp:funifier`).text('DAC', `s:${s.id}:aemp:dac`)),
         });
 
@@ -800,5 +800,5 @@ function depoisDaInfo(s: { ferramenta: string }) {
 }
 
 function pastaAmbiente(a: { empresa?: string; nome?: string }) {
-  return join(homedir(), 'Documents', a.empresa === 'dac' ? 'DAC' : 'FUNIFIER', a.nome ?? '');
+  return join(CAMINHOS.repos, a.empresa === 'dac' ? 'DAC' : 'FUNIFIER', a.nome ?? '');
 }

@@ -8,12 +8,12 @@
 import { InlineKeyboard, type Api } from 'grammy';
 import { execFile } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { dirSessoesClaude } from './caminhos.js';
 import { join } from 'node:path';
 import { loadCatalogo, type App, type Env, type Gamificacao } from './config.js';
 import { getMeta, setMeta, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
-import { OrcaError, type Orca, type OrcaTerminal } from './orca.js';
+import { ErroExecutor, type Cofre, type Executor, type TerminalExecutor } from './aplicacao/portas.js';
 import type { PmAdapter, TaskDetalhe } from './pm/types.js';
 import { vincular, comVinculo } from './mensagens.js';
 import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, type TaskDoPrompt } from './prompt.js';
@@ -39,7 +39,7 @@ function dormir(ms: number) {
 
 // Há sessão anterior do Claude nessa pasta? (para decidir entre `claude -c` e `claude`)
 function temSessaoAnterior(pasta: string) {
-  const dir = join(homedir(), '.claude', 'projects', pasta.replace(/[^a-zA-Z0-9]/g, '-'));
+  const dir = dirSessoesClaude(pasta);
   return existsSync(dir) && readdirSync(dir).some((f) => f.endsWith('.jsonl'));
 }
 
@@ -125,7 +125,8 @@ export class Despachante {
     private env: Env,
     private db: DB,
     private api: Api,
-    private orca: Orca,
+    private orca: Executor,
+    private cofre: Cofre,
     private adapters: PmAdapter[],
   ) {
     this.chatId = Number(env.TELEGRAM_CHAT_ID);
@@ -168,7 +169,7 @@ export class Despachante {
     const terms = (await this.orca.listTerminals(pasta)).filter((t) => t.agentIdentity === 'claude' && t.writable);
     if (!terms.length) return [];
     const estados = await this.orca.agentStates().catch(() => new Map<string, string>());
-    const out: { term: OrcaTerminal; estado: EstadoSessao }[] = [];
+    const out: { term: TerminalExecutor; estado: EstadoSessao }[] = [];
     for (const term of terms) {
       const tela = (await this.orca.readScreen(term.handle, 40)).join('\n');
       out.push({ term, estado: classificarTela(tela, estados.get(`${term.tabId}:${term.leafId}`), true) });
@@ -231,7 +232,7 @@ export class Despachante {
       const task = await this.detalheDaTask(s);
       tasks.push({ task, imagens: await baixarImagens(sel.id, task.imagens, lote.length > 1 ? `t${i + 1}-` : '') });
     }
-    const credenciais = escreverCredenciaisDaTask(sel.id, gamifs);
+    const credenciais = await escreverCredenciaisDaTask(this.cofre, sel.id, gamifs);
     const arquivo = escreverPrompt({
       credenciais,
       selecaoId: sel.id,
@@ -309,7 +310,7 @@ export class Despachante {
   }
 
   // Sessão do Claude ociosa na pasta (preferindo `preferida`); se não houver nenhuma, abre uma. null = avisou e espera.
-  private async sessaoOciosa(app: App, sel: Selecao, titulo: string, preferida?: string | null): Promise<OrcaTerminal | null> {
+  private async sessaoOciosa(app: App, sel: Selecao, titulo: string, preferida?: string | null): Promise<TerminalExecutor | null> {
     const sessoes = await this.sessoesClaude(app.pasta);
     const ociosas = sessoes.filter((s) => s.estado === 'ocioso');
     const alvo = (ociosas.find((s) => s.term.handle === preferida) ?? ociosas[0])?.term;
@@ -323,7 +324,7 @@ export class Despachante {
     return this.abrirSessao(app, sel, titulo);
   }
 
-  private async abrirSessao(app: App, sel: Selecao, titulo: string): Promise<OrcaTerminal | null> {
+  private async abrirSessao(app: App, sel: Selecao, titulo: string): Promise<TerminalExecutor | null> {
     const base = app.sessao_resume_id
       ? `claude --resume ${app.sessao_resume_id}`
       : temSessaoAnterior(app.pasta)
@@ -332,7 +333,9 @@ export class Despachante {
     const comando = `${base} --permission-mode ${this.env.HUB_CLAUDE_PERMISSAO}`;
     if (!/^claude( -c| --resume [A-Za-z0-9-]+)? --permission-mode [A-Za-z]+$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
     await this.enviar(cartao({ icone: ICONE.sessao, titulo: `Abrindo sessão em ${esc(app.app)}`, contexto: [`<code>${esc(comando)}</code>`] }));
-    const handle = await this.orca.createTerminal(app.pasta, comando, `hub #${sel.id}`);
+    // No servidor, antes do Claude, marca a pasta como confiável no Claude do agente (senão ele para perguntando).
+    const linha = this.env.HUB_CONFIAR_PASTA_CMD ? `${this.env.HUB_CONFIAR_PASTA_CMD} && ${comando}` : comando;
+    const handle = await this.orca.createTerminal(app.pasta, linha, `hub #${sel.id}`);
     log.info('despacho: sessão aberta', { app: app.app, handle, comando });
 
     const limite = Date.now() + ESPERA_SESSAO_NOVA_MS;
@@ -344,7 +347,7 @@ export class Despachante {
     }
     if (estado === 'ocioso') {
       const t = (await this.orca.listTerminals(app.pasta)).find((x) => x.handle === handle);
-      return t ?? ({ handle, title: `hub #${sel.id}` } as OrcaTerminal);
+      return t ?? ({ handle, title: `hub #${sel.id}` } as TerminalExecutor);
     }
     await this.avisar(
       sel,
@@ -434,7 +437,7 @@ export class Despachante {
 
       let leitura: { estado: EstadoSessao; tela: string };
       try {
-        if (!d.terminal_handle) throw new OrcaError('despacho sem terminal');
+        if (!d.terminal_handle) throw new ErroExecutor('despacho sem terminal');
         // Lê antes de esperar: um terminal fechado falha na hora, sem gastar o timeout do wait.
         leitura = await this.estadoDoHandle(d.terminal_handle, d.pasta);
         let ficouOcioso = false;
@@ -457,7 +460,7 @@ export class Despachante {
           continue;
         }
       } catch (e) {
-        if (!(e instanceof OrcaError)) throw e;
+        if (!(e instanceof ErroExecutor)) throw e;
         const r = await this.redescobrir(d);
         if (r === 'interrompido') return;
         await dormir(r === 'ok' ? 1_000 : 30_000);

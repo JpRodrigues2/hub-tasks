@@ -1,9 +1,9 @@
-// Logs em logs/hub-AAAA-MM-DD.log (JSON por linha) + console, sempre sem segredos.
+// Logs em <logs>/hub-AAAA-MM-DD.log (JSON por linha) + console, sempre sem segredos.
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './config.js';
+import { CAMINHOS } from './caminhos.js';
 
-const LOG_DIR = join(ROOT, 'logs');
+const LOG_DIR = CAMINHOS.logs;
 mkdirSync(LOG_DIR, { recursive: true });
 
 const SECRET_ENV = /TOKEN|SECRET|KEY|PASSWORD/i;
