@@ -43,12 +43,51 @@ Parte da [Parte A, servidor](servidor-nuvem.md). Pesquisa feita em 30/10/2026: d
 
 | Lacuna | Resposta | Fonte |
 |---|---|---|
-| Tailscale grátis? | Plano Personal gratuito: até 6 usuários e dispositivos ilimitados. ⚠️ **É para uso não comercial.** O hub atende trabalho da Funifier e da DAC: avaliar o Standard (US$ 8/usuário/mês) ou alternativa (WireGuard próprio, túnel SSH). | Fontes secundárias (2026); conferir em tailscale.com/pricing |
+| Tailscale grátis? | Plano Personal gratuito: até 6 usuários e dispositivos ilimitados. ⚠️ "Only suitable for non-commercial use." Standard: US$ 8/usuário/mês. Decisão: Personal no piloto, Standard na virada (D-S2). | tailscale.com/pricing (conferido em 02/11/2026) |
 
 ### Ainda sem resposta (não dá para resolver pesquisando)
 
-- **D-S6:** a Funifier e a DAC autorizam o código delas num servidor de nuvem? **Bloqueia o uso com repositórios reais.** Os testes podem usar o sandbox.
+- ~~D-S6~~: autorizado em 02/11/2026, com ambiente isolado e acesso só do João.
 - **Quanto de memória o conjunto usa** (T5): só medindo.
+
+## 1b. Modelo de uso (requisito do João, 02/11/2026)
+
+O celular e o computador são usados o tempo todo, e **nenhum dos dois guarda estado**: tudo vive no servidor.
+
+| Aparelho | Para quê | Como |
+|---|---|---|
+| Celular | Tasks simples, acompanhar ao vivo | Telegram (todas as funcionalidades do hub) + **app do Orca pareado com o servidor**, inclusive com o MacBook desligado (**imprescindível**, T14) |
+| Computador | Tasks complexas | Orca do Mac pareado com o servidor (as mesmas sessões) + editor com acesso remoto (VS Code/Cursor Remote-SSH) para o código no servidor |
+
+**Requisitos:**
+- **Mesma sessão nos dois aparelhos:** a sessão do Claude é um processo no servidor; o Orca do Mac e o do celular são duas janelas para ele. Nada a sincronizar.
+- **Computador sempre atualizado:** o trabalho das tasks acontece nos clones **do servidor**. O Mac não precisa dos próprios clones para isso; se usar, eles se atualizam pelo git (a sessão dá push na branch da task; o Mac faz `git fetch`). Regra: uma branch tem um só lugar de trabalho por vez.
+- **Testar o front:** pelo Tailscale, do Mac ou do celular, sem abrir porta (T6). Opcional: um link público temporário para mostrar a alguém de fora (T6b).
+- **Login do Funifier PM pelo celular:** pelo Telegram, colando o endereço de retorno do OAuth (T10, mudança na fase 5).
+
+### Rede: como configurar (D-S2)
+
+```
+              ┌──────────── tailnet (rede privada do Tailscale) ────────────┐
+  MacBook ────┤  hub-cloud (servidor)   100.x.x.x                           │
+  iPhone  ────┤    ├─ SSH (só pelo Tailscale)                               │
+              │    ├─ orca serve --port 6768   (Mac e celular pareados)      │
+              │    └─ servidores de dev (ex.: :5173) → http://hub-cloud:5173 │
+              └──────────────────────────────────────────────────────────────┘
+  Internet → servidor: nada entra (security list da Oracle e ufw sem regras de entrada).
+  Servidor → internet: Telegram, Claude, GitHub, Funifier PM, Bnexo (só saída).
+```
+
+1. Conta no Tailscale (login com a conta do Google ou do GitHub). Plano Personal no piloto; **Standard na virada**, porque o Personal é só para uso não comercial.
+2. Instalar o Tailscale no **Mac**, no **iPhone** e no **servidor** (`tailscale up`). Nome do servidor: `hub-cloud` (MagicDNS: os aparelhos acham o servidor pelo nome).
+3. No painel do Tailscale, **desligar a expiração da chave** do servidor (senão ele sai da rede a cada 180 dias).
+4. SSH pelo Tailscale: `ssh hub@hub-cloud`. Depois que funcionar, **remover a regra da porta 22** da security list da Oracle.
+5. `ufw`: negar toda entrada, liberar só a interface `tailscale0`.
+6. `orca serve` com `--pairing-address <IP do Tailscale do servidor>` e `--port 6768` (porta fixa para o serviço).
+7. Parear o Mac (Settings → Remote Orca Servers → Add Server) e o celular (`--mobile-pairing`, QR code).
+8. ACL do Tailscale: só os aparelhos do João enxergam o servidor.
+
+**Front para alguém de fora (opcional, T6b):** `tailscale funnel` (do próprio Tailscale), Cloudflare Tunnel ou ngrok publicam um servidor de dev num endereço HTTPS público, **temporário** e de preferência com senha. Nunca publicar a porta do Orca.
 
 ---
 
@@ -70,7 +109,7 @@ O hub precisa de uma **máquina virtual de verdade, sempre ligada**: terminais i
 - **Instância ociosa pode ser recuperada:** a Oracle considera ociosa uma VM com CPU (percentil 95), rede **e** memória abaixo de 20% por 7 dias. Com o Orca e uma sessão do Claude ocupando mais de 2,4 GB, a memória fica acima de 20%. Monitorar.
 - **Falta de capacidade ARM** na região é comum na criação: tentar outra região ou outro horário.
 - **As regras mudam sem aviso:** a cota caiu à metade em 2026. Ter o plano B pronto (backup + script de instalação) evita depender da Oracle.
-- O código das empresas fica num provedor de terceiros (D-S6).
+- O código das empresas fica num provedor de terceiros (D-S6 ✅: autorizado com ambiente isolado).
 
 **Recomendação:** testar tudo de graça na **Oracle Always Free** (2 OCPU, 12 GB, Ubuntu 24.04 arm64). Se a Oracle falhar (capacidade, recuperação, desempenho), migrar para a Hetzner, com o mesmo script.
 
@@ -82,8 +121,8 @@ Cada fase termina com um critério de pronto. As fases 1 a 5 não tocam no hub q
 
 ### Fase 0: preparo (sem custo)
 
-- [ ] Pedir à Funifier e à DAC a autorização para o código no servidor (D-S6).
-- [ ] Decidir a rede: Tailscale Personal × Standard × alternativa (uso comercial).
+- [x] Autorização para o código no servidor (D-S6 ✅).
+- [x] Rede: Tailscale (D-S2 ✅).
 - [ ] Atualizar o Orca do Mac para a última versão (hoje 1.4.220 → 1.4.245).
 - [ ] Criar a conta na Oracle Cloud (pede cartão para verificação; o Always Free não cobra).
 
@@ -104,6 +143,7 @@ Cada fase termina com um critério de pronto. As fases 1 a 5 não tocam no hub q
 - [ ] `orca-ide serve --pairing-address <ip-tailscale>`: sobe sem tela? (**T4**)
 - [ ] `orca serve service install` + `loginctl enable-linger hub`; sair do SSH e reiniciar o serviço. (**T4b**)
 - [ ] Parear o Orca do Mac com o link de acesso. (**T1**)
+- [ ] Parear o app do Orca no celular (`--mobile-pairing`, QR code) **com o MacBook desligado**, e acompanhar uma sessão ao vivo. (**T14**)
 - [ ] `ORCA_TERMINAL_MEMORY_MAX=4G` e `ORCA_TERMINAL_MEMORY_SWAP_MAX=0` no serviço.
 
 **Pronto quando:** o Orca do Mac lista os terminais do servidor, e o servidor reinicia sem ninguém intervir.
@@ -138,6 +178,7 @@ Mudanças pequenas, na `main`, com a rotina de sempre (tsc, reinício, commit):
 - [ ] **Batimento (heartbeat):** o hub manda um sinal de saída a cada N minutos para um monitor externo, que avisa se ele parar. É só conexão de saída, sem abrir porta. Escolher o serviço na hora.
 - [ ] **I13:** remover a pasta de `runs/` quando ela ficar vazia.
 - [ ] `apps.yaml` próprio do servidor via `HUB_APPS_FILE`, com os caminhos do servidor.
+- [ ] **Login do Funifier PM pelo Telegram:** `/pm_login` manda o link; o João faz o login no celular; o navegador tenta abrir `localhost:53682/callback?code=…` e falha (não há nada no celular nessa porta); o João copia esse endereço e cola no chat; o hub extrai o `code` e conclui o login. O `code` sozinho não serve para nada: o `code_verifier` (PKCE) fica só no hub.
 
 **Pronto quando:** o hub sobe pelo systemd no servidor, com um bot de teste (não o @JoaoTaskBot), e manda "Hub online".
 
@@ -145,17 +186,19 @@ Mudanças pequenas, na `main`, com a rotina de sempre (tsc, reinício, commit):
 
 Com um **bot de teste**, para não disputar o long polling com o hub do Mac:
 
-- [ ] Login do Funifier PM pelo túnel SSH na porta 53682. (**T10**)
+- [ ] Login do Funifier PM pelo Telegram, no celular (túnel SSH como reserva). (**T10**)
 - [ ] Task do sandbox do começo ao Encerrar. (**T3**)
 - [ ] Medir memória e CPU com 2 ou 3 sessões e um servidor de dev. (**T5**)
-- [ ] Abrir o front do servidor de dev no navegador do Mac pelo Tailscale. (**T6**)
+- [ ] Abrir o front do servidor de dev no navegador do Mac **e do celular** pelo Tailscale. (**T6**)
+- [ ] Link público temporário de um servidor de dev (`tailscale funnel` ou similar). (**T6b**, opcional)
+- [ ] Desligar o MacBook e trabalhar só pelo celular (Telegram + Orca) por um dia. (**T14**)
 - [ ] Reiniciar a VM com um despacho rodando. (**T7**)
 - [ ] Reiniciar só o `orca serve`. (**T11**)
 - [ ] Fechar a tampa do Mac com tasks rodando. (**T12**)
 
 **Pronto quando:** todos passam, ou têm um contorno documentado.
 
-### Fase 7: virada (depende da D-S6)
+### Fase 7: virada
 
 1. Clonar os repositórios reais no servidor.
 2. Parar o hub do Mac (`pkill`) e confirmar que ele parou.
@@ -172,14 +215,14 @@ Com um **bot de teste**, para não disputar o long polling com o hub do Mac:
 | Item | Custo |
 |---|---|
 | Oracle Always Free (2 OCPU, 12 GB, até 200 GB de disco) | R$ 0 |
-| Tailscale Personal | R$ 0 (uso não comercial). Standard: US$ 8/usuário/mês |
+| Tailscale | Personal R$ 0 no piloto; **Standard US$ 8/mês a partir da virada** (D-S2) |
 | Monitor do batimento | Plano grátis (a escolher) |
 | Plano B: Hetzner 8 GB | Poucos euros por mês (conferir o preço atual) |
 | Claude Code | Já é a assinatura atual do João |
 
 ## 5. Riscos principais
 
-1. **D-S6 negado:** o servidor fica só para a DAC ou só para a Funifier, ou volta a ser um Mac mini em casa.
+1. **Orca no celular sem o Mac (T14) falhar:** é imprescindível. Contorno: app de SSH no celular + tmux para ver as sessões; reavaliar.
 2. **Oracle recuperar ou desligar a VM:** backup diário do `data/` e o script da fase 1 pronto para a Hetzner.
 3. **Atualizar o Orca mata as sessões** (#15956): só atualizar sem despacho ativo, e o hub deve avisar antes.
 4. **Vazamento de memória do Claude Code:** limite por terminal (fase 2) e acompanhamento no T5.

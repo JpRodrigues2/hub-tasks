@@ -98,6 +98,8 @@ Cada teste confirma ou derruba uma decisão. A ideia é fazer no próprio MacBoo
 | T7 | Reinício da máquina | Reiniciar o servidor com um despacho em andamento | Hub e `orca serve` sobem sozinhos; o hub retoma ou marca `interrompido` com aviso |
 | T11 | Reinício só do `orca serve` | Reiniciar o serviço com uma sessão aberta | Saber se as sessões sobrevivem ou se o hub cai no `redescobrir` |
 | T12 | Mac dormindo e acordando | Fechar a tampa do Mac com tasks rodando no servidor | O servidor não é afetado; o Orca do Mac reconecta sozinho |
+| T14 | Celular sem o Mac | App do Orca pareado direto com o `orca serve` (`--mobile-pairing`), MacBook desligado | Acompanha e digita nas sessões pelo celular |
+| T6b | Front público temporário (opcional) | `tailscale funnel`, Cloudflare Tunnel ou ngrok | Alguém de fora abre o front, por tempo limitado |
 | T13 | Versões | Orca do Mac e `orca serve` em versões diferentes | Saber se precisam estar iguais |
 
 ## A.6 O que muda no hub para rodar no servidor
@@ -141,10 +143,10 @@ Levantados em 30/10/2026. Os testes de A.5 que resolvem cada um estão entre par
 
 | Id | Decisão | Opções | Recomendação |
 |---|---|---|---|
-| D-S1 🟡 | Onde hospedar | Mac mini · VPS Linux · Mac na nuvem | Depende do T4: com Orca em Linux, VPS; sem, Mac mini. |
-| D-S2 🟡 | Rede entre o Mac e o servidor | Tailscale · túnel SSH · proxy com TLS | Tailscale. |
-| D-S3 🟡 | O servidor é só do João ou da equipe? | Só João · compartilhado | Só do João na etapa 2; compartilhar depende da [Parte B](../v2/app-universal.md). |
+| D-S1 ✅ | Onde hospedar | Mac mini · VPS Linux · Mac na nuvem | **Oracle Always Free** (VM ARM, Ubuntu); plano B Hetzner. Decidido em 02/11/2026 ([plano](plano-execucao.md#2-onde-hospedar-os-gratuitos)). |
+| D-S2 ✅ | Rede entre o Mac, o celular e o servidor | Tailscale · túnel SSH · proxy com TLS | **Tailscale**: Personal no piloto, Standard (US$ 8/mês) a partir da virada, porque o plano grátis é só para uso não comercial. Decidido em 02/11/2026 ([rede](plano-execucao.md#rede-como-configurar-d-s2)). |
+| D-S3 ✅ | O servidor é só do João ou da equipe? | Só João · compartilhado | **Só do João.** Outro colaborador que quiser usar a ferramenta faz a gestão da própria infra. Decidido em 02/11/2026. |
 | D-S4 🟡 | Contas do Claude no servidor | `orca account` · `claude login` | Testar no T8. |
 | D-S5 🟡 | Agendamento | cron do hub · `orca automations` | Manter o cron do hub (já funciona); reavaliar depois. |
-| D-S6 🟡 | Código da DAC e da Funifier fora do MacBook | Perguntar às empresas · só repositórios liberados | Perguntar antes de contratar. |
+| D-S6 ✅ | Código da DAC e da Funifier fora do MacBook | Perguntar às empresas · só repositórios liberados | **Autorizado**, na mesma condição de hoje: ambiente isolado, só o João tem acesso, com a conta GitHub pessoal dele. Muda só o lugar onde os clones ficam. Credenciais mantidas como estão; rotação depois. Decidido em 02/11/2026. |
 | D-S7 🟡 | Backup | Snapshot do provedor · cópia do `data/` | Os dois. |
