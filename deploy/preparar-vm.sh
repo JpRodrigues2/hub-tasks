@@ -40,7 +40,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 passo "Pacotes do sistema e atualizações automáticas de segurança"
 apt-get update -qq
-apt-get install -y -qq ca-certificates curl git sqlite3 acl ufw unattended-upgrades python3 openssl >/dev/null
+apt-get install -y -qq ca-certificates curl git sqlite3 acl ufw unattended-upgrades python3 openssl build-essential >/dev/null   # build-essential: better-sqlite3 compila no ARM
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
@@ -133,7 +133,9 @@ d.setdefault("permissions", {})["defaultMode"] = "auto"   # nunca bypassPermissi
 json.dump(d, open(p, "w"), indent=2)
 EOF
 # Repositórios criados pelo hub ficam com outro dono; sem isto o git do agente recusa ("dubious ownership").
-sudo -u agente git config --global --get-all safe.directory | grep -qxF "$REPOS/*" || sudo -u agente git config --global --add safe.directory "$REPOS/*"
+# O git do Ubuntu 24.04 (2.43) não aceita curinga no fim do caminho, só "*"; o único outro dono possível é o hub.
+sudo -u agente git config --global --unset-all safe.directory "$REPOS/\\*" 2>/dev/null || true
+sudo -u agente git config --global --get-all safe.directory | grep -qxF '*' || sudo -u agente git config --global --add safe.directory '*'
 
 passo "Serviço do Orca (usuário agente)"
 mudou=false

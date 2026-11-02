@@ -39,8 +39,10 @@ await etapa('Orca do agente pelo pareamento', async () => {
 });
 
 const pasta = join(CAMINHOS.repos, 'VERIFICACAO', `teste-${Date.now().toString(36)}`);
-await etapa('hub cria pasta de projeto e adiciona ao Orca', async () => {
+await etapa('hub cria repositório e adiciona ao Orca', async () => {
   mkdirSync(pasta, { recursive: true });
+  const { execFileSync } = await import('node:child_process');
+  execFileSync('git', ['init', '-q', pasta]); // o Orca só aceita repositório git
   await orca.addRepo(pasta);
   return pasta;
 });
