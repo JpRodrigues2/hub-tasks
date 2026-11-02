@@ -196,6 +196,48 @@ gamificacoes.json  ──AES-256-GCM──▶  data/segredos/cofre.enc  (ilegív
 | Alguém tem acesso **root** à VM **ligada** | ❌ Consegue extrair a chave do processo. A proteção aqui é não deixar ninguém chegar à VM (seção 3) |
 | O agente lê a credencial | ❌ Não é problema do cofre. É o broker que resolve |
 
+### Aprofundamento: o arquivo cifrado no servidor
+
+No Mac, o Keychain resolve tudo. No servidor somos nós que montamos três coisas: o **arquivo**, a **chave** e **quem pode ler**.
+
+**O arquivo (`cofre.enc`)** é um envelope:
+
+```json
+{ "versao": 1, "alg": "AES-256-GCM", "nonce": "q3Jx...", "tag": "9fK2...", "dados": "Hk8s9dLq0vZ..." }
+```
+
+- `dados`: o JSON de hoje, embaralhado com a chave-mestra.
+- `nonce`: aleatório e novo a cada gravação. O mesmo conteúdo nunca gera o mesmo resultado.
+- `tag`: selo de integridade. Um byte alterado faz a abertura falhar.
+
+**A chave-mestra** é **uma só**, gerada uma vez, e é a mesma em todo boot. Ela fica em dois lugares, com papéis diferentes:
+
+| Lugar | Papel |
+|---|---|
+| **`systemd-creds`** na VM | Uso diário. O systemd guarda a chave cifrada com um segredo da própria máquina (só o root lê; ou o TPM virtual, se a VM tiver) e, quando o hub sobe, entrega a chave em memória (`/run/credentials/hub.service/`), visível só para o serviço do hub |
+| **App Senhas da Apple** (nota segura) | Cópia de recuperação. Se a VM for recriada, o segredo da máquina some; com a cópia, o cofre é reaberto sem recadastrar nada |
+
+O **Vault da Oracle** (KMS) seria uma alternativa ao `systemd-creds`, não à cópia de recuperação: a VM pediria à Oracle para decifrar a chave a cada boot. Fica como evolução, atrás da mesma porta `Cofre`.
+
+**O que protege e o que não protege:**
+
+| Ameaça | Protegido? |
+|---|---|
+| Backup de `dados/` vaza | ✅ leva o `cofre.enc`, não o segredo da máquina |
+| Credencial em log, prompt ou commit | ✅ só o hub decifra, só em memória |
+| Arquivo adulterado | ✅ a `tag` acusa |
+| Cópia do disco inteiro (snapshot do boot volume) | ⚠️ sem TPM, equivale a roubar a máquina; só a conta da Oracle (com MFA) faz snapshot |
+| Root na VM ligada | ❌ a defesa é ninguém chegar à VM (Tailscale, porta 22 fechada, MFA) |
+
+**Dois usuários Linux (decidido):** o agente roda como outro usuário e o próprio Linux impede que ele leia a chave.
+
+| Usuário | Roda | Acessa |
+|---|---|---|
+| `hub` | hub, broker, cofre | `cofre.enc`, chave-mestra, banco |
+| `agente` | Orca e sessões do Claude | os repositórios; nada do `hub` |
+
+O hub precisa falar com o Orca de outro usuário (permissões no socket do Orca). Isso é validado no T4.
+
 ### Peça 2: o broker (usar)
 
 **Analogia:** o caixa do banco. Você pede "saque R$100 da conta X". O caixa confere se você pode, abre o cofre, faz a operação e te entrega o resultado. **Você nunca segura a chave do cofre.**
@@ -229,8 +271,8 @@ Como ele se encaixa tecnicamente:
 2. Por que a chave-mestra não pode ficar em `data/segredos/chave`?
 3. Em qual etapa do broker entra a regra "produção pede confirmação no Telegram"?
 
-### Decisão em aberto
-- **Rotação das 3 credenciais atuais:** já estão nos históricos. O plano é trocar antes da virada para o servidor.
+### Decisão
+- **Rotação das 3 credenciais atuais:** não rotacionar (decisão do usuário, 02/11/2026). Em troca, os históricos do Claude do Mac (`~/.claude/projects`) **não** são copiados para o servidor.
 
 ---
 
@@ -334,13 +376,15 @@ No Mac, você abre o Orca e roda `npm start`. Se o hub cair, você percebe e lig
 **systemd** é o "gerente de serviços" do Linux, o equivalente ao LaunchAgent do Mac. Um arquivo de serviço diz como rodar o hub:
 
 ```ini
-# ~/.config/systemd/user/hub.service
+# /etc/systemd/system/hub.service (serviço do sistema rodando como o usuário hub:
+# no Ubuntu 24.04 (systemd 255), credenciais cifradas só funcionam em serviços do sistema)
 [Unit]
 Description=Hub de Tasks
 After=network-online.target orca.service   # sobe depois da rede e do Orca
 Requires=orca.service
 
 [Service]
+User=hub
 WorkingDirectory=/home/hub/app
 ExecStart=/usr/bin/node dist/main.js
 Restart=on-failure          # caiu? religa
@@ -348,7 +392,7 @@ RestartSec=10
 LoadCredentialEncrypted=cofre-chave:/home/hub/dados/cofre-chave.cred   # chave-mestra do cofre (seção 2)
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 ```
 
 O Orca headless vira **outro serviço** (`orca.service`), e o hub depende dele.
@@ -359,8 +403,8 @@ O Orca headless vira **outro serviço** (`orca.service`), e o hub depende dele.
 
 **Heartbeat (batimento):** para o caso 5, o hub faz um ping a cada poucos minutos para um serviço **externo** (por exemplo, o Healthchecks.io, que tem plano gratuito). Se os pings param, **o serviço externo te avisa** por e-mail ou Telegram. Quem vigia precisa estar fora da máquina vigiada.
 
-### Decisão em aberto
-- **Heartbeat:** Healthchecks.io (grátis, externo) ou algo próprio? Recomendação: Healthchecks.io.
+### Decisão
+- **Heartbeat:** Healthchecks.io (grátis, externo).
 
 ### Pergunta para fixar
 1. Por que o `Restart=on-failure` do systemd não resolve o caso "a VM inteira caiu"?
@@ -445,8 +489,8 @@ Quando faria sentido: no **app universal** (Parte B), para distribuir o hub para
 ### Pergunta para fixar
 1. Cite duas coisas do script que um Dockerfile não conseguiria fazer.
 
-### Decisão em aberto
-- **Docker:** recomendação é não usar na etapa 1. Precisa da sua confirmação.
+### Decisão
+- **Docker:** não usar.
 
 ---
 
@@ -498,11 +542,13 @@ O que o ensaio valida, sem depender do upgrade da Oracle:
 
 ---
 
-## Resumo: decisões que dependem de você
+## Resumo das decisões (02/11/2026)
 
-| Tema | Recomendação |
+| Tema | Decisão |
 |---|---|
-| Docker na etapa 1 | Não usar; reavaliar na etapa 2 para o app universal |
-| Heartbeat externo | Healthchecks.io (grátis) |
-| Rotação das 3 credenciais | Antes da virada para o servidor |
+| Docker | Não usar |
+| Heartbeat externo | Healthchecks.io |
+| Rotação das 3 credenciais | Não rotacionar; históricos do Mac não vão para o servidor |
+| Usuários Linux | Dois: `hub` (hub, broker, cofre) e `agente` (Orca e sessões) |
+| Chave-mestra | `systemd-creds` no uso diário + cópia de recuperação no app Senhas da Apple; Vault da Oracle fica como evolução |
 | Ordem de implementação | 4 (caminhos) → 1 (portas + `main.ts`) → 5 (systemd) → 7 (script) → 2 (cofre, depois broker) → 6 (`/pm_login`); o ensaio da seção 8 em paralelo |

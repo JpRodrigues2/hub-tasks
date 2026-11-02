@@ -28,6 +28,8 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 |---|---|---|
 | ⬜ | Porta `Cofre` | `obter(id)`, `salvar(id, valor)`, `remover(id)`, `listar()` (só ids e datas) |
 | ⬜ | Adaptador do servidor | Arquivo cifrado AES-256-GCM; chave-mestra fora do disco (`systemd-creds`) |
+| ⬜ | Cópia de recuperação da chave-mestra | Nota segura no app Senhas da Apple, feita uma vez |
+| ⬜ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub` |
 | ⬜ | Adaptador do Mac | Keychain do macOS |
 | ⬜ | Migração | `data/segredos/gamificacoes.json` (texto puro) → cofre cifrado; apagar o arquivo antigo |
 | ⬜ | Investigar a API da Funifier | Autenticação (API key + secret → token de curta duração?) e se o MCP de gamificação atual pode ser embrulhado |
@@ -53,7 +55,7 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 | | Item |
 |---|---|
 | ⬜ | Configuração em vez de caminhos do Mac: `ORCA_BIN`, pasta-mãe dos ambientes, `apps.yaml` do servidor (`HUB_APPS_FILE`) |
-| ⬜ | Fase 7 da v1: serviço systemd, espera o `orca serve`, aviso "Hub online" |
+| ⬜ | Fase 7 da v1: serviço systemd, espera o `orca serve`, aviso "Hub online", heartbeat no Healthchecks.io |
 | ⬜ | Batimento para um monitor externo |
 | ⬜ | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth) |
 | ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2) |
