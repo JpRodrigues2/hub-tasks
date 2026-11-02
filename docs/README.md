@@ -22,7 +22,8 @@ docs/
 │   └── plano-v2.md                        etapa 1 (o crítico) e etapa 2 (o resto), com o andamento
 └── hospedagem/
     ├── servidor-nuvem.md                  Parte A: hub e sessões num servidor, Orca do Mac pareado
-    └── plano-execucao.md                  respostas pesquisadas, provedores grátis e o plano por fases
+    ├── plano-execucao.md                  respostas pesquisadas, provedores grátis e o plano por fases
+    └── ensaio-local.md                    testes do servidor numa VM Ubuntu ARM no Mac (Lima) e aprendizados
 ```
 
 | Quero… | Leia |
