@@ -63,7 +63,7 @@ function formatarPrazo(prazo: string | null, tz: string) {
 }
 
 export interface ItemResumo {
-  idx: number; // número mostrado ao João (global no resumo)
+  idx: number; // número mostrado ao usuário (global no resumo)
   task: Task;
   app: string | null; // app sugerido; null = projeto não mapeado
 }

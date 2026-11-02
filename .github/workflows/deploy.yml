@@ -1,0 +1,37 @@
+# Deploy automático no servidor (Oracle), depois do CI verde na branch v2.
+# Fica desligado até a VM existir: ligar com a variável do repositório DEPLOY_ENABLED=true.
+#
+# O servidor não tem porta aberta na internet (D-S2): o runner entra na rede do Tailscale como nó efêmero
+# (tag:ci), e a ACL só permite tag:ci → hub-cloud:22. Segredos do repositório:
+#   TS_OAUTH_CLIENT_ID, TS_OAUTH_SECRET   cliente OAuth do Tailscale com a tag tag:ci
+#   DEPLOY_SSH_KEY                         chave privada só para o deploy (authorized_keys com command= restrito)
+#   DEPLOY_KNOWN_HOSTS                     linha do known_hosts do hub-cloud
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [v2]
+  workflow_dispatch:
+
+concurrency: deploy
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Atualizar o hub no servidor
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy hub@hub-cloud "$SHA"

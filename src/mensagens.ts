@@ -1,4 +1,4 @@
-// Registro das mensagens do chat (do bot e do João) para o /limpar (B10).
+// Registro das mensagens do chat (do bot e do usuário) para o /limpar (B10).
 //
 // Cada update do Telegram e cada laço em segundo plano roda dentro de um "vínculo" (AsyncLocalStorage);
 // quem souber a que task/resumo a conversa pertence chama vincular(), e toda mensagem enviada ou
@@ -34,7 +34,7 @@ function registrar(db: DB, msgId: number, v: Vinculo) {
   );
 }
 
-// Registra as mensagens enviadas pelo bot e as recebidas do João (chamar depois do filtro de chat).
+// Registra as mensagens enviadas pelo bot e as recebidas do usuário (chamar depois do filtro de chat).
 export function instalarRegistro(bot: Bot, db: DB) {
   bot.api.config.use(async (prev, method, payload, signal) => {
     const res = await prev(method, payload, signal);

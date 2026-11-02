@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './config.js';
 import { log } from './logger.js';
+import { ESTADOS_ATIVOS, sqlLista } from './dominio/despacho.js';
 
 const MIGRATIONS: string[] = [
   // 1 — esquema inicial
@@ -23,7 +24,7 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (ferramenta, task_id)
   );
 
-  -- Uma linha por task marcada pelo João num resumo; percorre os estados até virar despacho.
+  -- Uma linha por task marcada pelo usuário num resumo; percorre os estados até virar despacho.
   CREATE TABLE selecoes (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     ferramenta       TEXT NOT NULL,
@@ -53,7 +54,7 @@ const MIGRATIONS: string[] = [
     pasta            TEXT NOT NULL,
     terminal_handle  TEXT,                   -- muda se o Orca reiniciar; redescobrir pela pasta
     run_file         TEXT NOT NULL,
-    estado           TEXT NOT NULL,          -- em_execucao | aguardando_joao | pausado_limite | concluido | interrompido
+    estado           TEXT NOT NULL,          -- ver src/dominio/despacho.ts (ESTADOS_DESPACHO)
     ultimo_aviso_em  TEXT,
     resultado        TEXT,                   -- JSON do bloco "### RESULTADO HUB"
     iniciado_em      TEXT NOT NULL,
@@ -88,7 +89,7 @@ const MIGRATIONS: string[] = [
     criado_em  TEXT NOT NULL
   );
 
-  -- Tasks de um resumo; idx é o número mostrado ao João e vai no callback_data dos botões.
+  -- Tasks de um resumo; idx é o número mostrado ao usuário e vai no callback_data dos botões.
   CREATE TABLE resumo_itens (
     resumo_id    INTEGER NOT NULL REFERENCES resumos(id),
     idx          INTEGER NOT NULL,
@@ -115,7 +116,7 @@ const MIGRATIONS: string[] = [
   `,
   // 4 — acompanhamento (Fase 6)
   `
-  ALTER TABLE despachos ADD COLUMN aviso_motivo TEXT;   -- joao | limite (com ultimo_aviso_em: no máx. 1 aviso igual a cada 15 min)
+  ALTER TABLE despachos ADD COLUMN aviso_motivo TEXT;   -- usuario | limite (com ultimo_aviso_em: no máx. 1 aviso igual a cada 15 min)
   `,
   // 5 — próximos passos depois da conclusão (instrução extra / abrir PR)
   `
@@ -129,7 +130,7 @@ const MIGRATIONS: string[] = [
   ALTER TABLE despachos ADD COLUMN encerrado_em TEXT;
   ALTER TABLE resumos ADD COLUMN msg_botoes INTEGER;      -- mensagem do resumo que leva os botões Iniciar/Nenhuma
 
-  -- Mensagens do chat (do bot e do João), para o /limpar. O Telegram só apaga mensagens com menos de 48 h.
+  -- Mensagens do chat (do bot e do usuário), para o /limpar. O Telegram só apaga mensagens com menos de 48 h.
   CREATE TABLE mensagens (
     msg_id     INTEGER PRIMARY KEY,
     selecao_id INTEGER,
@@ -158,6 +159,11 @@ const MIGRATIONS: string[] = [
   //     as outras apontam para ela e acompanham o estado dela.
   `
   ALTER TABLE selecoes ADD COLUMN lote_de INTEGER;         -- id da seleção líder (NULL = task sozinha ou líder)
+  `,
+  // v2: estado e motivo de aviso sem o nome do usuário.
+  `
+  UPDATE despachos SET estado = 'aguardando_usuario' WHERE estado = 'aguardando_joao';
+  UPDATE despachos SET aviso_motivo = 'usuario' WHERE aviso_motivo = 'joao';
   `,
 ];
 
@@ -201,7 +207,7 @@ export function contagens(db: DB) {
     aguardandoDespacho: n("SELECT COUNT(*) n FROM selecoes WHERE estado = 'aguardando_despacho'"),
     emAndamento: db
       .prepare(
-        "SELECT d.id, d.app, d.estado, s.task_id FROM despachos d JOIN selecoes s ON s.id = d.selecao_id WHERE d.estado IN ('em_execucao','aguardando_joao','pausado_limite') ORDER BY d.id",
+        `SELECT d.id, d.app, d.estado, s.task_id FROM despachos d JOIN selecoes s ON s.id = d.selecao_id WHERE d.estado IN (${sqlLista(ESTADOS_ATIVOS)}) ORDER BY d.id`,
       )
       .all() as { id: number; app: string; estado: string; task_id: string }[],
   };
