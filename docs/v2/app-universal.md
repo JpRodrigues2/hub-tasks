@@ -119,17 +119,17 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 
 | Id | Decisão | Opções | Recomendação |
 |---|---|---|---|
-| D-A1 🟡 | Um hub por colaborador ou um hub central | Por colaborador · central multiusuário | Por colaborador (a execução já é local). |
-| D-A2 🟡 | Bot do Telegram | Um bot por colaborador · bot único da Funifier | Um por colaborador; o bot único exige o hub central. |
+| D-A1 ✅ | Um hub por colaborador ou um hub central | Por colaborador · central multiusuário | **Por colaborador**, cada um com a própria infra (02/11/2026). |
+| D-A2 ✅ | Bot do Telegram | Um bot por colaborador · bot único da Funifier | **Um bot por colaborador** (02/11/2026). |
 | D-A3 🟡 | Executor | Só Orca · Orca + terminal/tmux | Só Orca na v2, com a interface `Executor` pronta para o terminal. |
 | D-A4 🟡 | Acesso ao Funifier PM | OAuth pessoal · conta de serviço | OAuth pessoal (já é como a v1 funciona; cada um vê as próprias tasks). |
 | D-A5 🟡 | Cofre | Keychain · arquivo 600 | Keychain no Mac. Ampliada em D-A14 (uso) e D-A15 (entrada). |
 | D-A6 ❌ | Distribuição | Repositório · npm privado · Homebrew · app | Substituída pela D-A19 ([implantação](implantacao.md)). |
 | D-A7 🟡 | Nome do produto | — | — |
-| D-A8 🟡 | Quem aprova na Funifier e quem dá suporte | — | — |
-| D-A9 🟡 | O João passa a usar a v2 com o Bnexo como plugin, ou mantém a v1 | v2 + plugin · v1 em paralelo | v2 + plugin, para ter um código só. |
-| D-A10 🟡 | Interface além do Telegram (Slack, Teams) | Só Telegram · outra | Só Telegram na v2. |
-| D-A11 🟡 | Framework | NestJS · TypeScript + bibliotecas focadas | TypeScript + bibliotecas ([arquitetura v2](arquitetura-v2.md#5-framework-e-ferramentas-d-a11-)). |
+| D-A8 🟡 | Quem aprova na Funifier e quem dá suporte | — | Aprovar = a liderança autorizar o uso da ferramenta pelos colaboradores (código da empresa, contas do Claude, custo). Só necessária quando formos distribuir. |
+| D-A9 ✅ | Como o João passa da v1 para a v2 | v2 + plugin · v1 em paralelo | **Em passos:** primeiro refatorar o mínimo da v1 para hospedar e fazer o teste na nuvem; depois seguir com o resto dos ajustes e funcionalidades da v2 (02/11/2026). |
+| D-A10 ✅ | Interface além do Telegram (Slack, Teams) | Só Telegram · outra | **Telegram agora; Teams depois** (02/11/2026). A porta `Notificador` da arquitetura hexagonal é o que permite isso. |
+| D-A11 ✅ | Framework | NestJS · TypeScript + bibliotecas focadas | **TypeScript + bibliotecas focadas** (02/11/2026, [arquitetura v2](arquitetura-v2.md#5-framework-e-ferramentas-d-a11-)). |
 | D-A12 🟡 | Arquitetura | Implícita (v1) · hexagonal por módulos | Hexagonal ([arquitetura v2](arquitetura-v2.md#3-arquitetura-proposta-hexagonal-portas-e-adaptadores-por-módulos-d-a12-)). |
 | D-A13 a D-A17 | Banco e ORM ✅, credenciais 🟡, Jira ✅, SaaS 🟡 | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |
 | D-A18 a D-A21 | Modos local e servidor ✅, distribuição, site, sistemas operacionais 🟡 | — | Ver [implantação](implantacao.md#8-decisões). |
