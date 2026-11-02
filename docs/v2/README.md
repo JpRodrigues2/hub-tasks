@@ -9,6 +9,7 @@ A v2 tem duas frentes:
 Documentos transversais:
 - **[Arquitetura v2](arquitetura-v2.md):** o que impede o app universal (I1–I13), diagnóstico da v1, arquitetura hexagonal, padrões e ferramentas (D-A11, D-A12).
 - **[Segurança e dados](seguranca-e-dados.md):** credenciais (o principal risco do produto), banco e ORM (Prisma + SQLite), SaaS e ferramentas de gestão (D-A13 a D-A17).
+- **[Plano v2](plano-v2.md):** etapa 1 (o crítico: cofre e broker, celular + Mac + nuvem, ferramentas no servidor) e etapa 2 (o resto).
 - **[Implantação](implantacao.md):** modo local ou servidor do usuário, escolhido na instalação; distribuição, site de suporte e sistemas operacionais (D-A18 a D-A21).
 
 ### v2.1: primeira entrega
@@ -29,9 +30,9 @@ Legenda das decisões: 🟡 em aberto · ✅ decidida · ❌ descartada. Cada de
 |---|---|---|
 | 1 | Criar os documentos da v2 e organizar a documentação (`docs/`), com a arquitetura da v1 | ✔️ |
 | 2 | Servidor: decidir escopo, testar e validar as decisões, contratar o serviço de cloud, implementar. Vira o piloto do **modo servidor** da v2.1 ([implantação](implantacao.md)); o teste T4 é prioridade. Plano em [plano de execução](../hospedagem/plano-execucao.md) | ⬜ |
-| 3 | Documentar a v1 inteira, versionar no git do João (repositório remoto) e criar a branch `v2` | ⬜ |
+| 3 | Documentar a v1 inteira, versionar no git do João (repositório remoto) e criar a branch `v2` | ✔️ |
 | 4 | Decidir tudo da v2 (app universal): fechar as decisões D-A | ⬜ |
-| 5 | Implementar a v2 | ⬜ |
+| 5 | Implementar a v2: [etapa 1 (crítico) e etapa 2](plano-v2.md) | 🔄 |
 
 **Por que o servidor vem antes do app:** o servidor quase não muda o código (seção A.3 de [servidor-nuvem](../hospedagem/servidor-nuvem.md)). Resolve já o problema do PC ligado 24 h e ensina como o hub se comporta fora do MacBook, que é exatamente o que o app universal vai precisar.
 

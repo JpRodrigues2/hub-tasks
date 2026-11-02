@@ -16,7 +16,8 @@ docs/
 │   ├── app-universal.md                   Parte B: pacote instalável para os colaboradores da Funifier
 │   ├── arquitetura-v2.md                  impeditivos, arquitetura hexagonal, padrões, framework
 │   ├── seguranca-e-dados.md               credenciais, banco, SaaS, ferramentas de gestão
-│   └── implantacao.md                     modo local ou servidor do usuário, distribuição, site de suporte
+│   ├── implantacao.md                     modo local ou servidor do usuário, distribuição, site de suporte
+│   └── plano-v2.md                        etapa 1 (o crítico) e etapa 2 (o resto), com o andamento
 └── hospedagem/
     ├── servidor-nuvem.md                  Parte A: hub e sessões num servidor, Orca do Mac pareado
     └── plano-execucao.md                  respostas pesquisadas, provedores grátis e o plano por fases
