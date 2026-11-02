@@ -130,6 +130,7 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 | D-A9 ✅ | Como o João passa da v1 para a v2 | v2 + plugin · v1 em paralelo | **Em passos:** primeiro refatorar o mínimo da v1 para hospedar e fazer o teste na nuvem; depois seguir com o resto dos ajustes e funcionalidades da v2 (02/11/2026). |
 | D-A10 ✅ | Interface além do Telegram (Slack, Teams) | Só Telegram · outra | **Telegram agora; Teams depois** (02/11/2026). A porta `Notificador` da arquitetura hexagonal é o que permite isso. |
 | D-A11 ✅ | Framework | NestJS · TypeScript + bibliotecas focadas | **TypeScript + bibliotecas focadas** (02/11/2026, [arquitetura v2](arquitetura-v2.md#5-framework-e-ferramentas-d-a11-)). |
-| D-A12 🟡 | Arquitetura | Implícita (v1) · hexagonal por módulos | Hexagonal ([arquitetura v2](arquitetura-v2.md#3-arquitetura-proposta-hexagonal-portas-e-adaptadores-por-módulos-d-a12-)). |
-| D-A13 a D-A17 | Banco e ORM ✅, credenciais 🟡, Jira ✅, SaaS 🟡 | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |
+| D-A12 ✅ | Arquitetura | Implícita (v1) · hexagonal por módulos | **Hexagonal**, começando já na etapa 1 da v2 (02/11/2026; [arquitetura v2](arquitetura-v2.md#3-arquitetura-proposta-hexagonal-portas-e-adaptadores-por-módulos-d-a12-)). |
+| D-A13 a D-A17 | Banco e ORM ✅, credenciais ✅, Jira ✅, SaaS 🟡 | — | Ver [segurança e dados](seguranca-e-dados.md#7-decisões). |
 | D-A18 a D-A21 | Modos local e servidor ✅, distribuição, site, sistemas operacionais 🟡 | — | Ver [implantação](implantacao.md#8-decisões). |
+| D-A22 ✅ | Integração e entrega contínuas | Manual · GitHub Actions | **GitHub Actions:** CI (tipos + testes) em todo push; deploy automático da `v2` no servidor pelo Tailscale, depois do CI verde (02/11/2026, [plano v2](plano-v2.md)). |

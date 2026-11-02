@@ -14,7 +14,7 @@ Legenda: 🟡 em aberto · ✅ decidida · ❌ descartada.
 2. **como** elas circulam entre o hub, a sessão do Claude e o backend (cada cópia é um vazamento possível);
 3. **quem** tem acesso a elas: o colaborador, o hub, o agente, nós (se um dia houver SaaS).
 
-As camadas abaixo (C1 a C5) são a proposta inicial. **A decisão final sobre segurança fica para mais adiante** (decisão do João, 30/10/2026), mas nenhuma implementação da v2 deve aumentar o número de lugares por onde uma credencial passa.
+As camadas abaixo (C1 a C5) são a proposta inicial. **Decisão de 02/11/2026:** cofre cifrado (C1) e broker (C3) entram na etapa 1 da v2, como parte crítica ([plano v2](plano-v2.md)). As camadas C2, C4 e C5 ficam para a etapa 2. Em qualquer caso, nenhuma implementação da v2 deve aumentar o número de lugares por onde uma credencial passa.
 
 ## 1. Situação na v1
 
@@ -172,7 +172,7 @@ Registrado para não perder. Não é escopo da v2.
 | Id | Decisão | Opções | Recomendação |
 |---|---|---|---|
 | D-A13 ✅ | Banco e ORM | SQLite · Postgres · Prisma · Kysely | **Prisma + SQLite** na v2; Postgres quando houver SaaS. Pendente o teste P1. |
-| D-A14 🟡 (decidir mais adiante) | Uso das credenciais | Arquivo para o agente (v1) · gateway MCP do hub | Gateway: o agente nunca vê a credencial. |
+| D-A14 ✅ | Uso das credenciais | Arquivo para o agente (v1) · gateway MCP do hub | **Cofre cifrado + gateway (broker):** o agente nunca vê a credencial. Parte crítica da etapa 1 ([plano v2](plano-v2.md#12-cofre-e-broker-d-a14)), decidido em 02/11/2026. |
 | D-A15 🟡 | Entrada das credenciais | Telegram (v1) · onboarding local · OAuth | OAuth quando houver; senão, onboarding local. Nunca pelo chat. |
 | D-A16 ✅ | Terceira ferramenta de gestão | Jira · ClickUp · Trello | **Jira** (decidido em 30/10/2026). |
 | D-A17 🟡 | Modelo futuro | Self-hosted · SaaS (nuvem + runner local) | Self-hosted na v2; SaaS registrado para depois. |
