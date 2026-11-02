@@ -13,5 +13,5 @@ git checkout --quiet --detach "$SHA"
 npm ci --silent
 npx tsc --noEmit -p .
 npx vitest run --silent
-systemctl --user restart hub
+sudo -n systemctl restart hub.service
 echo "hub atualizado para $SHA"
