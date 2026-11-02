@@ -121,7 +121,7 @@ Herdadas da v1 e ligadas por padrão, sem o colaborador precisar saber delas:
 |---|---|---|---|
 | D-A1 ✅ | Um hub por colaborador ou um hub central | Por colaborador · central multiusuário | **Por colaborador**, cada um com a própria infra (02/11/2026). |
 | D-A2 ✅ | Bot do Telegram | Um bot por colaborador · bot único da Funifier | **Um bot por colaborador** (02/11/2026). |
-| D-A3 🟡 | Executor | Só Orca · Orca + terminal/tmux | Só Orca na v2, com a interface `Executor` pronta para o terminal. |
+| D-A3 ✅ | Executor | Só Orca · Orca + terminal/tmux | **Orca** (02/11/2026): é o único com app no celular pareado direto com o servidor (T14). A porta `Executor` deixa o tmux possível como plano B, se o T4 falhar. |
 | D-A4 🟡 | Acesso ao Funifier PM | OAuth pessoal · conta de serviço | OAuth pessoal (já é como a v1 funciona; cada um vê as próprias tasks). |
 | D-A5 🟡 | Cofre | Keychain · arquivo 600 | Keychain no Mac. Ampliada em D-A14 (uso) e D-A15 (entrada). |
 | D-A6 ❌ | Distribuição | Repositório · npm privado · Homebrew · app | Substituída pela D-A19 ([implantação](implantacao.md)). |
