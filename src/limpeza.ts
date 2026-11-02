@@ -8,6 +8,7 @@ import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DB } from './db.js';
 import { log } from './logger.js';
+import { ESTADOS_ATIVOS, sqlLista } from './dominio/despacho.js';
 import { RUNS_DIR } from './prompt.js';
 
 const DIAS = 30;
@@ -50,14 +51,14 @@ export function limparRuns(db: DB) {
   return apagados;
 }
 
-// Em andamento: configurando, na fila, rodando, esperando o João ou com continuação na fila.
+// Em andamento: configurando, na fila, rodando, esperando o usuário ou com continuação na fila.
 function emAndamento(db: DB): Set<string> {
   return new Set(
     (
       db
         .prepare(
           `SELECT id FROM selecoes WHERE estado IN ('coletando', 'aguardando_despacho', 'despachada')
-           UNION SELECT selecao_id FROM despachos WHERE estado IN ('em_execucao', 'aguardando_joao', 'pausado_limite', 'seguimento_fila')`,
+           UNION SELECT selecao_id FROM despachos WHERE estado IN (${sqlLista([...ESTADOS_ATIVOS, 'seguimento_fila'])})`,
         )
         .all() as { id: number }[]
     ).map((r) => String(r.id)),

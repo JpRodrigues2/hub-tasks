@@ -21,7 +21,7 @@ const EnvSchema = z.object({
   HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
   // Trava de segurança: enquanto for false, o hub não muda status nas ferramentas de gestão.
   HUB_ESCRITA_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
-  // Comentários nas tasks: bloqueados por padrão; o hub só comenta com comando explícito do João (B02).
+  // Comentários nas tasks: bloqueados por padrão; o hub só comenta com comando explícito do usuário (B02).
   HUB_COMENTARIOS_PM: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   // Se definido (IDs separados por vírgula), a escrita vale SÓ para essas tasks — para testar com tasks aprovadas.
   HUB_ESCRITA_PM_SOMENTE: z

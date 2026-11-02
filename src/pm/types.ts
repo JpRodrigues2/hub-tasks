@@ -6,7 +6,7 @@ import { log } from '../logger.js';
 export type Categoria = 'atrasada' | 'em_progresso' | 'pendente' | 'backlog' | 'revisao' | 'concluida' | 'cancelada';
 
 // Status do ponto de vista do hub; cada adaptador traduz para o status da ferramenta.
-// 'concluida' só com confirmação explícita do João (botão Encerrar).
+// 'concluida' só com confirmação explícita do usuário (botão Encerrar).
 export type StatusHub = 'em_progresso' | 'em_revisao' | 'concluida';
 
 export interface Task {

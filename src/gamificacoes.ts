@@ -169,7 +169,7 @@ export class Gamificacoes {
     return 'Essa pergunta já foi respondida.';
   }
 
-  // Texto do João. msgId é apagado quando for credencial.
+  // Texto do usuário. msgId é apagado quando for credencial.
   async onTexto(texto: string, msgId: number): Promise<boolean> {
     const c = this.conversa();
     if (!c) return false;

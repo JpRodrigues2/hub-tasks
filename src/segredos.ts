@@ -1,4 +1,4 @@
-// Cofre local das credenciais de gamificação (API key + secret), mandadas pelo João no Telegram (B15).
+// Cofre local das credenciais de gamificação (API key + secret), mandadas pelo usuário no Telegram (B15).
 // data/segredos/gamificacoes.json, permissão 600, fora do git. Nunca vão para o apps.yaml, prompts, logs ou commits.
 // No despacho, só as credenciais das gamificações autorizadas vão para runs/<id>/credenciais.json (600),
 // apagado quando a task é encerrada.

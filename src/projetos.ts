@@ -1,4 +1,4 @@
-// Projetos que entram na listagem (B12). Projeto novo entra ativo; o João desliga pelo /projetos.
+// Projetos que entram na listagem (B12). Projeto novo entra ativo; o usuário desliga pelo /projetos.
 //
 // callback_data  p:<id>  alterna ✅/⬜ de um projeto (id da tabela projetos)
 import { InlineKeyboard, type Api } from 'grammy';

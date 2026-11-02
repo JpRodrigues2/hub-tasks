@@ -16,7 +16,9 @@ import { errInfo, log } from './logger.js';
 import { OrcaError, type Orca, type OrcaTerminal } from './orca.js';
 import type { PmAdapter, TaskDetalhe } from './pm/types.js';
 import { vincular, comVinculo } from './mensagens.js';
-import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, tagRodada, type TaskDoPrompt } from './prompt.js';
+import { baixarImagens, dirAnexos, escreverPrompt, escreverSeguimento, linhaDespacho, type TaskDoPrompt } from './prompt.js';
+import { classificarTela, extrairResultado, ultimasLinhas, type EstadoSessao } from './dominio/tela.js';
+import { ESTADOS_ATIVOS, ativo, podeTransicionar, sqlLista, tagRodada, type EstadoDespacho } from './dominio/despacho.js';
 import { ICONE, campo, cartao, curto, esc } from './msg.js';
 import { escapeHtml } from './resumo.js';
 import { apagarCredenciaisDaTask, escreverCredenciaisDaTask } from './segredos.js';
@@ -24,62 +26,6 @@ import { apagarCredenciaisDaTask, escreverCredenciaisDaTask } from './segredos.j
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
 const REPETIR_AVISO_MS = 30 * 60_000; // avisos de fila (antes do despacho)
 const ESPERA_SESSAO_NOVA_MS = 120_000;
-
-export type EstadoSessao = 'ocioso' | 'ocupado' | 'aguardando' | 'limite';
-
-// Classificação pela tela do Claude Code (+ estado do agente no Orca, quando houver).
-// `paraEnviar`: na hora de mandar uma task, shell em segundo plano (ex.: servidor de dev) e o agente "working" que o
-// Orca mostra por causa dele não contam como ocupado — a caixa de entrada aceita mensagem. No acompanhamento contam,
-// porque o Claude volta a trabalhar quando o shell termina.
-export function classificarTela(telaInteira: string, estadoAgente?: string, paraEnviar = false): EstadoSessao {
-  // Os sinais (spinner, diálogos, limite, rodapé) ficam no fim da tela; o meio é conversa e pode citar qualquer texto.
-  const tela = telaInteira
-    .split('\n')
-    .filter((l) => l.trim())
-    .slice(-14)
-    .join('\n');
-  // Mensagem do Claude Code no começo da linha (ex.: "Claude usage limit reached…", "5-hour limit reached ∙ resets 3pm").
-  if (/^[\s⎿●⏺]*(Claude )?(AI )?(usage limit reached|(5-hour|weekly|Opus) limit reached|You'?ve hit your (usage )?limit)/im.test(tela))
-    return 'limite';
-  // Diálogo explícito (pergunta/permissão/confiança na pasta) tem prioridade sobre "working".
-  if (/Do you want to|Would you like to|Esc to cancel|Enter to (select|confirm)|trust the files|Yes, proceed|\(y\/n\)/i.test(tela))
-    return 'aguardando';
-  // Trabalhando: spinner, agente "working" no Orca, ou comando em segundo plano que vai acordar o Claude.
-  if (/esc to interrupt/i.test(tela)) return 'ocupado';
-  if (!paraEnviar && (estadoAgente === 'working' || /\d+ shells? still running|· \d+ shells?\b/i.test(tela))) return 'ocupado';
-  // Ocioso = caixa de entrada do Claude Code (❯ entre linhas ────). Só "❯" pode ser o prompt do zsh.
-  if (/^\s*❯/m.test(tela) && /─{10,}/.test(tela)) return 'ocioso';
-  return 'ocupado'; // desconhecido: conservador, não envia
-}
-
-export function extrairResultado(tela: string, tag: string): Record<string, string> | null {
-  // O Claude renderiza o markdown: "### RESULTADO HUB" aparece só como "RESULTADO HUB".
-  const linhas = tela.split('\n');
-  let inicio = -1;
-  for (let i = linhas.length - 1; i >= 0; i--) {
-    if (/^[\s│⎿●⏺#]*RESULTADO HUB\s*$/.test(linhas[i])) {
-      inicio = i;
-      break;
-    }
-  }
-  if (inicio < 0) return null;
-  const campos: Record<string, string> = {};
-  let atual: string | null = null;
-  for (const bruta of linhas.slice(inicio + 1)) {
-    const linha = bruta.replace(/^[\s│⎿●⏺]+/, '').trimEnd();
-    if (!linha || /^[─✻❯]/.test(linha)) break; // fim do bloco: linha vazia, caixa de entrada ou rodapé
-    const m = linha.match(/^(task|status|resumo|arquivos|branch|pendencias|pendências):\s*(.*)$/i);
-    if (m) {
-      atual = m[1].toLowerCase().replace('pendências', 'pendencias');
-      campos[atual] = m[2].trim();
-    } else if (atual) campos[atual] += ' ' + linha.trim(); // continuação de linha quebrada pelo terminal
-  }
-  // Ignora o próprio enunciado do formato ("concluido | bloqueado | …").
-  if (!/^(concluido|bloqueado|precisa_revisao)$/.test(campos.status ?? '')) return null;
-  // Só vale o bloco desta task/rodada (a tela pode ainda mostrar o resultado de uma task ou rodada anterior).
-  if (campos.task?.replace(/\s/g, '') !== `#${tag}`) return null;
-  return campos;
-}
 
 // runs/12.md em vez do caminho absoluto, para caber na mensagem.
 function relativo(arquivo: string) {
@@ -89,17 +35,6 @@ function relativo(arquivo: string) {
 
 function dormir(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-// Últimas linhas úteis da tela (sem a caixa de entrada e o rodapé do Claude Code).
-export function ultimasLinhas(tela: string, n = 14) {
-  return tela
-    .split('\n')
-    .map((l) => l.trimEnd())
-    .filter((l) => l.trim() && !/^[─━]{5,}/.test(l.trim()) && !/^\s*⏵⏵|for shortcuts|shift\+tab/.test(l))
-    .slice(-n)
-    .map((l) => (l.length > 110 ? l.slice(0, 109) + '…' : l))
-    .join('\n');
 }
 
 // Há sessão anterior do Claude nessa pasta? (para decidir entre `claude -c` e `claude`)
@@ -133,7 +68,7 @@ interface Despacho {
   seguimento: string | null;
 }
 
-// Próximo passo pedido pelo João depois da conclusão.
+// Próximo passo pedido pelo usuário depois da conclusão.
 interface Seguimento {
   tipo: 'instrucao' | 'pr';
   instrucao?: string;
@@ -256,11 +191,11 @@ export class Despachante {
 
   private async processarApp(nomeApp: string) {
     const ativo = this.db
-      .prepare("SELECT 1 FROM despachos WHERE app = ? AND estado IN ('em_execucao','aguardando_joao','pausado_limite')")
+      .prepare(`SELECT 1 FROM despachos WHERE app = ? AND estado IN (${sqlLista(ESTADOS_ATIVOS)})`)
       .get(nomeApp);
     if (ativo) return;
 
-    // Continuação pedida pelo João (instrução/PR) passa na frente da fila: a sessão ainda tem o contexto.
+    // Continuação pedida pelo usuário (instrução/PR) passa na frente da fila: a sessão ainda tem o contexto.
     const seg = this.db
       .prepare("SELECT * FROM despachos WHERE app = ? AND estado = 'seguimento_fila' ORDER BY atualizado_em LIMIT 1")
       .get(nomeApp) as (Despacho & { estado: string }) | undefined;
@@ -282,7 +217,7 @@ export class Despachante {
         cartao({ icone: ICONE.falha, titulo: this.tituloHtml(sel), contexto: [esc(nomeApp), 'app não existe mais no apps.yaml'] }),
       );
     }
-    // Sem gamificação vinculada é permitido (o João já foi avisado na seleção): a sessão decide o alvo.
+    // Sem gamificação vinculada é permitido (o usuário já foi avisado na seleção): a sessão decide o alvo.
     const gamifs = JSON.parse(sel.gamificacoes ?? '[]') as Gamificacao[];
 
     // 1–2. Sessão do Claude ociosa nessa pasta (ou abre uma).
@@ -305,10 +240,10 @@ export class Despachante {
       infoExtra: sel.info_extra,
       app,
       gamificacoes: gamifs,
-      anexosJoao: JSON.parse(sel.anexos ?? '[]'),
+      anexosUsuario: JSON.parse(sel.anexos ?? '[]'),
     });
 
-    // Confere de novo logo antes de enviar (o João pode ter começado a usar a sessão).
+    // Confere de novo logo antes de enviar (o usuário pode ter começado a usar a sessão).
     if ((await this.estadoDoHandle(alvo.handle, app.pasta, true)).estado !== 'ocioso') {
       return this.avisar(sel, 'fila_ocupado', cartao({ icone: ICONE.fila, titulo: this.tituloHtml(sel), contexto: [esc(app.app), 'na fila: a sessão ficou ocupada'] }));
     }
@@ -433,7 +368,7 @@ export class Despachante {
 
   private async detalheDaTask(sel: Selecao): Promise<TaskDetalhe> {
     if (!FERRAMENTA_REAL.has(sel.ferramenta)) {
-      // Atividade avulsa (/nova) ou task fictícia: o texto do João é a descrição.
+      // Atividade avulsa (/nova) ou task fictícia: o texto do usuário é a descrição.
       const v = this.db
         .prepare('SELECT titulo, descricao, empresa FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
         .get(sel.ferramenta, sel.task_id) as { titulo: string; descricao: string | null; empresa: 'funifier' | 'dac' };
@@ -463,7 +398,7 @@ export class Despachante {
   // Um laço por despacho ativo: `orca terminal wait --for tui-idle` (timeout 60 s) + leitura da tela.
   //   ocupado                      → em_execucao
   //   ocioso com RESULTADO HUB     → fechamento (Orca em revisão, ferramenta de gestão, Telegram, fila)
-  //   ocioso sem bloco / pergunta  → aguardando_joao (aviso com as últimas linhas, no máx. 1 a cada 15 min)
+  //   ocioso sem bloco / pergunta  → aguardando_usuario (aviso com as últimas linhas, no máx. 1 a cada 15 min)
   //   limite de uso                → pausado_limite (aviso para trocar de conta)
   //   terminal sumiu               → redescobre pela pasta; se não achar, interrompido
 
@@ -472,7 +407,7 @@ export class Despachante {
 
   private retomarMonitores() {
     const ativos = this.db
-      .prepare("SELECT id FROM despachos WHERE estado IN ('em_execucao','aguardando_joao','pausado_limite')")
+      .prepare(`SELECT id FROM despachos WHERE estado IN (${sqlLista(ESTADOS_ATIVOS)})`)
       .all() as { id: number }[];
     for (const { id } of ativos) this.monitorar(id);
   }
@@ -495,7 +430,7 @@ export class Despachante {
     await dormir(20_000); // dá tempo do Claude começar
     for (;;) {
       const d = this.getDespacho(id);
-      if (!d || !['em_execucao', 'aguardando_joao', 'pausado_limite'].includes(d.estado)) return;
+      if (!d || !ativo(d.estado)) return;
 
       let leitura: { estado: EstadoSessao; tela: string };
       try {
@@ -551,10 +486,10 @@ export class Despachante {
         );
         await dormir(60_000);
       } else {
-        this.mudarEstado(d, 'aguardando_joao');
+        this.mudarEstado(d, 'aguardando_usuario');
         await this.avisarDespacho(
           d,
-          'joao',
+          'usuario',
           cartao({
             icone: ICONE.voce,
             titulo: nome,
@@ -567,8 +502,12 @@ export class Despachante {
     }
   }
 
-  private mudarEstado(d: Despacho & { estado: string }, estado: string) {
+  private mudarEstado(d: Despacho & { estado: string }, estado: EstadoDespacho) {
     if (d.estado === estado) return;
+    if (!podeTransicionar(d.estado, estado)) {
+      log.error('monitor: transição inválida', { despachoId: d.id, de: d.estado, para: estado });
+      return;
+    }
     // Voltou a trabalhar: o próximo pedido de atenção é um aviso novo.
     const limpaAviso = estado === 'em_execucao';
     this.db
@@ -661,7 +600,7 @@ export class Despachante {
       log.warn('fechamento: falha no Orca', { despachoId: d.id, ...errInfo(e) });
     }
 
-    // 2. Ferramenta de gestão: nada. A task continua "em progresso" até o João encerrar (B03/B04);
+    // 2. Ferramenta de gestão: nada. A task continua "em progresso" até o usuário encerrar (B03/B04);
     //    comentário só com comando explícito dele (B02).
 
     // 3. Banco + histórico.
@@ -706,7 +645,7 @@ export class Despachante {
   // ─────────────────────────── próximos passos (depois da conclusão) ───────────────────────────
   //
   // callback_data  f:<despacho>:i | pr | x | b:<idx> | bn | ok | xs | xn | no
-  //   💬 i  → espera um texto do João e manda como continuação para a mesma sessão (rodada N+1)
+  //   💬 i  → espera um texto do usuário e manda como continuação para a mesma sessão (rodada N+1)
   //   🔀 pr → pergunta a branch base (b), opcionalmente o nome da branch (bn), confirma (ok) e pede o PR ao Claude
   //   ✅ x  → encerra o ciclo; com ferramenta de gestão, pergunta se marca a task como concluída (xs) ou não (xn)
 
@@ -877,7 +816,7 @@ export class Despachante {
     return 'Essa pergunta já foi respondida.';
   }
 
-  // Texto livre do João: só vale quando há uma conversa de próximos passos aberta.
+  // Texto livre do usuário: só vale quando há uma conversa de próximos passos aberta.
   async onTexto(texto: string): Promise<boolean> {
     const conv = this.conversa();
     if (!conv) return false;
@@ -951,7 +890,7 @@ export class Despachante {
     await this.setConversa({ despachoId: d.id, tipo: 'pr_confirmar', msgId: m.message_id, base, remoto, branch, novaBranch });
   }
 
-  // Encerrar (B04): só marca a task como concluída na ferramenta de gestão se o João confirmou.
+  // Encerrar (B04): só marca a task como concluída na ferramenta de gestão se o usuário confirmou.
   private async encerrar(d: Despacho, sel: Selecao, concluirTask: boolean) {
     const status = concluirTask ? await this.moverStatus(sel, 'concluida') : null;
     const agora = new Date().toISOString();

@@ -1,5 +1,5 @@
 // Regras de trabalho por empresa (B08): regras/funifier.md e regras/dac.md, incluídas em todo prompt.
-// O João vê e edita pelo Telegram (/regras) trocando o texto inteiro; a versão anterior vai para data/regras-historico/.
+// O usuário vê e edita pelo Telegram (/regras) trocando o texto inteiro; a versão anterior vai para data/regras-historico/.
 //
 // callback_data  g:<empresa>:ver | edit | ok | no
 import { InlineKeyboard, type Api } from 'grammy';
@@ -29,7 +29,7 @@ export function regrasParaPrompt(empresa: Empresa): string {
   return lerRegras(empresa).replace(/^#[^\n]*\n+/, '').trim();
 }
 
-// O Telegram (sem Premium) não preserva Markdown: o João vê e manda texto simples, uma regra por linha.
+// O Telegram (sem Premium) não preserva Markdown: o usuário vê e manda texto simples, uma regra por linha.
 // desformatar() gera o que o bot mostra; formatar() devolve o Markdown que vai para o arquivo e para o prompt.
 export function desformatar(md: string): string {
   return md
@@ -51,7 +51,7 @@ export function formatar(empresa: Empresa, texto: string): string {
     .filter((l, i) => !(i === 0 && /^#?\s*regras de trabalho/i.test(l))) // título copiado junto
     .map((l) => {
       if (!l) return '';
-      if (/^#{1,6}\s/.test(l)) return l; // subtítulo que o João escreveu em Markdown
+      if (/^#{1,6}\s/.test(l)) return l; // subtítulo que o usuário escreveu em Markdown
       const corpo = l.replace(/^([-*•]|\d+[.)])\s+/, '');
       return `- ${corpo.includes('`') ? corpo : corpo.replace(CODIGO, '`$1`')}`;
     });

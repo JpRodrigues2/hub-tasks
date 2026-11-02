@@ -9,7 +9,9 @@
     "pm:login": "tsx scripts/mcp-explore.ts funifier-pm",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "despacho:teste": "tsx scripts/despacho-teste.ts"
+    "despacho:teste": "tsx scripts/despacho-teste.ts",
+    "test": "vitest run",
+    "check": "tsc --noEmit -p . && vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
@@ -24,6 +26,7 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
   }
 }

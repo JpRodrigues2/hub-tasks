@@ -1,4 +1,4 @@
-// Bot do Telegram (grammY, long polling). Só aceita o chat do João (TELEGRAM_CHAT_ID):
+// Bot do Telegram (grammY, long polling). Só aceita o chat do usuário (TELEGRAM_CHAT_ID):
 // o bot controla terminais no computador, então qualquer outro chat é ignorado e registrado.
 import { Bot, InlineKeyboard } from 'grammy';
 import { existsSync } from 'node:fs';
@@ -223,7 +223,7 @@ async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> 
   const trabalho = [
     `<b>Fila:</b> ${c.fila} · <b>aguardando despacho:</b> ${c.aguardandoDespacho}`,
     ...(c.emAndamento.length
-      ? c.emAndamento.map((d) => `${d.estado === 'aguardando_joao' ? ICONE.voce : d.estado === 'pausado_limite' ? ICONE.pausa : ICONE.rodando} ${escapeHtml(d.app)} · ${d.estado.replace('_', ' ')}`)
+      ? c.emAndamento.map((d) => `${d.estado === 'aguardando_usuario' ? ICONE.voce : d.estado === 'pausado_limite' ? ICONE.pausa : ICONE.rodando} ${escapeHtml(d.app)} · ${d.estado.replace('_', ' ')}`)
       : ['Nada rodando agora.']),
   ];
 

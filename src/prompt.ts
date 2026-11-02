@@ -6,6 +6,7 @@ import { ROOT } from './config.js';
 import { regrasParaPrompt } from './regras.js';
 import { errInfo, log } from './logger.js';
 import type { TaskDetalhe } from './pm/types.js';
+import { tagRodada } from './dominio/despacho.js';
 
 export const RUNS_DIR = join(ROOT, 'runs');
 
@@ -50,7 +51,7 @@ export interface DadosPrompt {
   infoExtra: string | null;
   app: App;
   gamificacoes: Gamificacao[];
-  anexosJoao: string[];
+  anexosUsuario: string[];
 }
 
 // Prompt da task (ou do lote). Sem nome de branch (a sessão escolhe) e sem apontar para repositório de contexto:
@@ -74,7 +75,7 @@ export function escreverPrompt(d: DadosPrompt): string {
     L.push(lote ? `## Task ${i + 1}: ${task.titulo}` : `# Task do hub #${d.selecaoId}: ${task.titulo}`, '');
     L.push(
       d.avulsa
-        ? '- **Origem:** atividade avulsa pedida pelo João (não está em nenhuma ferramenta de gestão)'
+        ? '- **Origem:** atividade avulsa pedida pelo usuário (não está em nenhuma ferramenta de gestão)'
         : `- **Ferramenta:** ${task.ferramenta}${task.projetoNome ? ` — projeto "${task.projetoNome}"` : ''}`,
     );
     if (task.link) L.push(`- **Link:** ${task.link}`);
@@ -97,11 +98,11 @@ export function escreverPrompt(d: DadosPrompt): string {
     }
   });
 
-  if (d.infoExtra) L.push(`## Informação extra do João${lote ? ' (vale para o lote)' : ''}`, '', d.infoExtra.trim(), '');
+  if (d.infoExtra) L.push(`## Informação extra do usuário${lote ? ' (vale para o lote)' : ''}`, '', d.infoExtra.trim(), '');
 
-  if (d.anexosJoao.length) {
-    L.push('## Anexos do João', '', 'Abra e analise cada arquivo abaixo antes de começar — fazem parte da especificação:', '');
-    for (const a of d.anexosJoao) L.push(`- \`${a}\` (${basename(a)})`);
+  if (d.anexosUsuario.length) {
+    L.push('## Anexos do usuário', '', 'Abra e analise cada arquivo abaixo antes de começar — fazem parte da especificação:', '');
+    for (const a of d.anexosUsuario) L.push(`- \`${a}\` (${basename(a)})`);
     L.push('');
   }
 
@@ -129,11 +130,6 @@ export function escreverPrompt(d: DadosPrompt): string {
   const arquivo = join(RUNS_DIR, `${d.selecaoId}.md`);
   writeFileSync(arquivo, L.join('\n'));
   return arquivo;
-}
-
-// Rodada 1 usa "#12"; continuações usam "#12.2", "#12.3"… (a tela ainda mostra o bloco da rodada anterior).
-export function tagRodada(selecaoId: number, rodada: number) {
-  return rodada > 1 ? `${selecaoId}.${rodada}` : String(selecaoId);
 }
 
 function blocoCredenciais(arquivo: string) {
@@ -180,7 +176,7 @@ export interface DadosSeguimento {
   instrucao?: string;
   base?: string;
   remoto?: string | null;
-  novaBranch?: string; // nome escolhido pelo João no Abrir PR
+  novaBranch?: string; // nome escolhido pelo usuário no Abrir PR
   credenciais?: string | null;
 }
 
@@ -198,7 +194,7 @@ export function escreverSeguimento(d: DadosSeguimento): string {
   L.push(`- status: ${a.status ?? '-'}`, `- resumo: ${a.resumo ?? '-'}`, `- branch: ${a.branch ?? '-'}`, `- pendências: ${a.pendencias ?? '-'}`, '');
 
   if (d.tipo === 'instrucao') {
-    L.push('## Instrução do João', '', (d.instrucao ?? '').trim(), '');
+    L.push('## Instrução do usuário', '', (d.instrucao ?? '').trim(), '');
     L.push(`Continue em ${branchTxt}.`, '');
   } else {
     const head = d.novaBranch ?? d.branch;

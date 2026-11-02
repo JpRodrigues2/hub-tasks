@@ -13,6 +13,7 @@
 //
 // Task de projeto sem app (B15): destino → ambiente → existente (escolher_app, liga o projeto ao app)
 //   ou novo: amb_empresa → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
+import { acaoValida } from './dominio/selecao.js';
 import { InlineKeyboard, type Api } from 'grammy';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -67,7 +68,7 @@ interface TaskVista {
 export class Fluxo {
   private chatId: number;
   private enviandoResumo = false;
-  // Chamado quando o João toca em "Despachar" (ligado ao Despachante no telegram.ts).
+  // Chamado quando o usuário toca em "Despachar" (ligado ao Despachante no telegram.ts).
   onDespachar: (selecaoId: number) => void = () => {};
   gamificacoes?: Gamificacoes; // cadastro de gamificação a partir da etapa "alvo" (ligado no telegram.ts)
 
@@ -528,7 +529,7 @@ export class Fluxo {
     return linhas;
   }
 
-  // Foto/arquivo do João na etapa "informação extra": salva em runs/<selecao>/ e referencia no prompt.
+  // Foto/arquivo do usuário na etapa "informação extra": salva em runs/<selecao>/ e referencia no prompt.
   async onAnexo(fileId: string, nomeSugerido: string, legenda: string | undefined): Promise<boolean> {
     const s = this.selecaoAtiva();
     if (!s || (s.etapa !== 'info' && s.etapa !== 'instrucoes')) return false;
@@ -544,7 +545,7 @@ export class Fluxo {
     mkdirSync(dir, { recursive: true });
     const ext = extname(nomeSugerido) || extname(f.file_path) || '.bin';
     const base = nomeSugerido.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 40) || 'anexo';
-    const arq = join(dir, `joao-${anexos.length + 1}-${base}${ext}`);
+    const arq = join(dir, `usuario-${anexos.length + 1}-${base}${ext}`);
     writeFileSync(arq, Buffer.from(await res.arrayBuffer()));
     anexos.push(arq);
     const info = legenda?.trim() ? [s.info_extra, legenda.trim()].filter(Boolean).join('\n\n') : s.info_extra;
@@ -554,7 +555,7 @@ export class Fluxo {
     return true;
   }
 
-  // Texto livre do João: só vale como "informação extra" quando a pergunta atual é essa.
+  // Texto livre do usuário: só vale como "informação extra" quando a pergunta atual é essa.
   async onTexto(texto: string): Promise<boolean> {
     const s = this.selecaoAtiva();
     if (s?.etapa === 'amb_nome' || s?.etapa === 'amb_url') {
@@ -585,21 +586,7 @@ export class Fluxo {
     const empresa = this.taskDe(s).empresa;
     const depoisDoDestino = empresa === 'funifier' ? 'alvo' : 'confirmar';
 
-    const valida: Record<string, string[]> = {
-      instrucoes: ['cancel'],
-      empresa: ['emp', 'cancel'],
-      info: ['pular', 'cancel'],
-      destino: ['ok', 'outro', 'cancel'],
-      escolher_app: ['app', 'cancel'],
-      alvo: ['g', 'gok', 'gnova', 'gsem', 'cancel'],
-      ambiente: ['amb', 'cancel'],
-      amb_empresa: ['aemp', 'cancel'],
-      amb_nome: ['cancel'],
-      amb_git: ['agit', 'cancel'],
-      amb_url: ['cancel'],
-      confirmar: ['desp', 'reset', 'cancel'],
-    };
-    if (!valida[s.etapa ?? '']?.includes(acao)) return 'Essa pergunta já foi respondida.';
+    if (!acaoValida(s.etapa, acao)) return 'Essa pergunta já foi respondida.';
 
     switch (acao) {
       case 'cancel':
