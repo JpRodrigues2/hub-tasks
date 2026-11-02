@@ -33,6 +33,7 @@ class FileOAuthProvider implements OAuthClientProvider {
   constructor(
     name: string,
     private interactive: boolean,
+    private aoPedirLogin?: (url: URL) => void, // /pm_login: guarda o link em vez de abrir navegador
   ) {
     mkdirSync(OAUTH_DIR, { recursive: true, mode: 0o700 });
     this.file = join(OAUTH_DIR, `${name}.json`);
@@ -85,6 +86,7 @@ class FileOAuthProvider implements OAuthClientProvider {
     this.save();
   }
   redirectToAuthorization(url: URL) {
+    this.aoPedirLogin?.(url);
     if (!this.interactive) return;
     console.log(`\nAbra no navegador para autorizar o hub:\n${url.toString()}\n`);
     execFile('open', [url.toString()], () => {});
@@ -120,7 +122,7 @@ export type PmName = 'funifier-pm' | 'bnexo';
 
 export class PmLoginRequiredError extends Error {
   constructor(name: PmName) {
-    super(`${name}: login OAuth necessário — rode \`npm run pm:login\` no HUB`);
+    super(`${name}: login OAuth necessário — mande /pm_login no Telegram (ou rode \`npm run pm:login\` no computador do hub)`);
   }
 }
 
@@ -151,4 +153,40 @@ export async function connect(name: PmName, { interactive = true } = {}): Promis
     await retry.connect(new StreamableHTTPClientTransport(url, { authProvider }));
     return retry;
   }
+}
+
+// ─────────────── Login pelo celular (/pm_login no Telegram) ───────────────
+// No servidor não há navegador nem quem receba o retorno em localhost:53682. O hub devolve o link de login;
+// o usuário entra no celular e cola o endereço de retorno (que dá erro na tela, mas traz o "code").
+// O PKCE protege o code: a troca exige o verifier, que nunca sai de <dados>/oauth.
+
+// Link de login, ou null se já está logado.
+export async function iniciarLoginPm(): Promise<string | null> {
+  let link: URL | undefined;
+  const authProvider = new FileOAuthProvider('funifier-pm', false, (u) => (link = u));
+  const client = new Client({ name: 'hub', version: '0.1.0' });
+  try {
+    await client.connect(new StreamableHTTPClientTransport(new URL(requireEnv('FUNIFIER_PM_MCP_URL')), { authProvider }));
+    await client.close();
+    return null;
+  } catch (e) {
+    if (!(e instanceof UnauthorizedError) || !link) throw e;
+    return link.toString();
+  }
+}
+
+// Code do endereço de retorno (http://localhost:53682/callback?code=…).
+export function extrairCodigoOAuth(endereco: string): string | null {
+  const u = new URL(endereco.trim());
+  if (u.searchParams.get('error')) throw new Error(`o login voltou com erro: ${u.searchParams.get('error')}`);
+  return u.searchParams.get('code');
+}
+
+export async function concluirLoginPm(codigo: string) {
+  const url = new URL(requireEnv('FUNIFIER_PM_MCP_URL'));
+  const authProvider = new FileOAuthProvider('funifier-pm', false);
+  await new StreamableHTTPClientTransport(url, { authProvider }).finishAuth(codigo);
+  const client = new Client({ name: 'hub', version: '0.1.0' });
+  await client.connect(new StreamableHTTPClientTransport(url, { authProvider })); // confere que entrou
+  await client.close();
 }

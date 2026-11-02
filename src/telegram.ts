@@ -11,6 +11,7 @@ import { Despachante } from './despacho.js';
 import { Fluxo } from './fluxo.js';
 import { Gamificacoes } from './gamificacoes.js';
 import { limparRunsManual } from './limpeza.js';
+import { LoginPm } from './login-pm.js';
 import { instalarRegistro, limparMensagens } from './mensagens.js';
 import { Projetos } from './projetos.js';
 import { Regras } from './regras.js';
@@ -25,6 +26,7 @@ export const COMANDOS = [
   { command: 'projetos', description: 'Projetos que entram na listagem' },
   { command: 'regras', description: 'Regras de trabalho por empresa' },
   { command: 'gamificacoes', description: 'Gamificações e credenciais por app' },
+  { command: 'pm_login', description: 'Conecta o Funifier PM pelo celular' },
   { command: 'limpar', description: 'Limpa a conversa' },
   { command: 'limpar_runs', description: 'Apaga os arquivos de instruções (runs/)' },
 ];
@@ -84,6 +86,7 @@ export function createBot(deps: Deps) {
   const regras = new Regras(db, bot.api, chatId);
   const projetos = new Projetos(db, bot.api, chatId);
   const gamificacoes = new Gamificacoes(db, bot.api, chatId, cofre);
+  const loginPm = new LoginPm(bot.api, chatId);
   fluxo.gamificacoes = gamificacoes;
   gamificacoes.onConcluido = () => fluxo.proximaPergunta();
   const despachante = new Despachante(env, db, bot.api, orca, cofre, adapters);
@@ -99,6 +102,7 @@ export function createBot(deps: Deps) {
   bot.command('projetos', () => projetos.comando());
   bot.command('regras', () => regras.comando());
   bot.command('gamificacoes', () => gamificacoes.comando());
+  bot.command('pm_login', () => loginPm.comando());
 
   bot.command('limpar', (ctx) =>
     ctx.reply(cartao({ icone: ICONE.pergunta, titulo: 'Limpar a conversa?' }), {
@@ -162,6 +166,7 @@ export function createBot(deps: Deps) {
 
   bot.on('message:text', async (ctx) => {
     if (ctx.message.text.startsWith('/')) return ctx.reply('Comando desconhecido. Use /start para ver os comandos.');
+    if (await loginPm.onTexto(ctx.message.text, ctx.message.message_id)) return;
     // Conversas abertas por botão vêm antes da coleta de info das tasks.
     if (await gamificacoes.onTexto(ctx.message.text, ctx.message.message_id)) return;
     if (await regras.onTexto(ctx.message.text)) return;
