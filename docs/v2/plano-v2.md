@@ -39,13 +39,13 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 
 ### 1.3 Celular, Mac e nuvem
 
-Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fases 0–4 e 6):
+Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fases 0–4 e 6). Enquanto a Oracle não libera, rodam no [ensaio local](../hospedagem/ensaio-local.md) (VM Ubuntu ARM no Mac):
 
 | | Item |
 |---|---|
 | ⬜ | Conta Oracle, VM ARM, Tailscale no Mac, iPhone e servidor (fases 0–1) |
-| ⬜ | Orca no servidor sem tela (T4, T4b), Mac pareado (T1), **celular pareado com o Mac desligado (T14)** |
-| ⬜ | Claude Code e git no servidor (T8, T9) |
+| 🔄 | Orca no servidor sem tela (T4, T4b), Mac pareado (T1), **celular pareado com o Mac desligado (T14)**: T4, T1 e T14 ✔️ no ensaio; falta confirmar na Oracle |
+| 🔄 | Claude Code e git no servidor (T8, T9): T8 ✔️ no ensaio |
 | ⬜ | Hub operando o Orca do servidor (T3a, T3b, T3c, T2) |
 | ⬜ | Front pelo Tailscale (T6); link público opcional (T6b) |
 | ⬜ | Recuperação: reinício da VM, do `orca serve`, Mac dormindo (T7, T11, T12) |
