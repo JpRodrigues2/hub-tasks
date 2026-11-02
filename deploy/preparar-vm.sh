@@ -104,6 +104,25 @@ if [[ "$(dpkg-query -W -f='${Version}' orca-ide 2>/dev/null || true)" != "$ORCA_
   rm -rf "$tmp"
 fi
 
+passo "Ajudante: marcar a pasta atual como confiável no Claude do agente (roda antes de cada sessão do hub)"
+cat > /usr/local/bin/hub-confiar-pasta <<'PY'
+#!/usr/bin/env python3
+# Marca a pasta atual como confiável no ~/.claude.json de quem roda (o agente). Sem isso o Claude
+# para em "Do you trust this folder?", com "No, exit" como padrão.
+import json, os, tempfile
+p = os.path.expanduser("~/.claude.json")
+d = json.load(open(p)) if os.path.exists(p) else {}
+proj = d.setdefault("projects", {}).setdefault(os.getcwd(), {})
+if not proj.get("hasTrustDialogAccepted"):
+    proj["hasTrustDialogAccepted"] = True
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(p))
+    with os.fdopen(fd, "w") as f:
+        json.dump(d, f, indent=2)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, p)
+PY
+chmod 755 /usr/local/bin/hub-confiar-pasta
+
 passo "Claude Code do agente, em modo auto"
 sudo -u agente -i bash -c '[ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash >/dev/null'
 sudo -u agente -i python3 - <<'EOF'
@@ -113,6 +132,8 @@ d = json.load(open(p)) if os.path.exists(p) else {}
 d.setdefault("permissions", {})["defaultMode"] = "auto"   # nunca bypassPermissions
 json.dump(d, open(p, "w"), indent=2)
 EOF
+# Repositórios criados pelo hub ficam com outro dono; sem isto o git do agente recusa ("dubious ownership").
+sudo -u agente git config --global --get-all safe.directory | grep -qxF "$REPOS/*" || sudo -u agente git config --global --add safe.directory "$REPOS/*"
 
 passo "Serviço do Orca (usuário agente)"
 mudou=false
@@ -193,16 +214,21 @@ Description=Hub de Tasks
 After=network-online.target orca.service
 Wants=network-online.target orca.service
 ConditionPathExists=$APP/package.json
+ConditionPathExists=$DADOS/.env
 
 [Service]
 User=hub
 UMask=0007
 WorkingDirectory=$APP
+Environment=DOTENV_CONFIG_PATH=$DADOS/.env
 Environment=ORCA_BIN=/usr/bin/orca-ide
 Environment=ORCA_ENVIRONMENT=agente
+Environment=HUB_COFRE=arquivo-cifrado
+Environment=HUB_CONFIAR_PASTA_CMD=/usr/local/bin/hub-confiar-pasta
 Environment=HUB_DADOS_DIR=$DADOS
 Environment=HUB_REPOS_DIR=$REPOS
 Environment=HUB_RUNS_DIR=$RUNS
+Environment=HUB_CLAUDE_DIR=/home/agente/.claude
 LoadCredentialEncrypted=cofre-chave:$CHAVE
 ExecStart=/usr/bin/npm start --silent
 Restart=on-failure
@@ -231,5 +257,6 @@ passo "Pronto. Falta o que exige você:"
 tailscale status >/dev/null 2>&1 || echo "  - sudo tailscale up --hostname $HUB_HOSTNAME   (depois: sudo systemctl restart orca.service)"
 sudo -u agente -i bash -c '~/.local/bin/claude auth status 2>/dev/null | grep -q "\"loggedIn\": true"' || echo "  - sudo -u agente -i claude   (login do Claude do agente)"
 $FECHAR_SSH || echo "  - com o Tailscale de pé, rode de novo com --fechar-ssh"
+[[ -f "$DADOS/.env" ]] || echo "  - criar $DADOS/.env (tokens do Telegram e das ferramentas; modelo em .env.example), dono hub, modo 600"
 echo "  - parear o Mac e o celular: sudo journalctl -u orca.service -o cat | grep 'Pairing URL' | tail -1"
 echo "  - no Orca (Mac): Settings → Agents → Claude → launch arguments: --permission-mode auto"
