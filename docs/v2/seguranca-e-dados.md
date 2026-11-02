@@ -42,7 +42,7 @@ Verificação feita comparando os valores do cofre com os históricos (sem exibi
 
 Ou seja: **cifrar o cofre não teria evitado isso.** As cópias se espalham por onde o agente passa: históricos, possivelmente backups (Time Machine) e qualquer arquivo que a sessão gere.
 
-**Ação pendente (decisão do João):** rotacionar as 3 credenciais do cofre e decidir se limpa esses históricos.
+**Decisão (02/11/2026):** as 3 credenciais **não** serão rotacionadas. Os históricos do Claude do Mac não são copiados para o servidor.
 
 ## 2. Modelo de ameaça
 
