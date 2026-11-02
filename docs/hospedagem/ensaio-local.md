@@ -84,6 +84,29 @@ Erros que os testes pegaram (já corrigidos no script):
 - Cofre lendo a chave de `$CREDENTIALS_DIRECTORY/cofre-chave`.
 - `deploy/atualizar.sh` já usa `sudo -n systemctl restart hub.service`.
 
+## Integração do hub da v2 (02/11/2026)
+
+VM nova, `deploy/preparar-vm.sh`, código da `v2` em `/home/hub/app`, e `scripts/servidor-teste.ts` rodando como o `hub.service` (usuário `hub`, mesmas variáveis, chave do cofre pelo systemd):
+
+| Verificação | Resultado |
+|---|---|
+| `npm ci`, tipos e 59 testes no Linux ARM | ✅ |
+| Cofre cifrado com a chave do `systemd-creds` | ✅ |
+| Orca do agente pelo pareamento (`status`) | ✅ |
+| Hub cria repositório e adiciona ao Orca | ✅ |
+| Sessão roda como `agente`, com a pasta marcada como confiável antes | ✅ |
+| Hub lê a pasta de históricos do Claude do agente | ✅ |
+| Agente lê `runs/`, mas não escreve | ✅ |
+
+Achados corrigidos:
+- `better-sqlite3` compila no ARM: o script instala `build-essential`.
+- Pelo pareamento, o `orca status` diz que o "app" não está rodando (o hub não tem desktop): o adaptador olha só o runtime remoto.
+- O git 2.43 do Ubuntu não aceita `safe.directory` com curinga no fim do caminho: o agente usa `*`.
+
+Pendências descobertas:
+- **O Orca só adiciona pastas que são repositório git** (`repo add`: "Not a valid git repository"). A opção "📁 Só criar a pasta" do hub cria uma pasta sem git; conferir no Mac se a v1 também falha e decidir entre fazer `git init` ou tirar a opção.
+- **Clonar no servidor:** o hub clona como usuário `hub`, que não tem acesso ao git das empresas. O clone precisa rodar como `agente` (que terá o login do git) por um terminal do Orca.
+
 ## Falta testar
 
 - Tudo acima na **Oracle**, mais o celular reconectando sozinho depois de um reboot (no ensaio, o Tailscale não estava nas VMs de teste).

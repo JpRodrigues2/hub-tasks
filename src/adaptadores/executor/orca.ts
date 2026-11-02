@@ -40,12 +40,13 @@ export class Orca implements Executor {
   }
 
   async status() {
-    // Num pareamento remoto (servidor) o status pode vir sem o bloco "app" (não há app de desktop).
+    // Pelo pareamento (servidor) o "app" é o desktop local do hub, que não existe: vale só o runtime remoto.
     const r = await this.run<{ app?: { running: boolean }; runtime?: { state: string; reachable: boolean; appVersion?: string } }>(
       ['status'],
       15_000,
     );
-    const ok = (r.app?.running ?? true) && !!r.runtime?.reachable && r.runtime?.state === 'ready';
+    const appOk = this.ambiente ? true : (r.app?.running ?? true);
+    const ok = appOk && !!r.runtime?.reachable && r.runtime?.state === 'ready';
     return { ok, versao: r.runtime?.appVersion, estado: r.runtime?.state };
   }
 

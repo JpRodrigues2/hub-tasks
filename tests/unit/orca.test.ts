@@ -28,6 +28,12 @@ describe('Orca (adaptador Executor)', () => {
     expect(f.args()).toEqual(['repo', 'list', '--environment', 'agente', '--json']);
   });
 
+  it('status pelo pareamento ignora o desktop local (que não existe no servidor)', async () => {
+    const f = orcaFalso({ ok: true, result: { app: { running: false }, runtime: { state: 'ready', reachable: true, appVersion: '1.4.246' } } });
+    expect((await new Orca(f.bin, 'agente').status()).ok).toBe(true);
+    expect((await new Orca(f.bin).status()).ok).toBe(false); // no Mac, o app precisa estar aberto
+  });
+
   it('status sem o bloco "app" (servidor sem desktop)', async () => {
     const f = orcaFalso({ ok: true, result: { runtime: { state: 'ready', reachable: true, appVersion: '1.4.246' } } });
     expect(await new Orca(f.bin, 'agente').status()).toEqual({ ok: true, versao: '1.4.246', estado: 'ready' });

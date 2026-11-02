@@ -19,19 +19,19 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 | ✔️ | CI no GitHub Actions | `.github/workflows/ci.yml`: tipos + testes em todo push e PR |
 | ✔️ | Sem o nome do usuário no código (I9) | Estado `aguardando_joao` → `aguardando_usuario`, com migração do banco; textos do prompt e das regras |
 | 🔄 | Arquitetura hexagonal (D-A12) | Começou pelo domínio: `src/dominio/tela.ts`, `despacho.ts` (máquina de estados com tabela de transições), `selecao.ts` |
-| ⬜ | Portas das fronteiras críticas | `Executor` (Orca), `Cofre`, `Notificador` (Telegram), `GestorTasks` (já existe como `PmAdapter`) e raiz de composição em `main.ts` |
+| ✔️ | Portas das fronteiras críticas | `src/aplicacao/portas.ts`: `Executor` (adaptador Orca em `src/adaptadores/executor/`) e `Cofre` (`src/adaptadores/cofre/`); `GestorTasks` já existia como `PmAdapter`; raiz de composição em `src/main.ts`. **`Notificador` fica para a etapa 2**: os avisos do despacho usam teclados do Telegram, e a porta só faz sentido junto com o Presenter, quando entrar o Teams (D-A10) |
 | ⬜ | Deploy automático | `.github/workflows/deploy.yml` pronto e desligado (`DEPLOY_ENABLED`); liga quando a VM existir |
 
 ### 1.2 Cofre e broker (D-A14)
 
 | | Item | Detalhe |
 |---|---|---|
-| ⬜ | Porta `Cofre` | `obter(id)`, `salvar(id, valor)`, `remover(id)`, `listar()` (só ids e datas) |
-| 🔄 | Adaptador do servidor | Arquivo cifrado AES-256-GCM; chave-mestra fora do disco (`systemd-creds`). Protótipo e ataques ✔️ no [ensaio](../hospedagem/ensaio-local.md) |
-| ⬜ | Cópia de recuperação da chave-mestra | Nota segura no app Senhas da Apple, feita uma vez |
+| ✔️ | Porta `Cofre` | `obter(id)`, `salvar(id, valor)`, `remover(id)`, `ids()` (nunca valores) |
+| ✔️ | Adaptador do servidor | `CofreArquivoCifrado`: AES-256-GCM, chave do `systemd-creds` (`$CREDENTIALS_DIRECTORY`), gravação atômica. Testes de chave errada e arquivo alterado; verificado na VM pelo `scripts/servidor-teste.ts` |
+| 🔄 | Cópia de recuperação da chave-mestra | Recuperação testada no [ensaio](../hospedagem/ensaio-local.md). Falta: guardar a da Oracle no app Senhas da Apple, uma vez |
 | ✔️ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub`. Testado no [ensaio](../hospedagem/ensaio-local.md); feito pelo `deploy/preparar-vm.sh` |
-| ⬜ | Adaptador do Mac | Keychain do macOS |
-| ⬜ | Migração | `data/segredos/gamificacoes.json` (texto puro) → cofre cifrado; apagar o arquivo antigo |
+| ✔️ | Adaptador do Mac | `CofreKeychain` (comando `security`, serviço `hub-tasks`); testado no Mac com um serviço descartável |
+| ✔️ | Migração | `migrarCofreAntigo` no `main.ts`: `<dados>/segredos/gamificacoes.json` → Cofre, confere e apaga o arquivo |
 | ⬜ | Investigar a API da Funifier | Autenticação (API key + secret → token de curta duração?) e se o MCP de gamificação atual pode ser embrulhado |
 | ⬜ | Broker (gateway MCP do hub) | Servidor MCP local, registrado só na sessão da task; só as gamificações autorizadas; leitura/escrita/destrutiva; produção com confirmação no Telegram; log de auditoria |
 | ⬜ | Fim do `credenciais.json` | A sessão deixa de receber o arquivo |
@@ -54,10 +54,10 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 
 | | Item |
 |---|---|
-| ⬜ | Configuração em vez de caminhos do Mac: `ORCA_BIN`, pasta-mãe dos ambientes, `apps.yaml` do servidor (`HUB_APPS_FILE`) |
+| ✔️ | Configuração em vez de caminhos do Mac: `src/caminhos.ts` (`HUB_DADOS_DIR`, `HUB_RUNS_DIR`, `HUB_REPOS_DIR`, `HUB_CLAUDE_DIR`…), pasta relativa no `apps.yaml`, `ORCA_ENVIRONMENT`, pasta confiável (`HUB_CONFIAR_PASTA_CMD`) |
 | ⬜ | Fase 7 da v1: serviço systemd, espera o `orca serve`, aviso "Hub online", heartbeat no Healthchecks.io |
 | ⬜ | Batimento para um monitor externo |
-| ⬜ | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth) |
+| 🔄 | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth): feito e com testes; falta o teste real com o Funifier PM |
 | ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2) |
 | ⬜ | Pasta vazia em `runs/` (I13) |
 | ⬜ | Ensaio com bot de teste e virada (fases 6–7 do plano do servidor) |
