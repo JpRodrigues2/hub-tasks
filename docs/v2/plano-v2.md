@@ -76,3 +76,12 @@ Depois da etapa 1, por ordem de valor:
 - `/diagnostico`, logs estruturados (pino).
 - Distribuição, site de suporte, sistemas operacionais (D-A19–D-A21).
 - Teams (D-A10).
+
+## Decisões de 02/11/2026: pastas, clone e várias contas
+
+1. **Criar pasta sem git continua obrigatório.** O usuário cria diretórios novos pelo celular dentro das pastas-mãe (DAC, FUNIFIER…). O Orca tem "native folder workspaces" (citado no guia `orca-cli`), mas o `repo add` recusou pasta sem git no servidor. Próximo passo: descobrir o comando do Orca para workspace de pasta; se não houver, `git init` local (sem remoto) só para o Orca enxergar.
+2. **Clone e git remoto como `agente`.** O hub roda `sudo -n -u agente git …` (regra no sudoers só para `/usr/bin/git`), então usa as chaves e logins do agente; no Mac, sem prefixo. Configurável por `HUB_GIT_COMO`.
+3. **Várias contas por pasta-mãe (app universal).** Cada pasta-mãe vira um **espaço**: nome, pasta raiz, ferramenta de gestão, regras e **conta git** (provedor, usuário, e-mail, chave SSH própria). No agente:
+   - `~/.ssh/<espaco>` (uma chave por conta) e `includeIf "gitdir:<raiz do espaço>/"` no `~/.gitconfig` apontando para um arquivo do espaço com `user.name`, `user.email` e `core.sshCommand = ssh -i ~/.ssh/<espaco> -o IdentitiesOnly=yes`;
+   - no clone (a pasta ainda não existe, o `includeIf` não vale), o hub passa `-c core.sshCommand=…` da conta do espaço.
+   - Isso substitui o `empresa: funifier | dac` fixo no código (I3/I4) e entra na autoconfiguração (etapa 2), junto com a entrada do token do Telegram e das ferramentas por uma interface mais alto nível.
