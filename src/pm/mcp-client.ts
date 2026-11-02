@@ -1,5 +1,5 @@
 // Conexão com os MCPs das ferramentas de gestão (sem IA).
-// - Funifier PM: HTTP + OAuth (registro dinâmico; tokens persistidos em data/oauth, renovados via refresh_token).
+// - Funifier PM: HTTP + OAuth (registro dinâmico; tokens persistidos em <dados>/oauth, renovados via refresh_token).
 // - Bnexo: HTTP + Bearer token do .env.
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -12,12 +12,11 @@ import type {
 import { execFile } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import 'dotenv/config';
+import { CAMINHOS } from '../caminhos.js';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const OAUTH_DIR = join(ROOT, 'data', 'oauth');
+const OAUTH_DIR = join(CAMINHOS.dados, 'oauth');
 const CALLBACK_PORT = 53682;
 const REDIRECT_URL = `http://localhost:${CALLBACK_PORT}/callback`;
 

@@ -1,11 +1,13 @@
 // Regras de trabalho por empresa (B08): regras/funifier.md e regras/dac.md, incluídas em todo prompt.
-// O usuário vê e edita pelo Telegram (/regras) trocando o texto inteiro; a versão anterior vai para data/regras-historico/.
+// O usuário vê e edita pelo Telegram (/regras) trocando o texto inteiro; a versão anterior vai para <dados>/regras-historico/.
+// Sem arquivo na pasta de regras configurada (servidor novo), valem as regras padrão do código.
 //
 // callback_data  g:<empresa>:ver | edit | ok | no
 import { InlineKeyboard, type Api } from 'grammy';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, type App } from './config.js';
+import { CAMINHOS, regrasPadrao } from './caminhos.js';
+import type { App } from './config.js';
 import { getMeta, setMeta, type DB } from './db.js';
 import { log } from './logger.js';
 import { ICONE, cartao } from './msg.js';
@@ -16,12 +18,12 @@ const EMPRESAS: Empresa[] = ['funifier', 'dac'];
 const NOME: Record<Empresa, string> = { funifier: 'Funifier', dac: 'DAC' };
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
 
-export const REGRAS_DIR = join(ROOT, 'regras');
+export const REGRAS_DIR = CAMINHOS.regras;
 const arquivo = (e: Empresa) => join(REGRAS_DIR, `${e}.md`);
 
 export function lerRegras(empresa: Empresa): string {
-  const f = arquivo(empresa);
-  return existsSync(f) ? readFileSync(f, 'utf8').trim() : '';
+  const f = existsSync(arquivo(empresa)) ? arquivo(empresa) : regrasPadrao(`${empresa}.md`);
+  return f ? readFileSync(f, 'utf8').trim() : '';
 }
 
 // Corpo das regras para o prompt (sem o título "# Regras de trabalho — X" do arquivo).
@@ -61,7 +63,7 @@ export function formatar(empresa: Empresa, texto: string): string {
 function salvarRegras(empresa: Empresa, texto: string) {
   const f = arquivo(empresa);
   if (existsSync(f)) {
-    const hist = join(ROOT, 'data', 'regras-historico');
+    const hist = join(CAMINHOS.dados, 'regras-historico');
     mkdirSync(hist, { recursive: true });
     copyFileSync(f, join(hist, `${empresa}-${new Date().toISOString().replace(/[:.]/g, '-')}.md`));
   }

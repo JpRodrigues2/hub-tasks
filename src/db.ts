@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './config.js';
+import { CAMINHOS } from './caminhos.js';
 import { log } from './logger.js';
 import { ESTADOS_ATIVOS, sqlLista } from './dominio/despacho.js';
 
@@ -169,8 +169,8 @@ const MIGRATIONS: string[] = [
 
 export type DB = Database.Database;
 
-export function openDb(file = join(ROOT, 'data', 'hub.db')): DB {
-  mkdirSync(join(ROOT, 'data'), { recursive: true });
+export function openDb(file = join(CAMINHOS.dados, 'hub.db')): DB {
+  mkdirSync(CAMINHOS.dados, { recursive: true, mode: 0o700 });
   const db = new Database(file);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');

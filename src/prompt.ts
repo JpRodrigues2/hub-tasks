@@ -2,13 +2,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { App, Gamificacao } from './config.js';
-import { ROOT } from './config.js';
+import { CAMINHOS } from './caminhos.js';
 import { regrasParaPrompt } from './regras.js';
 import { errInfo, log } from './logger.js';
 import type { TaskDetalhe } from './pm/types.js';
 import { tagRodada } from './dominio/despacho.js';
 
-export const RUNS_DIR = join(ROOT, 'runs');
+export const RUNS_DIR = CAMINHOS.runs;
 
 export function dirAnexos(selecaoId: number) {
   return join(RUNS_DIR, String(selecaoId));

@@ -1,29 +1,14 @@
-// Wrapper da CLI do Orca. Sempre execFile com argumentos em array (nunca string de shell)
+// Adaptador Executor sobre a CLI do Orca. Sempre execFile com argumentos em array (nunca string de shell)
 // e sempre --json. Handles de terminal mudam quando o Orca reinicia: redescobrir pela pasta.
+// No servidor o Orca roda com outro usuário (agente): todo comando leva --environment <pareamento do hub>.
 import { execFile } from 'node:child_process';
 import { resolve } from 'node:path';
-
-export class OrcaError extends Error {
-  constructor(
-    message: string,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = 'OrcaError';
-  }
-}
-
-export interface OrcaTerminal {
-  handle: string;
-  title: string;
-  agentIdentity: string | null; // "claude" quando há um Claude Code rodando
-  worktreePath: string;
-  connected: boolean;
-  writable: boolean;
-  lastOutputAt?: number;
-  tabId?: string;
-  leafId?: string;
-}
+import {
+  ErroExecutor,
+  type Executor,
+  type StatusWorktree,
+  type TerminalExecutor,
+} from '../../aplicacao/portas.js';
 
 interface OrcaResponse<T> {
   ok: boolean;
@@ -31,12 +16,16 @@ interface OrcaResponse<T> {
   error?: { code?: string; message?: string };
 }
 
-export class Orca {
-  constructor(private bin: string) {}
+export class Orca implements Executor {
+  constructor(
+    private bin: string,
+    private ambiente?: string,
+  ) {}
 
   private run<T>(args: string[], timeoutMs = 30_000): Promise<T> {
+    const completos = this.ambiente ? [...args, '--environment', this.ambiente, '--json'] : [...args, '--json'];
     return new Promise((resolvePromise, reject) => {
-      execFile(this.bin, [...args, '--json'], { timeout: timeoutMs, maxBuffer: 20 * 1024 * 1024 }, (err, stdout) => {
+      execFile(this.bin, completos, { timeout: timeoutMs, maxBuffer: 20 * 1024 * 1024 }, (err, stdout) => {
         let parsed: OrcaResponse<T> | undefined;
         try {
           parsed = JSON.parse(stdout);
@@ -44,18 +33,20 @@ export class Orca {
           // sem JSON: falha do processo (binário ausente, timeout, Orca fechado)
         }
         if (parsed?.ok) return resolvePromise(parsed.result as T);
-        if (parsed?.error) return reject(new OrcaError(parsed.error.message ?? 'erro do Orca', parsed.error.code));
-        reject(new OrcaError(err ? err.message : `resposta inesperada do Orca: ${stdout.slice(0, 200)}`));
+        if (parsed?.error) return reject(new ErroExecutor(parsed.error.message ?? 'erro do Orca', parsed.error.code));
+        reject(new ErroExecutor(err ? err.message : `resposta inesperada do Orca: ${stdout.slice(0, 200)}`));
       });
     });
   }
 
   async status() {
-    const r = await this.run<{ app: { running: boolean }; runtime: { state: string; reachable: boolean; appVersion?: string } }>(
+    // Num pareamento remoto (servidor) o status pode vir sem o bloco "app" (não há app de desktop).
+    const r = await this.run<{ app?: { running: boolean }; runtime?: { state: string; reachable: boolean; appVersion?: string } }>(
       ['status'],
       15_000,
     );
-    return { ok: r.app.running && r.runtime.reachable && r.runtime.state === 'ready', versao: r.runtime.appVersion, ...r };
+    const ok = (r.app?.running ?? true) && !!r.runtime?.reachable && r.runtime?.state === 'ready';
+    return { ok, versao: r.runtime?.appVersion, estado: r.runtime?.state };
   }
 
   async listRepos() {
@@ -64,9 +55,9 @@ export class Orca {
   }
 
   // Terminais vivos cuja pasta é exatamente `pasta`.
-  async listTerminals(pasta: string): Promise<OrcaTerminal[]> {
+  async listTerminals(pasta: string): Promise<TerminalExecutor[]> {
     const alvo = resolve(pasta);
-    const r = await this.run<{ terminals: OrcaTerminal[] }>(['terminal', 'list', '--worktree', `path:${alvo}`]);
+    const r = await this.run<{ terminals: TerminalExecutor[] }>(['terminal', 'list', '--worktree', `path:${alvo}`]);
     return r.terminals.filter((t) => t.worktreePath && resolve(t.worktreePath) === alvo);
   }
 
@@ -89,13 +80,13 @@ export class Orca {
     ]);
     // Terminal fechado continua legível por um tempo, com status "exited" e tela vazia.
     if (r.terminal.status && r.terminal.status !== 'running')
-      throw new OrcaError(`terminal ${handle} não está rodando (${r.terminal.status})`, 'terminal_not_running');
+      throw new ErroExecutor(`terminal ${handle} não está rodando (${r.terminal.status})`, 'terminal_not_running');
     return r.terminal.tail;
   }
 
   // Envia UMA linha seguida de Enter. Quebras de linha são recusadas (o prompt vai num arquivo em runs/).
   async send(handle: string, linha: string) {
-    if (/[\r\n]/.test(linha)) throw new OrcaError('send: a linha não pode conter quebras de linha');
+    if (/[\r\n]/.test(linha)) throw new ErroExecutor('send: a linha não pode conter quebras de linha');
     return this.run(['terminal', 'send', '--terminal', handle, '--text', linha, '--enter']);
   }
 
@@ -108,7 +99,7 @@ export class Orca {
       );
       return true;
     } catch (e) {
-      if (e instanceof OrcaError && /timeout|timed out/i.test(`${e.code} ${e.message}`)) return false;
+      if (e instanceof ErroExecutor && /timeout|timed out/i.test(`${e.code} ${e.message}`)) return false;
       throw e;
     }
   }
@@ -123,11 +114,11 @@ export class Orca {
     if (titulo) args.push('--title', titulo);
     const r = await this.run<{ terminal?: { handle?: string }; handle?: string }>(args);
     const handle = r.terminal?.handle ?? r.handle;
-    if (!handle) throw new OrcaError('terminal create não devolveu handle');
+    if (!handle) throw new ErroExecutor('terminal create não devolveu handle');
     return handle;
   }
 
-  async setWorktreeStatus(pasta: string, status: 'todo' | 'in-progress' | 'in-review' | 'completed', comentario?: string) {
+  async setWorktreeStatus(pasta: string, status: StatusWorktree, comentario?: string) {
     const args = ['worktree', 'set', '--worktree', `path:${resolve(pasta)}`, '--workspace-status', status];
     if (comentario) args.push('--comment', comentario);
     return this.run(args);

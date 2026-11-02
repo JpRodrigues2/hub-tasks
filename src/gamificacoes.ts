@@ -1,6 +1,6 @@
 // Cadastro de gamificações pelo Telegram (B15): /gamificacoes, ou o botão "➕ Nova gamificação" ao despachar.
 // Pergunta nome → servidor → conta → API key → secret. As mensagens com credenciais são apagadas assim que lidas
-// e as credenciais vão para o cofre local (segredos.ts); no apps.yaml fica só o id.
+// e as credenciais vão para o Cofre (porta); no apps.yaml fica só o id.
 //
 // callback_data  m:ver:<app> | m:add:<app> | m:srv:<i> | m:sem | m:rm:<app>:<i> | m:rmok:<app>:<i> | m:no
 import { InlineKeyboard, type Api } from 'grammy';
@@ -8,7 +8,7 @@ import { adicionarGamificacao, loadCatalogo, removerGamificacao } from './config
 import { getMeta, setMeta, type DB } from './db.js';
 import { log } from './logger.js';
 import { ICONE, campo, cartao, esc } from './msg.js';
-import { removerCredencial, salvarCredencial, temCredencial } from './segredos.js';
+import type { Cofre } from './aplicacao/portas.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
 // Servidores da Funifier já usados nos projetos (os do apps.yaml entram também).
@@ -42,6 +42,7 @@ export class Gamificacoes {
     private db: DB,
     private api: Api,
     private chatId: number,
+    private cofre: Cofre,
   ) {}
 
   private conversa(): Conversa | null {
@@ -72,6 +73,7 @@ export class Gamificacoes {
     const app = loadCatalogo().apps.find((a) => a.app === nomeApp);
     if (!app) return;
     const gs = app.gamificacoes ?? [];
+    const comChave = new Set(await this.cofre.ids());
     const kb = new InlineKeyboard().text('➕ Adicionar', `m:add:${app.app}`).row();
     gs.forEach((g, i) => kb.text(`🗑️ ${g.nome}`, `m:rm:${app.app}:${i}`).row());
     await this.api.sendMessage(
@@ -81,9 +83,9 @@ export class Gamificacoes {
         titulo: esc(app.app),
         contexto: [`${gs.length} gamificação(ões)`],
         corpo: gs.length
-          ? gs.map((g) => `${esc(g.nome)} · ${esc(g.conta)} · <code>${esc(g.servidor)}</code>${temCredencial(g.credencial) ? ' · 🔑' : ''}`)
+          ? gs.map((g) => `${esc(g.nome)} · ${esc(g.conta)} · <code>${esc(g.servidor)}</code>${g.credencial && comChave.has(g.credencial) ? ' · 🔑' : ''}`)
           : ['Nenhuma cadastrada.'],
-        rodape: gs.length ? '🔑 = credenciais guardadas no cofre local.' : undefined,
+        rodape: gs.length ? '🔑 = credenciais guardadas no cofre.' : undefined,
       }),
       { ...HTML, reply_markup: kb },
     );
@@ -139,7 +141,7 @@ export class Gamificacoes {
       const g = loadCatalogo().apps.find((x) => x.app === a)?.gamificacoes?.[Number(b)];
       if (!g) return 'Gamificação não encontrada.';
       removerGamificacao(a, Number(b));
-      if (g.credencial) removerCredencial(g.credencial);
+      if (g.credencial) await this.cofre.remover(g.credencial);
       await this.api.editMessageReplyMarkup(this.chatId, msgId).catch(() => {});
       log.info('gamificação removida', { app: a, nome: g.nome });
       await this.api.sendMessage(this.chatId, cartao({ icone: ICONE.ok, titulo: `${esc(g.nome)} removida`, contexto: [esc(a)] }), HTML);
@@ -202,7 +204,7 @@ export class Gamificacoes {
 
   private async salvar(c: Conversa, cred: { api_key: string; secret: string } | null) {
     const id = cred ? `${c.app}-${c.nome!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}` : undefined;
-    if (cred && id) salvarCredencial(id, cred);
+    if (cred && id) await this.cofre.salvar(id, cred);
     adicionarGamificacao(c.app, { nome: c.nome!, servidor: c.servidor!, conta: c.conta!, padrao: false, credencial: id });
     await this.setConversa(null);
     log.info('gamificação cadastrada', { app: c.app, nome: c.nome, comCredencial: !!cred });

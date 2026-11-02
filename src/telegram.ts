@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { loadCatalogo, type Env } from './config.js';
 import { contagens, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
-import type { Orca } from './orca.js';
+import type { Cofre, Executor } from './aplicacao/portas.js';
 import type { PmAdapter } from './pm/types.js';
 import { Despachante } from './despacho.js';
 import { Fluxo } from './fluxo.js';
@@ -32,12 +32,13 @@ export const COMANDOS = [
 export interface Deps {
   env: Env;
   db: DB;
-  orca: Orca;
+  orca: Executor;
+  cofre: Cofre;
   adapters: PmAdapter[];
 }
 
 export function createBot(deps: Deps) {
-  const { env, db, orca, adapters } = deps;
+  const { env, db, orca, cofre, adapters } = deps;
   const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
 
   // Filtro obrigatório de chat — o primeiro middleware, antes de qualquer handler.
@@ -82,10 +83,10 @@ export function createBot(deps: Deps) {
   const fluxo = new Fluxo(env, db, bot.api, adapters, orca);
   const regras = new Regras(db, bot.api, chatId);
   const projetos = new Projetos(db, bot.api, chatId);
-  const gamificacoes = new Gamificacoes(db, bot.api, chatId);
+  const gamificacoes = new Gamificacoes(db, bot.api, chatId, cofre);
   fluxo.gamificacoes = gamificacoes;
   gamificacoes.onConcluido = () => fluxo.proximaPergunta();
-  const despachante = new Despachante(env, db, bot.api, orca, adapters);
+  const despachante = new Despachante(env, db, bot.api, orca, cofre, adapters);
   fluxo.onDespachar = (id) => despachante.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
@@ -189,7 +190,7 @@ async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> 
   let reposOrca: Set<string> | null = null;
   try {
     const st = await orca.status();
-    conexoes.push(`${st.ok ? '🟢' : '🔴'} Orca ${escapeHtml(st.versao ?? '')} · ${escapeHtml(st.runtime.state)}`);
+    conexoes.push(`${st.ok ? '🟢' : '🔴'} Orca ${escapeHtml(st.versao ?? '')} · ${escapeHtml(st.estado ?? '?')}`);
     reposOrca = new Set((await orca.listRepos()).map((r) => r.path));
   } catch (e) {
     conexoes.push(`🔴 Orca inacessível: ${escapeHtml((e as Error).message)}`);
