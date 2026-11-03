@@ -104,8 +104,8 @@ Achados corrigidos:
 - O git 2.43 do Ubuntu não aceita `safe.directory` com curinga no fim do caminho: o agente usa `*`.
 
 Pendências descobertas:
-- **O Orca só adiciona pastas que são repositório git** (`repo add`: "Not a valid git repository"). A opção "📁 Só criar a pasta" do hub cria uma pasta sem git; conferir no Mac se a v1 também falha e decidir entre fazer `git init` ou tirar a opção.
-- **Clonar no servidor:** o hub clona como usuário `hub`, que não tem acesso ao git das empresas. O clone precisa rodar como `agente` (que terá o login do git) por um terminal do Orca.
+- ✔️ **O Orca só adiciona pastas que são repositório git.** "📁 Só criar a pasta" agora cria um git só local, sem remoto.
+- ✔️ **Clonar no servidor:** o git do hub roda como `agente` (`HUB_GIT_COMO`), com as chaves e logins dele.
 
 ## Falta testar
 
