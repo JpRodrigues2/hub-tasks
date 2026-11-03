@@ -15,10 +15,10 @@
 //   ou novo: amb_empresa → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
 import { acaoValida } from './dominio/selecao.js';
 import { InlineKeyboard, type Api } from 'grammy';
-import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { CAMINHOS } from './caminhos.js';
-import { extname, join } from 'node:path';
+import { clonar, prepararPasta } from './git.js';
+import { dirname, extname, join } from 'node:path';
 import { adicionarApp, ligarProjeto, loadCatalogo, type App, type Catalogo, type Env, type Gamificacao } from './config.js';
 import type { Gamificacoes } from './gamificacoes.js';
 import { getMeta, setMeta, type DB } from './db.js';
@@ -430,7 +430,7 @@ export class Fluxo {
         const amb = JSON.parse(s.ambiente ?? '{}') as { empresa: string; nome: string };
         return this.perguntar(s, 'Tem URL do Git para clonar?', {
           corpo: [campo('Pasta', `<code>${esc(pastaAmbiente(amb))}</code>`)],
-          rodape: 'Sem URL eu só crio a pasta; nenhum repositório é criado.',
+          rodape: 'Sem URL eu crio a pasta com um git só local (sem remoto), que o Orca exige.',
           kb: kbCancel(new InlineKeyboard().text('🔗 Tenho a URL', `s:${s.id}:agit:url`).text('📁 Só criar a pasta', `s:${s.id}:agit:pasta`)),
         });
       }
@@ -710,16 +710,11 @@ export class Fluxo {
     try {
       if (existsSync(pasta)) {
         if (url) throw new Error('a pasta já existe; escolha "Só criar a pasta" para usar a que está lá, ou outro nome');
-      } else if (url) {
-        await new Promise<void>((ok, falha) =>
-          execFile(
-            'git',
-            ['clone', '--', url, pasta],
-            { timeout: 10 * 60_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
-            (err, _o, stderr) => (err ? falha(new Error(stderr.trim().split('\n').pop() || err.message)) : ok()),
-          ),
-        );
-      } else mkdirSync(pasta, { recursive: true });
+      }
+      if (url) {
+        mkdirSync(dirname(pasta), { recursive: true });
+        await clonar(url, pasta);
+      } else await prepararPasta(pasta);
       await this.orca.addRepo(pasta);
       adicionarApp({
         app: amb.nome,
