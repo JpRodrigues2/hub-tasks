@@ -6,9 +6,9 @@
 //   2. para cada app com fila e sem despacho ativo: acha a sessão do Claude pela pasta, e
 //      se estiver ociosa manda UMA linha apontando para runs/<id>.md; senão avisa e espera.
 import { InlineKeyboard, type Api } from 'grammy';
-import { execFile } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { dirSessoesClaude } from './caminhos.js';
+import { gitEm } from './git.js';
 import { join } from 'node:path';
 import { loadCatalogo, type App, type Env, type Gamificacao } from './config.js';
 import { getMeta, setMeta, type DB } from './db.js';
@@ -97,11 +97,7 @@ interface PosConversa {
 
 const BASES_PREFERIDAS = ['main', 'master', 'develop', 'development', 'dev', 'homolog', 'homologacao', 'staging', 'release'];
 
-function git(pasta: string, args: string[]): Promise<string> {
-  return new Promise((ok, falha) =>
-    execFile('git', ['-C', pasta, ...args], { timeout: 15_000 }, (err, stdout) => (err ? falha(err) : ok(stdout.trim()))),
-  );
-}
+const git = gitEm;
 
 async function branchesRemotas(pasta: string): Promise<string[]> {
   const out = await git(pasta, ['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin']).catch(() => '');

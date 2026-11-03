@@ -231,6 +231,7 @@ Environment=HUB_DADOS_DIR=$DADOS
 Environment=HUB_REPOS_DIR=$REPOS
 Environment=HUB_RUNS_DIR=$RUNS
 Environment=HUB_CLAUDE_DIR=/home/agente/.claude
+Environment="HUB_GIT_COMO=sudo -n -u agente"
 LoadCredentialEncrypted=cofre-chave:$CHAVE
 ExecStart=/usr/bin/npm start --silent
 Restart=on-failure
@@ -243,6 +244,8 @@ systemctl enable hub.service >/dev/null 2>&1
 # O deploy (usuário hub) só pode reiniciar estes dois serviços.
 cat > /etc/sudoers.d/hub-deploy <<'EOF'
 hub ALL=(root) NOPASSWD: /usr/bin/systemctl restart hub.service, /usr/bin/systemctl restart orca.service
+# O hub clona e consulta repositórios como o agente (chaves e logins do git são dele).
+hub ALL=(agente) NOPASSWD: /usr/bin/git
 EOF
 chmod 440 /etc/sudoers.d/hub-deploy
 visudo -cq

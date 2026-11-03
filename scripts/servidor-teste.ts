@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { CofreArquivoCifrado } from '../src/adaptadores/cofre/arquivo-cifrado.js';
 import { Orca } from '../src/adaptadores/executor/orca.js';
 import { CAMINHOS, dirSessoesClaude } from '../src/caminhos.js';
+import { clonar, gitEm, prepararPasta } from '../src/git.js';
 
 let falhas = 0;
 async function etapa(nome: string, fn: () => Promise<string | void>) {
@@ -39,12 +40,20 @@ await etapa('Orca do agente pelo pareamento', async () => {
 });
 
 const pasta = join(CAMINHOS.repos, 'VERIFICACAO', `teste-${Date.now().toString(36)}`);
-await etapa('hub cria repositório e adiciona ao Orca', async () => {
-  mkdirSync(pasta, { recursive: true });
-  const { execFileSync } = await import('node:child_process');
-  execFileSync('git', ['init', '-q', pasta]); // o Orca só aceita repositório git
+await etapa('pasta nova sem remoto (git só local, como o agente) aberta no Orca', async () => {
+  await prepararPasta(pasta);
   await orca.addRepo(pasta);
   return pasta;
+});
+
+await etapa('clone como o agente, aberto no Orca', async () => {
+  const destino = `${pasta}-clone`;
+  await clonar('https://github.com/octocat/Hello-World.git', destino);
+  const dono = await gitEm(destino, ['config', '--get', 'remote.origin.url']);
+  await orca.addRepo(destino);
+  const { statSync } = await import('node:fs');
+  const { userInfo } = await import('node:os');
+  return `origin ${dono}; dono uid ${statSync(destino).uid} (hub é ${userInfo().uid})`;
 });
 
 await etapa('sessão como agente, com a pasta marcada como confiável', async () => {
