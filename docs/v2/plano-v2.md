@@ -71,7 +71,7 @@ Depois da etapa 1, por ordem de valor:
 - Resto da arquitetura hexagonal: quebrar `fluxo.ts` e `despacho.ts` em casos de uso; repositórios; Presenter; codec tipado dos botões; eventos de domínio.
 - Prisma + SQLite (D-A13) e teste P1.
 - Empresas e ferramentas fora do código (I3, I4); dados fora do repositório (I5).
-- **Configuração inicial fluida** ([requisito](configuracao-inicial.md)): assistente que guia do zero ao hub no ar, junto com o onboarding e as telas de autoconfiguração (D-A15: entrada das credenciais fora do chat).
+- **Configuração inicial fluida** ([requisito](configuracao-inicial.md)), depois da hexagonal, do cofre e do broker; a VPS é escolhida e criada pelo usuário: assistente que guia do zero ao hub no ar, junto com o onboarding e as telas de autoconfiguração (D-A15: entrada das credenciais fora do chat).
 - Módulo de estudo da infra em nuvem para o João ([roteiro](../estudo/infra-nuvem.md)).
 - Jira (D-A16).
 - `/diagnostico`, logs estruturados (pino).
