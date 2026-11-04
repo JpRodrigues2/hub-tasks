@@ -331,6 +331,8 @@ export class Despachante {
     await this.enviar(cartao({ icone: ICONE.sessao, titulo: `Abrindo sessão em ${esc(app.app)}`, contexto: [`<code>${esc(comando)}</code>`] }));
     // No servidor, antes do Claude, marca a pasta como confiável no Claude do agente (senão ele para perguntando).
     const linha = this.env.HUB_CONFIAR_PASTA_CMD ? `${this.env.HUB_CONFIAR_PASTA_CMD} && ${comando}` : comando;
+    // Pasta do catálogo que o Orca ainda não conhece (servidor novo, pasta criada fora do hub): adiciona antes.
+    if (!(await this.orca.listRepos()).some((r) => r.path === app.pasta)) await this.orca.addRepo(app.pasta);
     const handle = await this.orca.createTerminal(app.pasta, linha, `hub #${sel.id}`);
     log.info('despacho: sessão aberta', { app: app.app, handle, comando });
 

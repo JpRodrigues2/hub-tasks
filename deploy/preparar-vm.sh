@@ -241,6 +241,7 @@ Environment=ORCA_ENVIRONMENT=agente
 Environment=HUB_COFRE=arquivo-cifrado
 Environment=HUB_CONFIAR_PASTA_CMD=/usr/local/bin/hub-confiar-pasta
 Environment=HUB_DADOS_DIR=$DADOS
+Environment=HUB_APPS_FILE=$DADOS/apps.yaml
 Environment=HUB_REPOS_DIR=$REPOS
 Environment=HUB_RUNS_DIR=$RUNS
 Environment=HUB_CLAUDE_DIR=/home/agente/.claude
