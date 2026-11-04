@@ -43,12 +43,12 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 
 | | Item |
 |---|---|
-| ⬜ | Conta Oracle, VM ARM, Tailscale no Mac, iPhone e servidor (fases 0–1) |
-| 🔄 | Orca no servidor sem tela (T4, T4b), Mac pareado (T1), **celular pareado com o Mac desligado (T14)**: T4, T1 e T14 ✔️ no ensaio; falta confirmar na Oracle |
-| 🔄 | Claude Code e git no servidor (T8, T9): T8 ✔️ no ensaio |
-| ⬜ | Hub operando o Orca do servidor (T3a, T3b, T3c, T2) |
+| ✔️ | Conta Oracle, VM ARM, Tailscale no Mac, iPhone e servidor (fases 0–1): VM `hub-cloud`, ver [oracle-hub-cloud](../hospedagem/oracle-hub-cloud.md) |
+| 🔄 | Orca no servidor sem tela (T4, T4b), Mac pareado (T1), **celular pareado com o Mac desligado (T14)**: T4 e T1 ✔️ na Oracle; T14 ✔️ no ensaio, falta na Oracle |
+| ✔️ | Claude Code e git no servidor (T8, T9): sessão como `agente` e clone ✔️ na Oracle |
+| ✔️ | Hub operando o Orca do servidor (T3a, T3b, T3c, T2): task fictícia do sandbox de ponta a ponta na Oracle |
 | ⬜ | Front pelo Tailscale (T6); link público opcional (T6b) |
-| ⬜ | Recuperação: reinício da VM, do `orca serve`, Mac dormindo (T7, T11, T12) |
+| 🔄 | Recuperação: reinício da VM ✔️ na Oracle (Tailscale, Orca e hub voltam sozinhos); falta `orca serve` e Mac dormindo (T11, T12) |
 
 ### 1.4 Hub no servidor
 
@@ -57,10 +57,10 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 | ✔️ | Configuração em vez de caminhos do Mac: `src/caminhos.ts` (`HUB_DADOS_DIR`, `HUB_RUNS_DIR`, `HUB_REPOS_DIR`, `HUB_CLAUDE_DIR`…), pasta relativa no `apps.yaml`, `ORCA_ENVIRONMENT`, pasta confiável (`HUB_CONFIAR_PASTA_CMD`) |
 | ⬜ | Fase 7 da v1: serviço systemd, espera o `orca serve`, aviso "Hub online", heartbeat no Healthchecks.io |
 | ⬜ | Batimento para um monitor externo |
-| 🔄 | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth): feito e com testes; falta o teste real com o Funifier PM |
+| ✔️ | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth): testado com o Funifier PM real |
 | ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2) |
 | ⬜ | Pasta vazia em `runs/` (I13) |
-| ⬜ | Ensaio com bot de teste e virada (fases 6–7 do plano do servidor) |
+| 🔄 | Ensaio com bot de teste (`@HubTasksCloudBot`) ✔️; falta a virada (fase 7) e o catálogo completo do servidor |
 
 **Etapa 1 pronta quando:** uma task real vai do Telegram ao Encerrar com o hub na Oracle; o João acompanha pelo celular com o Mac desligado e continua a mesma sessão pelo Mac; a credencial da gamificação não aparece em nenhum histórico; um push na `v2` com CI verde atualiza o servidor sozinho.
 
@@ -71,7 +71,8 @@ Depois da etapa 1, por ordem de valor:
 - Resto da arquitetura hexagonal: quebrar `fluxo.ts` e `despacho.ts` em casos de uso; repositórios; Presenter; codec tipado dos botões; eventos de domínio.
 - Prisma + SQLite (D-A13) e teste P1.
 - Empresas e ferramentas fora do código (I3, I4); dados fora do repositório (I5).
-- Onboarding e telas de autoconfiguração (D-A15: entrada das credenciais fora do chat).
+- **Configuração inicial fluida** ([requisito](configuracao-inicial.md)): assistente que guia do zero ao hub no ar, junto com o onboarding e as telas de autoconfiguração (D-A15: entrada das credenciais fora do chat).
+- Módulo de estudo da infra em nuvem para o João ([roteiro](../estudo/infra-nuvem.md)).
 - Jira (D-A16).
 - `/diagnostico`, logs estruturados (pino).
 - Distribuição, site de suporte, sistemas operacionais (D-A19–D-A21).
