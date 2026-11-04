@@ -162,7 +162,12 @@ export class Despachante {
   // ─────────────────────────── sessões ───────────────────────────
 
   private async sessoesClaude(pasta: string) {
-    const terms = (await this.orca.listTerminals(pasta)).filter((t) => t.agentIdentity === 'claude' && t.writable);
+    // Pasta que o Orca ainda não conhece não tem sessão; o abrirSessao adiciona.
+    const todos = await this.orca.listTerminals(pasta).catch((e) => {
+      if (e instanceof ErroExecutor && e.code === 'selector_not_found') return [];
+      throw e;
+    });
+    const terms = todos.filter((t) => t.agentIdentity === 'claude' && t.writable);
     if (!terms.length) return [];
     const estados = await this.orca.agentStates().catch(() => new Map<string, string>());
     const out: { term: TerminalExecutor; estado: EstadoSessao }[] = [];
