@@ -94,4 +94,6 @@ await etapa('agente lê o que o hub grava em runs/', async () => {
 });
 
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo certo');
+// O CLI do Orca não tem "repo remove": os projetos de teste somem do Orca só pela interface.
+console.log('Depois: tirar os projetos "teste-*" do Orca (⋯ no projeto → remover) e apagar /srv/hub/repos/VERIFICACAO e os runs.');
 process.exit(falhas ? 1 : 0);
