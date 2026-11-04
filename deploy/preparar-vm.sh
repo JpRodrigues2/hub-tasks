@@ -89,6 +89,19 @@ else
   ufw allow 22/tcp >/dev/null   # só até o Tailscale estar de pé; depois rode de novo com --fechar-ssh
 fi
 ufw --force enable >/dev/null
+# A imagem Ubuntu da Oracle traz regras próprias (iptables-persistent) que liberam a 22 e rejeitam o resto
+# antes das regras do ufw, então o ufw não manda em nada. Tira só essas três; as de InstanceServices
+# (saída para os serviços da Oracle, como o disco de boot) ficam.
+REGRAS_ORACLE=(
+  "INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT"
+  "INPUT -j REJECT --reject-with icmp-host-prohibited"
+  "FORWARD -j REJECT --reject-with icmp-host-prohibited"
+)
+for regra in "${REGRAS_ORACLE[@]}"; do
+  [[ -f /etc/iptables/rules.v4 ]] && sed -i "\|^-A $regra\$|d" /etc/iptables/rules.v4
+  # shellcheck disable=SC2086
+  while iptables -C $regra 2>/dev/null; do iptables -D $regra; done
+done
 
 passo "Orca $ORCA_VERSAO (pacote oficial, sha512 conferido)"
 if [[ "$(dpkg-query -W -f='${Version}' orca-ide 2>/dev/null || true)" != "$ORCA_VERSAO" ]]; then
