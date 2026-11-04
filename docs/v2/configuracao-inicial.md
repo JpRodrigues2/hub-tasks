@@ -23,3 +23,9 @@ este documento guarda o requisito e o que já sabemos.
 - Estado da configuração no próprio servidor (`/home/hub/dados/configuracao.json`), para o bot também mostrar o que falta.
 - Reaproveita `deploy/oracle-criar-vm.sh`, `deploy/preparar-vm.sh` e `scripts/servidor-teste.ts` como etapas.
 - Junto com o onboarding e a autoconfiguração da etapa 2 (D-A15) e do [app universal](app-universal.md).
+
+## Decisões (04/11/2026)
+
+- **Canal:** assistente no terminal (`hub init`) como base; o Claude Code como copiloto opcional (lê `hub diagnostico`, nunca digita segredos); o Telegram para o depois (o que falta, QR de pareamento, projetos).
+- **Ordem:** só depois da arquitetura hexagonal, do cofre e do broker fechados.
+- **Servidor fora do escopo:** o hub **não** escolhe nem cria a VPS. Entregamos um documento com requisitos, dicas e dúvidas comuns (provedores, ARM/x86, memória, Ubuntu, custo, o que a Oracle grátis exige). O usuário cria o servidor por conta própria, ou pede ao Claude Code dele, como o João fez. O `hub init` começa quando o servidor já existe e responde por SSH.
