@@ -10,12 +10,17 @@ describe('política do broker', () => {
     expect(classificar(undefined)).toBe('destrutiva');
   });
 
-  it('destrutiva nunca; escrita em produção confirma; o resto passa', () => {
-    expect(decidir('destrutiva', false)).toBe('negar');
-    expect(decidir('destrutiva', true)).toBe('negar');
-    expect(decidir('escrita', true)).toBe('confirmar');
-    expect(decidir('escrita', false)).toBe('permitir');
+  it('leitura passa; escrita confirma só em produção; destrutiva sempre confirma', () => {
     expect(decidir('leitura', true)).toBe('permitir');
+    expect(decidir('escrita', false)).toBe('permitir');
+    expect(decidir('escrita', true)).toBe('confirmar');
+    expect(decidir('destrutiva', false)).toBe('confirmar');
+    expect(decidir('destrutiva', true)).toBe('confirmar');
+  });
+
+  it('funifier_save é escrita, mesmo marcado como destrutivo', () => {
+    expect(classificar({ readOnlyHint: false, destructiveHint: true }, 'funifier_save')).toBe('escrita');
+    expect(classificar({ readOnlyHint: false, destructiveHint: true }, 'funifier_delete')).toBe('destrutiva');
   });
 
   it('produção pelo campo ambiente ou pelo nome', () => {

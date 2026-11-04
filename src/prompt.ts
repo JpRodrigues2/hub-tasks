@@ -147,7 +147,7 @@ function blocoCredenciais(arquivo: string) {
 function blocoBroker() {
   return [
     'Acesso às gamificações: só pelas ferramentas do MCP **hub** (`funifier_gamificacoes`, `funifier_ferramentas`, `funifier_chamar`), usando o id do broker. O hub guarda as credenciais; você não as recebe e não deve procurá-las (`funifier.json`, outro MCP da Funifier).',
-    'Ações destrutivas são negadas. Escrita em produção espera a confirmação do usuário no Telegram: se for negada, pare e explique no encerramento.',
+    'Ação destrutiva e escrita em produção esperam a confirmação do usuário no Telegram: se for negada, não tente outro caminho; explique no encerramento.',
     '',
   ];
 }
