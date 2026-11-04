@@ -7,6 +7,7 @@ import { regrasParaPrompt } from './regras.js';
 import { errInfo, log } from './logger.js';
 import type { TaskDetalhe } from './pm/types.js';
 import { tagRodada } from './dominio/despacho.js';
+import { idGamificacao } from './dominio/broker.js';
 
 export const RUNS_DIR = CAMINHOS.runs;
 
@@ -48,6 +49,7 @@ export interface DadosPrompt {
   tasks: TaskDoPrompt[]; // 1 = task sozinha; 2+ = lote (tasks que se complementam)
   avulsa: boolean; // atividade avulsa (/nova): sem ferramenta de gestão
   credenciais: string | null; // runs/<id>/credenciais.json com API key/secret das gamificações autorizadas
+  broker?: boolean; // gamificações pelo MCP "hub" (broker): a sessão não recebe credenciais
   infoExtra: string | null;
   app: App;
   gamificacoes: Gamificacao[];
@@ -109,9 +111,11 @@ export function escreverPrompt(d: DadosPrompt): string {
   if (app.empresa === 'funifier') {
     if (d.gamificacoes.length) {
       L.push('## Gamificações autorizadas', '');
-      for (const g of d.gamificacoes) L.push(`- **${g.nome}** — servidor \`${g.servidor}\`, conta ${g.conta}`);
+      for (const g of d.gamificacoes)
+        L.push(`- **${g.nome}** — servidor \`${g.servidor}\`, conta ${g.conta}${d.broker ? `, id no broker \`${idGamificacao(app.app, g.nome)}\`` : ''}`);
       L.push('', '**Só altere as gamificações listadas aqui. Se a gamificação conectada no seu MCP não for uma delas, pare e avise.**', '');
-      if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
+      if (d.broker) L.push(...blocoBroker());
+      else if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
     } else {
       L.push(
         '## Gamificação',
@@ -136,6 +140,14 @@ function blocoCredenciais(arquivo: string) {
   return [
     `Credenciais (API key e secret) de cada gamificação acima: \`${arquivo}\`.`,
     'Leia esse arquivo só quando precisar acessar ou trocar de gamificação. **Nunca** copie as credenciais para código, commits, PRs, logs ou mensagens.',
+    '',
+  ];
+}
+
+function blocoBroker() {
+  return [
+    'Acesso às gamificações: só pelas ferramentas do MCP **hub** (`funifier_gamificacoes`, `funifier_ferramentas`, `funifier_chamar`), usando o id do broker. O hub guarda as credenciais; você não as recebe e não deve procurá-las (`funifier.json`, outro MCP da Funifier).',
+    'Ações destrutivas são negadas. Escrita em produção espera a confirmação do usuário no Telegram: se for negada, pare e explique no encerramento.',
     '',
   ];
 }
@@ -178,6 +190,7 @@ export interface DadosSeguimento {
   remoto?: string | null;
   novaBranch?: string; // nome escolhido pelo usuário no Abrir PR
   credenciais?: string | null;
+  broker?: boolean;
 }
 
 // Continuação de uma task já concluída: runs/<id>-<rodada>.md.
@@ -215,7 +228,8 @@ export function escreverSeguimento(d: DadosSeguimento): string {
     L.push('');
   }
 
-  if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
+  if (d.broker && d.app.gamificacoes?.length) L.push(...blocoBroker());
+  else if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
   L.push(...blocoRegras(d.app.empresa));
   L.push(...blocoEncerramento(tag));
   mkdirSync(RUNS_DIR, { recursive: true });
