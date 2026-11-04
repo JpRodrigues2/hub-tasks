@@ -175,6 +175,14 @@ export async function iniciarLoginPm(): Promise<string | null> {
   }
 }
 
+// Acha o endereço de retorno no texto colado. O navegador do celular costuma copiar sem o "http://",
+// às vezes com 127.0.0.1, e o texto pode vir com algo antes ou depois.
+export function acharEnderecoRetorno(texto: string): string | null {
+  const m = texto.match(new RegExp(`(?:https?://)?(?:localhost|127\\.0\\.0\\.1):${CALLBACK_PORT}/callback\\?\\S+`, 'i'));
+  if (!m) return null;
+  return /^https?:\/\//i.test(m[0]) ? m[0] : `http://${m[0]}`;
+}
+
 // Code do endereço de retorno (http://localhost:53682/callback?code=…).
 export function extrairCodigoOAuth(endereco: string): string | null {
   const u = new URL(endereco.trim());

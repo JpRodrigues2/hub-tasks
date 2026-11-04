@@ -4,7 +4,7 @@
 import type { Api } from 'grammy';
 import { errInfo, log } from './logger.js';
 import { ICONE, cartao, esc } from './msg.js';
-import { concluirLoginPm, extrairCodigoOAuth, iniciarLoginPm } from './pm/mcp-client.js';
+import { acharEnderecoRetorno, concluirLoginPm, extrairCodigoOAuth, iniciarLoginPm } from './pm/mcp-client.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
 
@@ -27,7 +27,7 @@ export class LoginPm {
           icone: ICONE.pergunta,
           titulo: 'Login no Funifier PM',
           corpo: [
-            `1. <a href="${esc(link)}">Abra este link</a> e entre com a sua conta.`,
+            `1. <a href="${esc(link)}">Abra este link</a> <b>no Safari ou no Chrome</b>, não no navegador do Telegram (nele o login não completa). Na tela que abrir, toque em ⋯ → Abrir no navegador.`,
             '2. No fim, o navegador mostra uma página de erro em <code>localhost:53682</code>. É normal.',
             '3. Copie o endereço dessa página e cole aqui.',
           ],
@@ -41,14 +41,15 @@ export class LoginPm {
     }
   }
 
-  // true se a mensagem era o endereço de retorno do login (consumida aqui). Só aceita o endereço inteiro,
+  // true se a mensagem tinha o endereço de retorno do login (consumida aqui). Exige localhost:53682/callback,
   // para nunca confundir com texto de outra conversa.
   async onTexto(texto: string, msgId: number): Promise<boolean> {
-    if (!/^\s*https?:\/\/localhost:53682\/callback\?/.test(texto)) return false;
+    const endereco = acharEnderecoRetorno(texto);
+    if (!endereco) return false;
     await this.api.deleteMessage(this.chatId, msgId).catch(() => {});
     let codigo: string | null;
     try {
-      codigo = extrairCodigoOAuth(texto);
+      codigo = extrairCodigoOAuth(endereco);
       if (!codigo) throw new Error('o endereço não tem o code');
     } catch (e) {
       await this.api.sendMessage(this.chatId, cartao({ icone: ICONE.falha, titulo: 'Login recusado', corpo: [esc((e as Error).message)] }), HTML);
