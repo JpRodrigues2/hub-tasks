@@ -44,6 +44,8 @@ Ou seja: **cifrar o cofre não teria evitado isso.** As cópias se espalham por 
 
 **Decisão (02/11/2026):** as 3 credenciais **não** serão rotacionadas. Os históricos do Claude do Mac não são copiados para o servidor.
 
+**Revisão (04/11/2026):** os históricos do Mac do João **podem** ir para o servidor exatamente como estão, sem limpeza, para as sessões continuarem na nuvem com o contexto que já têm. O cofre e o broker existem para o app universal, que vai para pessoas de níveis e intenções diferentes: o compromisso é que **usuários novos nunca tenham credenciais nos históricos** (broker, fim do `credenciais.json`, entrada fora do chat). O ambiente pessoal do João, criado antes disso, fica como exceção consciente.
+
 ## 2. Modelo de ameaça
 
 | Ameaça | Exemplo | Probabilidade na v2 |

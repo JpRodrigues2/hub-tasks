@@ -28,7 +28,7 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 |---|---|---|
 | ✔️ | Porta `Cofre` | `obter(id)`, `salvar(id, valor)`, `remover(id)`, `ids()` (nunca valores) |
 | ✔️ | Adaptador do servidor | `CofreArquivoCifrado`: AES-256-GCM, chave do `systemd-creds` (`$CREDENTIALS_DIRECTORY`), gravação atômica. Testes de chave errada e arquivo alterado; verificado na VM pelo `scripts/servidor-teste.ts` |
-| 🔄 | Cópia de recuperação da chave-mestra | Recuperação testada no [ensaio](../hospedagem/ensaio-local.md). Falta: guardar a da Oracle no app Senhas da Apple, uma vez |
+| ✔️ | Cópia de recuperação da chave-mestra | Recuperação testada no [ensaio](../hospedagem/ensaio-local.md); a da Oracle está no app Senhas da Apple |
 | ✔️ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub`. Testado no [ensaio](../hospedagem/ensaio-local.md); feito pelo `deploy/preparar-vm.sh` |
 | ✔️ | Adaptador do Mac | `CofreKeychain` (comando `security`, serviço `hub-tasks`); testado no Mac com um serviço descartável |
 | ✔️ | Migração | `migrarCofreAntigo` no `main.ts`: `<dados>/segredos/gamificacoes.json` → Cofre, confere e apaga o arquivo |
