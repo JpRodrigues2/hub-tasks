@@ -222,6 +222,16 @@ if [[ ! -f "$CHAVE" ]]; then
   chmod 600 "$CHAVE"
 fi
 
+passo "Broker: MCP \"hub\" no Claude do agente (as sessões usam a Funifier sem ver a chave)"
+# O token só diz "sou uma sessão do agente"; quais gamificações valem o hub decide pelas tasks em andamento.
+TOKEN_BROKER=$DADOS/broker-token
+install -d -m 700 -o hub -g hub "$DADOS"
+[[ -s "$TOKEN_BROKER" ]] || { openssl rand -hex 32 > "$TOKEN_BROKER"; chown hub:hub "$TOKEN_BROKER"; chmod 600 "$TOKEN_BROKER"; }
+if ! sudo -u agente -i claude mcp get hub >/dev/null 2>&1; then
+  sudo -u agente -i claude mcp add --transport http --scope user hub "http://127.0.0.1:7790/mcp" \
+    --header "Authorization: Bearer $(cat "$TOKEN_BROKER")" >/dev/null
+fi
+
 passo "Serviço do hub (sobe quando o código estiver em $APP)"
 unidade hub.service <<EOF || true
 [Unit]
@@ -246,6 +256,8 @@ Environment=HUB_REPOS_DIR=$REPOS
 Environment=HUB_RUNS_DIR=$RUNS
 Environment=HUB_CLAUDE_DIR=/home/agente/.claude
 Environment="HUB_GIT_COMO=sudo -n -u agente"
+Environment=HUB_BROKER=ligado
+Environment=HUB_BROKER_TOKEN_ARQ=$TOKEN_BROKER
 LoadCredentialEncrypted=cofre-chave:$CHAVE
 ExecStart=/usr/bin/npm start --silent
 Restart=on-failure

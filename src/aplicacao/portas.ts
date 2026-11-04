@@ -62,3 +62,10 @@ export interface Cofre {
   remover(id: string): Promise<void>;
   ids(): Promise<string[]>; // nunca devolve valores
 }
+
+// ─────────────── Confirmador: pergunta ao usuário antes de uma ação arriscada do broker ───────────────
+
+export interface Confirmador {
+  // true só com um "sim" explícito; recusa, tempo esgotado ou falha de envio = false.
+  confirmar(pergunta: string): Promise<boolean>;
+}

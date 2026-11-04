@@ -1,11 +1,14 @@
 // Raiz de composição: o único lugar que escolhe os adaptadores concretos (Orca, cofre, ferramentas) e liga tudo.
 // O resto do código só conhece as portas (src/aplicacao/portas.ts e PmAdapter).
 import cron from 'node-cron';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Cofre } from './aplicacao/portas.js';
 import { CofreArquivoCifrado } from './adaptadores/cofre/arquivo-cifrado.js';
 import { CofreKeychain } from './adaptadores/cofre/keychain.js';
+import { ConexoesFunifier } from './adaptadores/funifier/conexoes.js';
 import { Orca } from './adaptadores/executor/orca.js';
+import { Broker, autorizadasDoBanco } from './broker/broker.js';
 import { CAMINHOS } from './caminhos.js';
 import { loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
@@ -30,7 +33,21 @@ const cofre = criarCofre(env);
 await migrarCofreAntigo(cofre);
 const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
 
-const { bot, fluxo, despachante } = createBot({ env, db, orca, cofre, adapters });
+const { bot, fluxo, despachante, confirmador } = createBot({ env, db, orca, cofre, adapters });
+
+// Broker: a sessão usa as gamificações pelo MCP do hub, sem ver a chave (docs/estudo/broker.md).
+let broker: Broker | null = null;
+if (env.HUB_BROKER === 'ligado') {
+  if (!env.HUB_BROKER_TOKEN_ARQ) throw new Error('HUB_BROKER=ligado precisa de HUB_BROKER_TOKEN_ARQ');
+  broker = new Broker({
+    porta: env.HUB_BROKER_PORTA,
+    token: readFileSync(env.HUB_BROKER_TOKEN_ARQ, 'utf8').trim(),
+    autorizadas: autorizadasDoBanco(db),
+    conexoes: new ConexoesFunifier(cofre, env.HUB_FUNIFIER_MCP),
+    confirmador,
+  });
+  await broker.iniciar();
+}
 
 // Despacho: fila por app, a cada 30 s (e imediatamente após cada "Despachar").
 setInterval(() => void despachante.processar(), 30_000);
@@ -50,6 +67,7 @@ await bot.api.setMyCommands(COMANDOS);
 async function parar(sinal: string) {
   log.info('hub: encerrando', { sinal });
   await bot.stop();
+  await broker?.parar();
   db.close();
   process.exit(0);
 }
@@ -57,7 +75,7 @@ process.once('SIGINT', () => void parar('SIGINT'));
 process.once('SIGTERM', () => void parar('SIGTERM'));
 process.on('unhandledRejection', (e) => log.error('hub: promise rejeitada', errInfo(e)));
 
-log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM, cofre: env.HUB_COFRE, dados: CAMINHOS.dados });
+log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM, cofre: env.HUB_COFRE, broker: env.HUB_BROKER, dados: CAMINHOS.dados });
 await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });

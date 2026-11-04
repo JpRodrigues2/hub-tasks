@@ -233,9 +233,12 @@ export class Despachante {
       const task = await this.detalheDaTask(s);
       tasks.push({ task, imagens: await baixarImagens(sel.id, task.imagens, lote.length > 1 ? `t${i + 1}-` : '') });
     }
-    const credenciais = await escreverCredenciaisDaTask(this.cofre, sel.id, gamifs);
+    // Com o broker, a sessão usa as gamificações pelo MCP do hub e não recebe o arquivo de credenciais.
+    const broker = this.env.HUB_BROKER === 'ligado';
+    const credenciais = broker ? null : await escreverCredenciaisDaTask(this.cofre, sel.id, gamifs);
     const arquivo = escreverPrompt({
       credenciais,
+      broker,
       selecaoId: sel.id,
       tasks,
       avulsa: !FERRAMENTA_REAL.has(sel.ferramenta),
@@ -956,6 +959,7 @@ export class Despachante {
       app,
       anterior: JSON.parse(d.resultado ?? '{}'),
       credenciais: existsSync(join(dirAnexos(sel.id), 'credenciais.json')) ? join(dirAnexos(sel.id), 'credenciais.json') : null,
+      broker: this.env.HUB_BROKER === 'ligado',
       ...seg,
     });
 

@@ -21,6 +21,12 @@ const EnvSchema = z.object({
   HUB_CONFIAR_PASTA_CMD: z.string().optional(),
   // Cofre das credenciais: Keychain no Mac, arquivo cifrado no servidor (chave-mestra do systemd-creds).
   HUB_COFRE: z.enum(['keychain', 'arquivo-cifrado']).default(process.platform === 'darwin' ? 'keychain' : 'arquivo-cifrado'),
+  // Broker: a sessão usa a Funifier pelo MCP do hub e não recebe mais o credenciais.json (docs/estudo/broker.md).
+  HUB_BROKER: z.enum(['ligado', 'desligado']).default('desligado'),
+  HUB_BROKER_PORTA: z.coerce.number().int().default(7790),
+  // Arquivo com o token que a sessão manda ao broker (o mesmo registrado no MCP "hub" do Claude do agente).
+  HUB_BROKER_TOKEN_ARQ: z.string().optional(),
+  HUB_FUNIFIER_MCP: z.string().default('npx -y funifier-mcp@0.8.1'),
   // Modo de permissão das sessões do Claude que o hub abre (auto = classificador aprova o seguro e pede aprovação para o arriscado; bypassPermissions é proibido).
   HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
   // Trava de segurança: enquanto for false, o hub não muda status nas ferramentas de gestão.
@@ -42,6 +48,8 @@ const GamificacaoSchema = z.object({
   padrao: z.boolean().default(false),
   // Id das credenciais (API key + secret) no Cofre — nunca a credencial em si.
   credencial: z.string().optional(),
+  // Sem o campo, o broker trata como produção o nome que começa com "prod".
+  ambiente: z.enum(['dev', 'producao']).optional(),
 });
 
 const AppSchema = z.object({

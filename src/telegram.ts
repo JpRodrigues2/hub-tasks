@@ -14,6 +14,7 @@ import { limparRunsManual } from './limpeza.js';
 import { LoginPm } from './login-pm.js';
 import { instalarRegistro, limparMensagens } from './mensagens.js';
 import { Projetos } from './projetos.js';
+import { ConfirmadorTelegram } from './confirmacao.js';
 import { Regras } from './regras.js';
 import { ICONE, cartao } from './msg.js';
 import { escapeHtml } from './resumo.js';
@@ -90,6 +91,7 @@ export function createBot(deps: Deps) {
   fluxo.gamificacoes = gamificacoes;
   gamificacoes.onConcluido = () => fluxo.proximaPergunta();
   const despachante = new Despachante(env, db, bot.api, orca, cofre, adapters);
+  const confirmador = new ConfirmadorTelegram(bot.api, chatId);
   fluxo.onDespachar = (id) => despachante.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
@@ -140,6 +142,7 @@ export function createBot(deps: Deps) {
     else if (tipo === 'g') resposta = await regras.onBotao(a, b, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'm') resposta = await gamificacoes.onBotao(a, b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'p') resposta = await projetos.alternar(Number(a), ctx.callbackQuery.message!.message_id);
+    else if (tipo === 'k') resposta = await confirmador.onBotao(a, b, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'l') {
       const msgId = ctx.callbackQuery.message!.message_id;
       if (a === 'ok') {
@@ -187,7 +190,7 @@ export function createBot(deps: Deps) {
 
   bot.catch((err) => log.error('telegram: erro no handler', { ...errInfo(err.error), updateId: err.ctx.update.update_id }));
 
-  return { bot, fluxo, despachante };
+  return { bot, fluxo, despachante, confirmador };
 }
 
 async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> {
