@@ -29,7 +29,7 @@ sessão do Claude (usuário agente)
    ▼
 broker, dentro do hub (usuário hub)  ── lê a chave do cofre ──▶ funifier-mcp filho (usuário hub, chave no ambiente)
    │  política: só gamificações de tasks em andamento;                     │
-   │  destrutiva negada; escrita em produção pede confirmação no Telegram  ▼
+   │  destrutiva e escrita em produção pedem confirmação no Telegram       ▼
    └─ auditoria em logs/broker.jsonl (sem valores)                    API da Funifier
 ```
 
@@ -37,6 +37,17 @@ broker, dentro do hub (usuário hub)  ── lê a chave do cofre ──▶ funi
   do outro (`/proc/<pid>/environ`). Se o `funifier-mcp` com a chave rodasse como `agente`, o Claude conseguiria ler a chave.
 - **Três ferramentas em vez de dezenas:** `funifier_gamificacoes` (quais posso usar), `funifier_ferramentas` (o que dá
   para fazer) e `funifier_chamar` (faz, passando pela política). A sessão nunca recebe `funifier_connect`.
+- **Política (decisão de 04/11/2026, revisar com o João):**
+
+  | | dev | produção |
+  |---|---|---|
+  | leitura | permite | permite |
+  | escrita (inclui `funifier_save`) | permite | confirma no Telegram |
+  | destrutiva (`delete`, `database`, `execute`, `index`, `permissions`) | confirma | confirma |
+
+  O `funifier-mcp` marca o `save` como destrutivo (sobrescreve o registro); o broker trata como escrita, senão até
+  salvar em dev pediria confirmação. Sem resposta em 10 minutos, nega.
+- **Testado na VM** com o `funifier-mcp` real (só leitura, gamificação dev do teensmart): 16 ferramentas pelo broker.
 - **A autorização acaba no Encerrar:** o broker consulta o banco a cada chamada; task fora de andamento não autoriza nada.
 
 ## Perguntas para o estudo

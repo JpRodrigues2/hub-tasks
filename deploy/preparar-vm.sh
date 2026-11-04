@@ -233,7 +233,8 @@ if ! sudo -u agente -i claude mcp get hub >/dev/null 2>&1; then
 fi
 
 passo "Serviço do hub (sobe quando o código estiver em $APP)"
-unidade hub.service <<EOF || true
+# Unidade mudou com o hub rodando: reinicia para valer (try-restart não liga se estiver parado).
+unidade hub.service <<EOF && systemctl try-restart hub.service || true
 [Unit]
 Description=Hub de Tasks
 After=network-online.target orca.service

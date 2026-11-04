@@ -92,12 +92,16 @@ describe('broker', () => {
   it('lista as ferramentas com classe e decisão, sem funifier_connect', async () => {
     const lista = JSON.parse(textoDe(await cliente.callTool({ name: 'funifier_ferramentas', arguments: { gamificacao: 'app-x/prod' } })));
     const porNome = Object.fromEntries(lista.map((f: { nome: string; classe: string; decisao: string }) => [f.nome, `${f.classe}/${f.decisao}`]));
-    expect(porNome).toEqual({ get: 'leitura/permitir', save: 'escrita/confirmar', delete: 'destrutiva/negar' });
+    expect(porNome).toEqual({ get: 'leitura/permitir', save: 'escrita/confirmar', delete: 'destrutiva/confirmar' });
   });
 
-  it('nega destrutiva e funifier_connect', async () => {
-    expect((await chamar('app-x/dev', 'delete')).isError).toBe(true);
+  it('nega funifier_connect sem perguntar; destrutiva pergunta até em dev', async () => {
     expect((await chamar('app-x/dev', 'funifier_connect', { apiKey: 'x' })).isError).toBe(true);
+    expect(perguntas.length).toBe(0);
+    respostaConfirmacao = false;
+    expect((await chamar('app-x/dev', 'delete')).isError).toBe(true);
+    expect(perguntas.length).toBe(1);
+    perguntas.length = 0;
   });
 
   it('escrita em produção espera a confirmação', async () => {

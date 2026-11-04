@@ -113,7 +113,7 @@ export class Broker {
           const lista = (await con.ferramentas())
             .filter((f) => !FERRAMENTAS_BLOQUEADAS.has(f.name))
             .map((f) => {
-              const classe = classificar(f.annotations);
+              const classe = classificar(f.annotations, f.name);
               return { nome: f.name, classe, decisao: decidir(classe, producao), descricao: f.description, argumentos: f.inputSchema };
             });
           return texto(JSON.stringify(lista, null, 2));
@@ -128,7 +128,7 @@ export class Broker {
       'funifier_chamar',
       {
         description:
-          'Chama uma ferramenta da Funifier numa gamificação autorizada. Destrutivas são negadas; escrita em produção espera a confirmação do usuário no Telegram.',
+          'Chama uma ferramenta da Funifier numa gamificação autorizada. Ação destrutiva e escrita em produção esperam a confirmação do usuário no Telegram.',
         inputSchema: {
           gamificacao: z.string().describe('id da gamificação, ex.: teensmart-app/dev'),
           ferramenta: z.string().describe('nome vindo de funifier_ferramentas'),
@@ -149,22 +149,18 @@ export class Broker {
           const f = (await con.ferramentas()).find((x) => x.name === ferramenta);
           if (!f) return texto(`Ferramenta ${ferramenta} não existe. Use funifier_ferramentas.`, true);
           const producao = ehProducao(a.gamificacao);
-          const classe = classificar(f.annotations);
+          const classe = classificar(f.annotations, f.name);
           let decisao = decidir(classe, producao);
           if (decisao === 'confirmar') {
+            const oQue = classe === 'destrutiva' ? 'uma ação <b>destrutiva</b>' : '<b>escrever em produção</b>';
             const ok = await this.o.confirmador.confirmar(
-              `A task #${a.selecaoId} quer <b>escrever em produção</b>: <code>${ferramenta}</code> em <b>${gamificacao}</b>.`,
+              `A task #${a.selecaoId} quer ${oQue}: <code>${ferramenta}</code> em <b>${gamificacao}</b>${producao ? ' (produção)' : ''}.`,
             );
             decisao = ok ? 'permitir' : 'negar';
           }
           if (decisao === 'negar') {
             this.auditar({ ...base, classe, producao, decisao: 'negar' });
-            return texto(
-              classe === 'destrutiva'
-                ? `Negado: ${ferramenta} é destrutiva e o hub não permite pelo broker. Peça ao usuário para fazer manualmente.`
-                : `Negado: o usuário não confirmou ${ferramenta} em produção.`,
-              true,
-            );
+            return texto(`Negado: o usuário não confirmou ${ferramenta} em ${gamificacao}. Não tente outro caminho; explique no encerramento.`, true);
           }
           const r = (await con.chamar(ferramenta, argumentos)) as Resultado;
           this.auditar({ ...base, classe, producao, decisao: 'permitir', ok: !r.isError });
