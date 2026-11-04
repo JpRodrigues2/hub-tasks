@@ -32,10 +32,10 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 | ✔️ | Dois usuários Linux | `hub` (hub, broker, cofre) e `agente` (Orca e sessões); o agente não lê nada do `hub`. Testado no [ensaio](../hospedagem/ensaio-local.md); feito pelo `deploy/preparar-vm.sh` |
 | ✔️ | Adaptador do Mac | `CofreKeychain` (comando `security`, serviço `hub-tasks`); testado no Mac com um serviço descartável |
 | ✔️ | Migração | `migrarCofreAntigo` no `main.ts`: `<dados>/segredos/gamificacoes.json` → Cofre, confere e apaga o arquivo |
-| ⬜ | Investigar a API da Funifier | Autenticação (API key + secret → token de curta duração?) e se o MCP de gamificação atual pode ser embrulhado |
-| ⬜ | Broker (gateway MCP do hub) | Servidor MCP local, registrado só na sessão da task; só as gamificações autorizadas; leitura/escrita/destrutiva; produção com confirmação no Telegram; log de auditoria |
-| ⬜ | Fim do `credenciais.json` | A sessão deixa de receber o arquivo |
-| ⬜ | Prova | Uma task do sandbox usando o broker, e varredura dos históricos do Claude (`~/.claude/projects`) sem nenhum valor do cofre |
+| ✔️ | Investigar a API da Funifier | `funifier-mcp` se configura por ambiente e marca as ferramentas (leitura/destrutiva); Basic com a chave em toda requisição; `/v3/auth/token` existe e não foi testado. Ver [estudo do broker](../estudo/broker.md) |
+| ✔️ | Broker (gateway MCP do hub) | `src/broker/`: MCP HTTP em 127.0.0.1 com token, rodando como `hub`; só gamificações de tasks em andamento; leitura passa, escrita em produção e destrutiva confirmam no Telegram; auditoria em `logs/broker.jsonl`. Testado na VM com o `funifier-mcp` real (só leitura) |
+| 🔄 | Fim do `credenciais.json` | Com `HUB_BROKER=ligado` (servidor) a sessão não recebe o arquivo. No Mac continua, até o broker valer no modo local |
+| ⬜ | Prova | Uma task real usando o broker, e varredura dos históricos novos sem nenhum valor do cofre. Os históricos migrados do Mac têm valores antigos (exceção aceita em 04/11/2026) |
 
 ### 1.3 Celular, Mac e nuvem
 
@@ -60,7 +60,7 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 | ✔️ | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth): testado com o Funifier PM real |
 | ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2) |
 | ⬜ | Pasta vazia em `runs/` (I13) |
-| 🔄 | Ensaio com bot de teste (`@HubTasksCloudBot`) ✔️; falta a virada (fase 7) e o catálogo completo do servidor |
+| 🔄 | Ensaio com bot de teste (`@HubTasksCloudBot`) ✔️; catálogo completo, projetos e históricos migrados (`deploy/migrar-do-mac.sh`) ✔️; falta a virada (fase 7) |
 
 **Etapa 1 pronta quando:** uma task real vai do Telegram ao Encerrar com o hub na Oracle; o João acompanha pelo celular com o Mac desligado e continua a mesma sessão pelo Mac; a credencial da gamificação não aparece em nenhum histórico; um push na `v2` com CI verde atualiza o servidor sozinho.
 
