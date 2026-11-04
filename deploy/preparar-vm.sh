@@ -40,7 +40,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 passo "Pacotes do sistema e atualizações automáticas de segurança"
 apt-get update -qq
-apt-get install -y -qq ca-certificates curl git sqlite3 acl ufw unattended-upgrades python3 openssl build-essential >/dev/null   # build-essential: better-sqlite3 compila no ARM
+apt-get install -y -qq ca-certificates curl git sqlite3 acl ufw unattended-upgrades python3 openssl build-essential gh >/dev/null   # build-essential: better-sqlite3 compila no ARM; gh: login do GitHub do agente
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
