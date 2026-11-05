@@ -106,6 +106,14 @@ Uma task que não está cadastrada em nenhuma ferramenta de gestão. O João esc
 
 ---
 
+### B20 — Listagem de tasks por projeto, com task pai e filhas · ⬜
+Pedido em 2026-11-05. Hoje o resumo diário e o `/tarefas` separam as tasks só por status.
+- **Projetos:** as tasks aparecem agrupadas por projeto, dentro de cada empresa.
+- **Hierarquia:** a task pai aparece com as filhas logo abaixo, recuadas. Uma filha cuja pai não está na lista aparece com o nome da pai como referência.
+- **Status:** continua visível em cada task (ícone ou etiqueta), mas deixa de ser o critério de agrupamento.
+- **Seleção:** os botões ✅/⬜ e o lote (B19) seguem a mesma ordem da lista.
+- **Falta no código:** a `Task` do hub (`src/pm/types.ts`) não guarda a task pai. Os adaptadores do Funifier PM e do Bnexo precisam ler esse vínculo.
+
 ## 5. Manutenção
 
 ### B11 — Limpeza periódica de `runs/` · ✔️

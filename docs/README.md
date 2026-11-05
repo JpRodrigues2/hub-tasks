@@ -8,7 +8,7 @@ docs/
 ├── roadmap/
 │   └── roadmap-v1.md                      fases 0–9 da v1 (instruções originais para o Claude Code)
 ├── backlog/
-│   └── backlog-v1.md                      ajustes B01–B19 pedidos depois do primeiro fluxo
+│   └── backlog-v1.md                      ajustes B01–B20 pedidos depois do primeiro fluxo
 ├── referencia/
 │   └── mcp-ferramentas-de-gestao.md       tools, status e particularidades do Funifier PM e do Bnexo
 ├── estudo/
