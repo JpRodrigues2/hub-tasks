@@ -10,17 +10,20 @@ import { CofreKeychain } from './adaptadores/cofre/keychain.js';
 import { NotificadorTelegram } from './adaptadores/chat/telegram.js';
 import { ConexoesFunifier } from './adaptadores/funifier/conexoes.js';
 import { Orca } from './adaptadores/executor/orca.js';
-import { MemoriaSqlite, RepositorioDespachosSqlite, RepositorioSelecoesSqlite } from './adaptadores/persistencia/sqlite.js';
+import { MemoriaSqlite, RepositorioDespachosSqlite, RepositorioResumosSqlite, RepositorioSelecoesSqlite } from './adaptadores/persistencia/sqlite.js';
 import { criarDespacho } from './aplicacao/despacho/index.js';
+import { criarSelecao } from './aplicacao/selecao/index.js';
 import { Broker, autorizadasDoBanco } from './broker/broker.js';
 import { CAMINHOS } from './caminhos.js';
-import { loadCatalogo, loadEnv, type Env } from './config.js';
+import { adicionarApp, ligarProjeto, loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
 import { gitProjetos } from './git.js';
 import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
+import { filtrarPorProjeto } from './projetos.js';
+import { buscarTasks } from './resumo.js';
 import { migrarCofreAntigo } from './segredos.js';
 import { COMANDOS, instalarBot } from './telegram.js';
 
@@ -39,19 +42,35 @@ await migrarCofreAntigo(cofre);
 const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
 
 const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
+const notificador = new NotificadorTelegram(bot.api, Number(env.TELEGRAM_CHAT_ID));
+const selecoes = new RepositorioSelecoesSqlite(db);
+const memoria = new MemoriaSqlite(db);
 const despacho = criarDespacho({
   env,
   despachos: new RepositorioDespachosSqlite(db),
-  selecoes: new RepositorioSelecoesSqlite(db),
-  memoria: new MemoriaSqlite(db),
+  selecoes,
+  memoria,
   executor: orca,
-  notificador: new NotificadorTelegram(bot.api, Number(env.TELEGRAM_CHAT_ID)),
+  notificador,
   cofre,
   gestao: adapters,
   git: gitProjetos,
   apps: () => loadCatalogo().apps,
 });
-const { fluxo, confirmador } = instalarBot(bot, { env, db, orca, cofre, adapters, despacho });
+const selecao = criarSelecao({
+  env,
+  selecoes,
+  resumos: new RepositorioResumosSqlite(db),
+  memoria,
+  executor: orca,
+  notificador,
+  catalogo: { atual: loadCatalogo, adicionarApp, ligarProjeto },
+  git: gitProjetos,
+  buscar: () => buscarTasks(adapters, db),
+  ferramentas: adapters.length,
+  filtrar: (tasks) => filtrarPorProjeto(db, tasks),
+});
+const { confirmador } = instalarBot(bot, { env, db, orca, cofre, adapters, despacho, selecao });
 
 // Broker: a sessão usa as gamificações pelo MCP do hub, sem ver a chave (docs/estudo/broker.md).
 let broker: Broker | null = null;
@@ -73,8 +92,8 @@ setInterval(() => void despacho.despachar.processar(), 30_000);
 // Resumo diário no horário configurado + verificação a cada 5 min para catch-up
 // (computador desligado/dormindo no horário). Ambos são idempotentes por dia.
 const [hh, mm] = env.RESUMO_HORARIO.split(':').map(Number);
-cron.schedule(`${mm} ${hh} * * *`, () => fluxo.talvezResumoDiario('agendado'), { timezone: env.TZ_HUB, noOverlap: true });
-cron.schedule('*/5 * * * *', () => fluxo.talvezResumoDiario('catch_up'), { timezone: env.TZ_HUB, noOverlap: true });
+cron.schedule(`${mm} ${hh} * * *`, () => selecao.resumo.talvezResumoDiario('agendado'), { timezone: env.TZ_HUB, noOverlap: true });
+cron.schedule('*/5 * * * *', () => selecao.resumo.talvezResumoDiario('catch_up'), { timezone: env.TZ_HUB, noOverlap: true });
 
 // Limpeza de runs/ de tasks encerradas há mais de 30 dias: todo dia às 04:00 e na inicialização.
 cron.schedule('0 4 * * *', () => limparRuns(db), { timezone: env.TZ_HUB, noOverlap: true });
@@ -97,7 +116,7 @@ log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM, c
 await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });
-    void fluxo.talvezResumoDiario('catch_up');
+    void selecao.resumo.talvezResumoDiario('catch_up');
     void despacho.despachar.processar();
   },
 });

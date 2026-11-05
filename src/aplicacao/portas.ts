@@ -3,6 +3,7 @@
 // A porta das ferramentas de gestão já existia: PmAdapter (src/pm/types.ts).
 import type { Despacho, EstadoDespacho, ResultadoHub, Seguimento } from '../dominio/despacho.js';
 import type { Selecao, TaskVista } from '../dominio/selecao.js';
+import type { App, Catalogo } from '../config.js';
 
 // ─────────────── Executor: onde as sessões do Claude rodam (Orca hoje) ───────────────
 
@@ -120,6 +121,39 @@ export interface RepositorioSelecoes {
   lote(s: Selecao): Selecao[]; // a task e, se lidera um lote, as outras na ordem em que foram marcadas
   task(ferramenta: string, taskId: string): TaskVista | undefined;
   registrarAviso(id: number, motivo: string): void;
+  // Configuração pela conversa (uma task por vez: a líder mais antiga ainda coletando).
+  ativa(): Selecao | undefined;
+  coletando(): number; // quantas faltam configurar
+  emAndamento(ferramenta: string, taskId: string): boolean;
+  criar(s: { ferramenta: string; taskId: string; dataResumo: string; app: string | null; etapa: string; resumoId?: number }): number;
+  // Muda campos da seleção; o estado da líder vale para o lote todo.
+  atualizar(id: number, campos: Partial<Omit<Selecao, 'id'>>): void;
+  // Atividade avulsa (/nova): a "task" é o texto do usuário.
+  registrarAvulsa(taskId: string, titulo: string, descricao: string | null): void;
+  definirInstrucoes(ferramenta: string, taskId: string, titulo: string, descricao: string): void;
+  definirEmpresa(ferramenta: string, taskId: string, empresa: 'funifier' | 'dac'): void;
+}
+
+export interface ItemResumo {
+  idx: number; // número mostrado ao usuário
+  ferramenta: string;
+  task_id: string;
+  empresa: string;
+  app_sugerido: string | null;
+}
+
+export interface RepositorioResumos {
+  abrir(data: string, origem: string): number; // o resumo aberto anterior vira "substituido"
+  adicionarItem(resumoId: number, item: ItemResumo, msgId: number | null): void;
+  definirMsgBotoes(resumoId: number, msgId: number | null): void;
+  fechar(resumoId: number, estado: 'iniciado' | 'nenhuma'): void;
+  aberto(resumoId: number): boolean;
+  // Marca/desmarca e devolve a mensagem do item com os itens dela (para redesenhar os botões).
+  alternar(resumoId: number, idx: number): { msgId: number; marcada: boolean; itens: { idx: number; titulo: string; selecionada: boolean }[] } | null;
+  msgBotoes(resumoId: number): number | null;
+  marcados(resumoId: number): ItemResumo[];
+  mensagens(resumoId: number): number[];
+  appSugerido(resumoId: number | null, taskId: string): string | null;
 }
 
 // Valores soltos que sobrevivem a reinícios (tabela meta).
@@ -133,4 +167,14 @@ export interface Memoria {
 export interface GitProjetos {
   branchesRemotas(pasta: string): Promise<string[]>; // de origin, sem o prefixo
   remotoOrigin(pasta: string): Promise<string | null>; // sem credenciais embutidas
+  clonar(url: string, pasta: string): Promise<unknown>;
+  prepararPasta(pasta: string): Promise<void>; // pasta com git só local (o Orca exige repositório)
+}
+
+// ─────────────── Catálogo de apps (apps.yaml) ───────────────
+
+export interface CatalogoApps {
+  atual(): Catalogo; // relido a cada uso: pega edições sem reiniciar
+  adicionarApp(a: { app: string; empresa: App['empresa']; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }): void;
+  ligarProjeto(app: string, projeto: string): void;
 }

@@ -8,7 +8,8 @@ import { errInfo, log } from './logger.js';
 import type { Cofre, Executor } from './aplicacao/portas.js';
 import type { PmAdapter } from './pm/types.js';
 import type { CasosDespacho } from './aplicacao/despacho/index.js';
-import { Fluxo } from './fluxo.js';
+import type { CasosSelecao } from './aplicacao/selecao/index.js';
+import { baixarArquivoTelegram } from './adaptadores/chat/telegram.js';
 import { Gamificacoes } from './gamificacoes.js';
 import { limparRunsManual } from './limpeza.js';
 import { LoginPm } from './login-pm.js';
@@ -39,11 +40,12 @@ export interface Deps {
   cofre: Cofre;
   adapters: PmAdapter[];
   despacho: CasosDespacho;
+  selecao: CasosSelecao;
 }
 
 // Liga os comandos, botões e mensagens do bot (criado no main.ts) aos casos de uso.
 export function instalarBot(bot: Bot, deps: Deps) {
-  const { env, db, cofre, adapters, despacho } = deps;
+  const { env, db, cofre, despacho, selecao } = deps;
 
   // Filtro obrigatório de chat — o primeiro middleware, antes de qualquer handler.
   bot.use(async (ctx, next) => {
@@ -84,22 +86,21 @@ export function instalarBot(bot: Bot, deps: Deps) {
     await ctx.reply(await montarStatus(deps), { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   });
 
-  const fluxo = new Fluxo(env, db, bot.api, adapters, deps.orca);
   const regras = new Regras(db, bot.api, chatId);
   const projetos = new Projetos(db, bot.api, chatId);
   const gamificacoes = new Gamificacoes(db, bot.api, chatId, cofre);
   const loginPm = new LoginPm(bot.api, chatId);
-  fluxo.gamificacoes = gamificacoes;
-  gamificacoes.onConcluido = () => fluxo.proximaPergunta();
+  selecao.configurar.cadastrarGamificacao = (app, selecaoId) => gamificacoes.iniciar(app, selecaoId);
+  gamificacoes.onConcluido = () => selecao.configurar.proximaPergunta();
   const confirmador = new ConfirmadorTelegram(bot.api, chatId);
-  fluxo.onDespachar = (id) => despacho.despachar.enfileirar(id);
+  selecao.configurar.onDespachar = (id) => despacho.despachar.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
     await ctx.reply('🔎 Buscando suas tasks no Funifier PM e no Bnexo…');
-    await fluxo.enviarResumo('manual');
+    await selecao.resumo.enviar('manual');
   });
 
-  bot.command('nova', (ctx) => fluxo.criarAvulsa(ctx.match));
+  bot.command('nova', (ctx) => selecao.configurar.criarAvulsa(ctx.match));
   bot.command('continuar', () => despacho.proximos.listarConcluidos());
   bot.command('projetos', () => projetos.comando());
   bot.command('regras', () => regras.comando());
@@ -134,10 +135,10 @@ export function instalarBot(bot: Bot, deps: Deps) {
   bot.on('callback_query:data', async (ctx) => {
     const [tipo, a, b, c] = ctx.callbackQuery.data.split(':');
     let resposta = '';
-    if (tipo === 't') resposta = await fluxo.alternarItem(Number(a), Number(b));
+    if (tipo === 't') resposta = await selecao.resumo.alternarItem(Number(a), Number(b));
     else if (tipo === 'r' && (b === 'go' || b === 'lote' || b === 'none'))
-      resposta = await fluxo.finalizarResumo(Number(a), b);
-    else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
+      resposta = await selecao.resumo.finalizar(Number(a), b);
+    else if (tipo === 's') resposta = await selecao.configurar.onAcao(Number(a), b, c);
     else if (tipo === 'f') resposta = await despacho.proximos.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'g') resposta = await regras.onBotao(a, b, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'm') resposta = await gamificacoes.onBotao(a, b, c, ctx.callbackQuery.message!.message_id);
@@ -174,7 +175,7 @@ export function instalarBot(bot: Bot, deps: Deps) {
     if (await gamificacoes.onTexto(ctx.message.text, ctx.message.message_id)) return;
     if (await regras.onTexto(ctx.message.text)) return;
     if (await despacho.proximos.onTexto(ctx.message.text)) return;
-    if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
+    if (!(await selecao.configurar.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
   });
 
   bot.on(['message:photo', 'message:document'], async (ctx) => {
@@ -182,7 +183,8 @@ export function instalarBot(bot: Bot, deps: Deps) {
     const foto = m.photo?.at(-1); // maior resolução
     const fileId = foto?.file_id ?? m.document!.file_id;
     const nome = m.document?.file_name ?? `foto-${m.message_id}.jpg`;
-    if (!(await fluxo.onAnexo(fileId, nome, m.caption)))
+    const anexo = { nome, baixar: () => baixarArquivoTelegram(bot.api, env.TELEGRAM_BOT_TOKEN, fileId) };
+    if (!(await selecao.configurar.onAnexo(anexo, m.caption)))
       await ctx.reply('Só aceito anexos enquanto configuro uma task (etapa de instruções ou informação extra).');
   });
 
@@ -190,7 +192,7 @@ export function instalarBot(bot: Bot, deps: Deps) {
 
   bot.catch((err) => log.error('telegram: erro no handler', { ...errInfo(err.error), updateId: err.ctx.update.update_id }));
 
-  return { fluxo, confirmador };
+  return { confirmador };
 }
 
 async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> {
