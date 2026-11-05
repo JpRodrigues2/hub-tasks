@@ -75,7 +75,7 @@ const selecao = criarSelecao({
 });
 const { confirmador } = instalarBot(bot, { env, db, orca, cofre, adapters, despacho, selecao });
 
-// Broker: a sessão usa as gamificações pelo MCP do hub, sem ver a chave (docs/estudo/broker.md).
+// Broker: a sessão usa as gamificações pelo MCP do hub, sem ver a chave (docs/seguranca.md).
 let broker: Broker | null = null;
 if (env.HUB_BROKER === 'ligado') {
   if (!env.HUB_BROKER_TOKEN_ARQ) throw new Error('HUB_BROKER=ligado precisa de HUB_BROKER_TOKEN_ARQ');

@@ -1,6 +1,6 @@
 # Referência: MCPs das ferramentas de gestão
 
-Como o hub conversa com o Funifier PM e o Bnexo: ferramentas MCP usadas, status e particularidades. O código que aplica isto está em `src/pm/` (ver [arquitetura](../arquitetura/arquitetura-e-codigo.md#5-integrações)).
+Como o hub conversa com o Funifier PM e o Bnexo: ferramentas MCP usadas, status e particularidades. O código que aplica isto está em `src/pm/` (ver [arquitetura](../arquitetura.md)).
 
 Levantado em 2026-10-14 com `scripts/mcp-explore.ts` (lista completa de ferramentas e schemas em `data/mcp-tools-<nome>.json`, fora do git) e testado com `scripts/mcp-call.ts` (só leitura).
 

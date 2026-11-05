@@ -21,7 +21,7 @@ const EnvSchema = z.object({
   HUB_CONFIAR_PASTA_CMD: z.string().optional(),
   // Cofre das credenciais: Keychain no Mac, arquivo cifrado no servidor (chave-mestra do systemd-creds).
   HUB_COFRE: z.enum(['keychain', 'arquivo-cifrado']).default(process.platform === 'darwin' ? 'keychain' : 'arquivo-cifrado'),
-  // Broker: a sessão usa a Funifier pelo MCP do hub e não recebe mais o credenciais.json (docs/estudo/broker.md).
+  // Broker: a sessão usa a Funifier pelo MCP do hub e não recebe mais o credenciais.json (docs/seguranca.md).
   HUB_BROKER: z.enum(['ligado', 'desligado']).default('desligado'),
   HUB_BROKER_PORTA: z.coerce.number().int().default(7790),
   // Arquivo com o token que a sessão manda ao broker (o mesmo registrado no MCP "hub" do Claude do agente).

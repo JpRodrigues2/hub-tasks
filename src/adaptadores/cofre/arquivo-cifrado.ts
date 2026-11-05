@@ -1,6 +1,6 @@
 // Cofre do servidor: um arquivo cifrado com AES-256-GCM. A chave-mestra (32 bytes) não fica no disco ao lado:
 // o systemd-creds a entrega só ao hub.service, em memória ($CREDENTIALS_DIRECTORY/cofre-chave).
-// Desenho e testes de ataque em docs/estudo/etapa-1.md e docs/hospedagem/ensaio-local.md.
+// Desenho em docs/seguranca.md (C1) e docs/estudo/etapa-1.md.
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

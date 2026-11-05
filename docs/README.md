@@ -1,45 +1,90 @@
-# Documentação do Hub de Tasks
+# Hub de Tasks: comece aqui
 
-```
-docs/
-├── README.md                              este índice
-├── arquitetura/
-│   └── arquitetura-e-codigo.md            como a v1 funciona: stack, camadas, arquivos, integrações, banco
-├── roadmap/
-│   └── roadmap-v1.md                      fases 0–9 da v1 (instruções originais para o Claude Code)
-├── backlog/
-│   └── backlog-v1.md                      ajustes B01–B20 pedidos depois do primeiro fluxo
-├── referencia/
-│   └── mcp-ferramentas-de-gestao.md       tools, status e particularidades do Funifier PM e do Bnexo
-├── estudo/
-│   ├── arquitetura.md                     como a hexagonal ficou e perguntas para o estudo
-│   ├── broker.md                          o broker MCP: o que descobrimos, a política e perguntas
-│   ├── etapa-1.md                         estudo antes de implementar: hexagonal, cofre e broker, Tailscale, systemd, Docker, Orca serve
-│   └── infra-nuvem.md                     roteiro do módulo para aprender a infra em nuvem (a fazer)
-├── v2/
-│   ├── README.md                          visão geral e ordem de trabalho da v2
-│   ├── app-universal.md                   Parte B: pacote instalável para os colaboradores da Funifier
-│   ├── arquitetura-v2.md                  impeditivos, arquitetura hexagonal, padrões, framework
-│   ├── seguranca-e-dados.md               credenciais, banco, SaaS, ferramentas de gestão
-│   ├── implantacao.md                     modo local ou servidor do usuário, distribuição, site de suporte
-│   ├── configuracao-inicial.md            requisito: fluxo de configuração inicial fluido
-│   └── plano-v2.md                        etapa 1 (o crítico) e etapa 2 (o resto), com o andamento
-└── hospedagem/
-    ├── servidor-nuvem.md                  Parte A: hub e sessões num servidor, Orca do Mac pareado
-    ├── plano-execucao.md                  respostas pesquisadas, provedores grátis e o plano por fases
-    ├── ensaio-local.md                    testes do servidor numa VM Ubuntu ARM no Mac (Lima) e aprendizados
-    └── oracle-hub-cloud.md                a VM hub-cloud na Oracle: o que existe, ordem, atritos e testes
-```
+O hub lê as suas tasks nas ferramentas de gestão (Funifier PM, Bnexo), manda a lista no Telegram e, para as que você
+escolher, escreve as instruções e as despacha para uma sessão do Claude Code aberta no Orca. Depois acompanha a sessão
+e avisa quando terminou ou quando precisa de você. **O hub em si não usa IA:** a IA está só nas sessões do Claude.
 
-| Quero… | Leia |
-|---|---|
-| Entender o código | [arquitetura e código](arquitetura/arquitetura-e-codigo.md) |
-| Saber o que a v1 faz e o que falta (Fases 7–9) | [roadmap](roadmap/roadmap-v1.md) |
-| Ver por que algo funciona do jeito que funciona | [backlog](backlog/backlog-v1.md) (cada item tem o pedido e a decisão) |
-| Mexer na integração com o PM ou o Bnexo | [referência dos MCPs](referencia/mcp-ferramentas-de-gestao.md) |
-| Estudar a etapa 1 antes de implementar | [estudo da etapa 1](estudo/etapa-1.md) |
-| Aprender a infra em nuvem | [roteiro do estudo](estudo/infra-nuvem.md) |
-| Mexer no servidor da Oracle | [hub-cloud](hospedagem/oracle-hub-cloud.md) |
-| Acompanhar a v2 | [v2](v2/README.md) → [servidor](hospedagem/servidor-nuvem.md) ([plano](hospedagem/plano-execucao.md)), [app universal](v2/app-universal.md), [arquitetura v2](v2/arquitetura-v2.md), [segurança e dados](v2/seguranca-e-dados.md), [implantação](v2/implantacao.md) |
+**Onde estamos (05/11/2026):** a v1 roda no Mac do João (branch `main`). A v2 (branch `v2`) já roda numa VM da
+Oracle com o bot de teste, e a etapa 1 está quase pronta. Depois vêm o onboarding e o app para outros colaboradores.
+Detalhes e pendências em [plano](plano.md).
+
+## Ordem de leitura
+
+| # | Documento | Responde |
+|---|---|---|
+| 1 | Este README | O que é, onde estamos, o que significa cada sigla |
+| 2 | [plano](plano.md) | O que está feito, o que falta e quem faz |
+| 3 | [arquitetura](arquitetura.md) | Como o código está organizado e o que cada arquivo faz |
+| 4 | [backlog](backlog.md) | As regras pedidas pelo João (B01–B20) e o que falta delas |
+| 5 | [decisões](decisoes.md) | Tudo o que foi decidido (D-S, D-A) e o que está em aberto |
+| 6 | [segurança](seguranca.md) | Credenciais: o risco, o cofre e o broker |
+| 7 | [servidor](servidor.md) | A VM da Oracle: o que existe, como operar, testes e atritos |
+| 8 | [app universal](app-universal.md) | O produto para outros colaboradores e o onboarding (`hub init`) |
+| — | [referência dos MCPs](referencia/mcp-ferramentas-de-gestao.md) | Tools e status do Funifier PM e do Bnexo (para mexer em `src/pm/`) |
+| — | [estudo/](estudo/) | Material de estudo do João: [etapa 1](estudo/etapa-1.md), [arquitetura](estudo/arquitetura.md), [broker](estudo/broker.md), [infra em nuvem](estudo/infra-nuvem.md) |
 
 Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` e `regras/*.md`.
+
+## Legenda
+
+### Ícones de status
+
+| Ícone | Nos documentos | | Ícone | Nas decisões |
+|---|---|---|---|---|
+| ✔️ | feito | | ✅ | decidida |
+| 🔄 | em andamento | | 🟡 | em aberto |
+| ⬜ | a fazer | | ❌ | descartada |
+
+### Siglas e códigos
+
+| Código | O que é | Onde está |
+|---|---|---|
+| **v1, v2** | v1: o hub de hoje, no Mac. v2: a versão para o servidor e para outros colaboradores | [plano](plano.md) |
+| **Etapa 1, 2** | As duas etapas da v2: o crítico (nuvem, credenciais seguras) e o resto (onboarding, Prisma, Jira) | [plano](plano.md) |
+| **Fases 0–9** | As fases do roadmap original da v1; as que sobraram estão no plano | [plano](plano.md) |
+| **B01–B20** | Itens do backlog: pedidos do João depois do primeiro uso | [backlog](backlog.md) |
+| **I1–I13** | Impeditivos: o que impede entregar o hub a outras pessoas | [plano](plano.md#impeditivos-do-app-universal-i1i13) |
+| **D-S1–D-S7** | Decisões do servidor do João | [decisões](decisoes.md) |
+| **D-A1–D-A22** | Decisões do app universal | [decisões](decisoes.md) |
+| **C1–C5** | Camadas de proteção das credenciais (guardar, entrar, usar, limitar, auditar) | [segurança](seguranca.md) |
+| **T0–T14** | Testes do servidor (Orca sem tela, pareamento, celular sem o Mac…) | [servidor](servidor.md#testes-t) |
+| **A1–A16** | Atritos da primeira subida na Oracle; viram requisitos do onboarding | [servidor](servidor.md#atritos-a1a16) |
+| **P1** | Teste do Prisma com SQLite, antes de trocar o acesso ao banco | [decisões](decisoes.md) (D-A13) |
+
+### Termos
+
+| Termo | Significado |
+|---|---|
+| **Orca** | IDE que roda os terminais das sessões do Claude; tem CLI (`orca`) e app no celular |
+| **Sessão** | Um Claude Code rodando num terminal do Orca, na pasta de um projeto |
+| **App** | Um projeto no catálogo (`apps.yaml`): pasta, projetos da ferramenta, gamificações |
+| **Seleção** | Uma task escolhida no Telegram, enquanto é configurada e acompanhada |
+| **Despacho** | O envio de uma task a uma sessão, e o acompanhamento até o resultado |
+| **Rodada** | Cada envio para a mesma task: a original e cada 💬 instrução ou 🔀 PR depois |
+| **Lote** | Várias tasks num só prompt e numa só sessão (B19) |
+| **`runs/<id>.md`** | O prompt da task; ao terminal vai só uma linha apontando para ele |
+| **`RESULTADO HUB`** | Bloco que a sessão escreve no fim; é por ele que o hub sabe que terminou |
+| **Cofre** | Onde ficam as credenciais: Keychain no Mac, arquivo cifrado no servidor |
+| **Broker** | Servidor MCP do hub: a sessão usa a Funifier por ele, sem ver a chave |
+| **MCP** | Protocolo pelo qual o hub fala com as ferramentas de gestão e a sessão fala com o broker |
+| **`hub` / `agente`** | Os dois usuários Linux do servidor: o do hub (dono dos segredos) e o das sessões |
+| **Tailscale / tailnet** | Rede privada entre Mac, celular e servidor; nada fica aberto na internet |
+| **Hexagonal** | Organização do código em domínio, portas, casos de uso e adaptadores ([arquitetura](arquitetura.md#2-hexagonal-em-4-frases)) |
+
+## Regras do projeto
+
+Valem para qualquer pessoa ou sessão do Claude que mexa no hub:
+
+- **Segredos** (tokens, senhas, chaves) só no `.env` ou no cofre. Nunca em código, logs, prompts, mensagens ou commits.
+- **Tasks reais:** durante a construção, nunca alterar tasks reais nem dados no backend da Funifier. Em produção, o hub
+  só muda status (B01–B04) e **nunca comenta** sem comando explícito.
+- **Repositórios das empresas:** não alterar. Arquivo local só via `.git/info/exclude`, nunca por commit.
+- **Instalar algo global** no computador só com permissão.
+- **Bot:** atende só o `TELEGRAM_CHAT_ID` do dono.
+- **Orca:** sempre `execFile` com argumentos em array e `--json`. Sessões com `--permission-mode auto`;
+  `bypassPermissions` é proibido.
+- **Commits:** os do repositório do hub levam `Co-Authored-By` do Claude; os das sessões nos projetos das empresas, não.
+- **Branches:** `v1` congelada, `main` é o hub em uso, `v2` é o trabalho novo.
+
+Os documentos antigos (roadmap da v1, arquitetura da v1, pesquisas do servidor) foram resumidos aqui em 05/11/2026.
+O texto completo continua no histórico do git.

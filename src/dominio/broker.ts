@@ -1,5 +1,5 @@
 // Política do broker (gateway MCP entre a sessão do Claude e a Funifier): o que a sessão pode fazer, sem I/O.
-// Desenho em docs/estudo/broker.md e docs/v2/seguranca-e-dados.md (C3).
+// Desenho em docs/seguranca.md (C3).
 
 export type Classe = 'leitura' | 'escrita' | 'destrutiva';
 export type Decisao = 'permitir' | 'confirmar' | 'negar';

@@ -3,7 +3,7 @@
 #   sudo HUB_HOSTNAME=hub-cloud bash deploy/preparar-vm.sh [--fechar-ssh]
 # Idempotente: cada passo confere se já foi feito, então rodar de novo conserta uma VM pela metade.
 # Não faz o que exige uma pessoa: `tailscale up`, `claude` (login do agente) e o pareamento do celular.
-# Desenho e testes em docs/estudo/etapa-1.md e docs/hospedagem/ensaio-local.md.
+# Desenho em docs/servidor.md.
 #
 # Variáveis opcionais:
 #   HUB_HOSTNAME     nome na tailnet (padrão hub-cloud)

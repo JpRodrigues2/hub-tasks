@@ -9,7 +9,7 @@
 # sem node_modules. Destino: /srv/hub/repos/<caminho relativo a ~/Documents>, dono agente.
 # Históricos: ~/.claude/projects/<pasta do Mac> → /home/agente/.claude/projects/<pasta do servidor>, com os
 # caminhos do Mac trocados pelos do servidor e as datas preservadas (o `claude -c` retoma o mais recente).
-# Sem limpeza de segredos: decisão de 04/11/2026 para o ambiente do João (docs/v2/seguranca-e-dados.md).
+# Sem limpeza de segredos: decisão de 04/11/2026 para o ambiente do João (docs/seguranca.md).
 # Imprime no fim o catálogo do servidor (pastas relativas); o script não o grava.
 set -euo pipefail
 
