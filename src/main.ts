@@ -3,6 +3,7 @@
 import { Bot } from 'grammy';
 import cron from 'node-cron';
 import { readFileSync } from 'node:fs';
+import { hostname } from 'node:os';
 import { join } from 'node:path';
 import type { Cofre } from './aplicacao/portas.js';
 import { CofreArquivoCifrado } from './adaptadores/cofre/arquivo-cifrado.js';
@@ -25,6 +26,7 @@ import { FunifierPmAdapter } from './pm/funifier-pm.js';
 import { filtrarPorProjeto } from './projetos.js';
 import { buscarTasks } from './resumo.js';
 import { migrarCofreAntigo } from './segredos.js';
+import { ICONE, cartao, esc } from './msg.js';
 import { COMANDOS, instalarBot } from './telegram.js';
 
 function criarCofre(env: Env): Cofre {
@@ -45,9 +47,10 @@ const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
 const notificador = new NotificadorTelegram(bot.api, Number(env.TELEGRAM_CHAT_ID));
 const selecoes = new RepositorioSelecoesSqlite(db);
 const memoria = new MemoriaSqlite(db);
+const despachos = new RepositorioDespachosSqlite(db);
 const despacho = criarDespacho({
   env,
-  despachos: new RepositorioDespachosSqlite(db),
+  despachos,
   selecoes,
   memoria,
   executor: orca,
@@ -116,6 +119,15 @@ log.info('hub: iniciando bot (long polling)', { escritaPm: env.HUB_ESCRITA_PM, c
 await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });
+    // Aviso de que o hub (re)começou: depois de deploy, reinício do servidor ou queda, o usuário sabe que voltou.
+    const ativos = despachos.ativos().length;
+    void notificador.enviar(
+      cartao({
+        icone: ICONE.status,
+        titulo: 'Hub online',
+        contexto: [esc(hostname()), `broker ${env.HUB_BROKER}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
+      }),
+    );
     void selecao.resumo.talvezResumoDiario('catch_up');
     void despacho.despachar.processar();
   },
