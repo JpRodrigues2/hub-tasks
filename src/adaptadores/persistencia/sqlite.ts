@@ -1,6 +1,6 @@
 // Repositórios em SQLite (better-sqlite3): o único lugar com SQL de seleções e despachos.
 // Mudança de estado da líder de um lote vale para o lote todo (WHERE id = ? OR lote_de = ?).
-import type { Memoria, RepositorioDespachos, RepositorioSelecoes } from '../../aplicacao/portas.js';
+import type { ItemResumo, Memoria, RepositorioDespachos, RepositorioResumos, RepositorioSelecoes } from '../../aplicacao/portas.js';
 import { getMeta, setMeta, type DB } from '../../db.js';
 import { ESTADOS_ATIVOS, sqlLista, type Despacho, type EstadoDespacho, type ResultadoHub, type Seguimento } from '../../dominio/despacho.js';
 import type { Selecao, TaskVista } from '../../dominio/selecao.js';
@@ -187,6 +187,126 @@ export class RepositorioSelecoesSqlite implements RepositorioSelecoes {
 
   registrarAviso(id: number, motivo: string) {
     this.db.prepare('UPDATE selecoes SET aviso_em = ?, aviso_motivo = ? WHERE id = ?').run(agora(), motivo, id);
+  }
+
+  ativa() {
+    return this.db.prepare("SELECT * FROM selecoes WHERE estado = 'coletando' AND lote_de IS NULL ORDER BY id LIMIT 1").get() as Selecao | undefined;
+  }
+
+  coletando() {
+    return (this.db.prepare("SELECT COUNT(*) n FROM selecoes WHERE estado = 'coletando' AND lote_de IS NULL").get() as { n: number }).n;
+  }
+
+  emAndamento(ferramenta: string, taskId: string) {
+    return !!this.db
+      .prepare("SELECT 1 FROM selecoes WHERE ferramenta = ? AND task_id = ? AND estado IN ('coletando','aguardando_despacho','despachada')")
+      .get(ferramenta, taskId);
+  }
+
+  criar(s: { ferramenta: string; taskId: string; dataResumo: string; app: string | null; etapa: string; resumoId?: number }) {
+    const quando = agora();
+    return Number(
+      this.db
+        .prepare(
+          `INSERT INTO selecoes (ferramenta, task_id, data_resumo, app, estado, etapa, resumo_id, criado_em, atualizado_em)
+           VALUES (?, ?, ?, ?, 'coletando', ?, ?, ?, ?)`,
+        )
+        .run(s.ferramenta, s.taskId, s.dataResumo, s.app, s.etapa, s.resumoId ?? null, quando, quando).lastInsertRowid,
+    );
+  }
+
+  atualizar(id: number, campos: Partial<Omit<Selecao, 'id'>>) {
+    const chaves = Object.keys(campos);
+    if (chaves.some((k) => !/^[a-z_]+$/.test(k))) throw new Error(`campo inválido em selecoes: ${chaves.join(', ')}`);
+    const quando = agora();
+    this.db
+      .prepare(`UPDATE selecoes SET ${chaves.map((k) => `${k} = @${k}`).join(', ')}, atualizado_em = @agora WHERE id = @id`)
+      .run({ ...campos, id, agora: quando });
+    if (campos.estado) this.db.prepare('UPDATE selecoes SET estado = ?, atualizado_em = ? WHERE lote_de = ?').run(campos.estado, quando, id);
+  }
+
+  registrarAvulsa(taskId: string, titulo: string, descricao: string | null) {
+    const quando = agora();
+    this.db
+      .prepare(
+        `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, descricao, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+         VALUES ('avulsa', ?, 'dac', ?, ?, NULL, 'atividade avulsa', 'avulsa', NULL, NULL, ?, ?)`,
+      )
+      .run(taskId, titulo, descricao, quando, quando);
+  }
+
+  definirInstrucoes(ferramenta: string, taskId: string, titulo: string, descricao: string) {
+    this.db.prepare('UPDATE tasks_vistas SET titulo = ?, descricao = ? WHERE ferramenta = ? AND task_id = ?').run(titulo, descricao, ferramenta, taskId);
+  }
+
+  definirEmpresa(ferramenta: string, taskId: string, empresa: 'funifier' | 'dac') {
+    this.db.prepare('UPDATE tasks_vistas SET empresa = ? WHERE ferramenta = ? AND task_id = ?').run(empresa, ferramenta, taskId);
+  }
+}
+
+export class RepositorioResumosSqlite implements RepositorioResumos {
+  constructor(private db: DB) {}
+
+  abrir(data: string, origem: string) {
+    this.db.prepare("UPDATE resumos SET estado = 'substituido' WHERE estado = 'aberto'").run();
+    return Number(this.db.prepare("INSERT INTO resumos (data, origem, estado, criado_em) VALUES (?, ?, 'aberto', ?)").run(data, origem, agora()).lastInsertRowid);
+  }
+
+  adicionarItem(resumoId: number, i: ItemResumo, msgId: number | null) {
+    this.db
+      .prepare('INSERT INTO resumo_itens (resumo_id, idx, ferramenta, task_id, empresa, app_sugerido, msg_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(resumoId, i.idx, i.ferramenta, i.task_id, i.empresa, i.app_sugerido, msgId);
+  }
+
+  definirMsgBotoes(resumoId: number, msgId: number | null) {
+    this.db.prepare('UPDATE resumos SET msg_botoes = ? WHERE id = ?').run(msgId, resumoId);
+  }
+
+  fechar(resumoId: number, estado: 'iniciado' | 'nenhuma') {
+    this.db.prepare('UPDATE resumos SET estado = ? WHERE id = ?').run(estado, resumoId);
+  }
+
+  aberto(resumoId: number) {
+    return (this.db.prepare('SELECT estado FROM resumos WHERE id = ?').get(resumoId) as { estado: string } | undefined)?.estado === 'aberto';
+  }
+
+  alternar(resumoId: number, idx: number) {
+    const item = this.db.prepare('SELECT msg_id, selecionada FROM resumo_itens WHERE resumo_id = ? AND idx = ?').get(resumoId, idx) as
+      | { msg_id: number; selecionada: number }
+      | undefined;
+    if (!item) return null;
+    this.db.prepare('UPDATE resumo_itens SET selecionada = 1 - selecionada WHERE resumo_id = ? AND idx = ?').run(resumoId, idx);
+    const itens = this.db
+      .prepare(
+        `SELECT ri.idx, ri.selecionada, COALESCE(tv.titulo, ri.task_id) titulo FROM resumo_itens ri
+         LEFT JOIN tasks_vistas tv ON tv.ferramenta = ri.ferramenta AND tv.task_id = ri.task_id
+         WHERE ri.resumo_id = ? AND ri.msg_id = ? ORDER BY ri.idx`,
+      )
+      .all(resumoId, item.msg_id) as { idx: number; selecionada: number; titulo: string }[];
+    return { msgId: item.msg_id, marcada: !item.selecionada, itens: itens.map((i) => ({ ...i, selecionada: !!i.selecionada })) };
+  }
+
+  msgBotoes(resumoId: number) {
+    return (this.db.prepare('SELECT msg_botoes FROM resumos WHERE id = ?').get(resumoId) as { msg_botoes: number | null } | undefined)?.msg_botoes ?? null;
+  }
+
+  marcados(resumoId: number) {
+    return this.db
+      .prepare('SELECT idx, ferramenta, task_id, empresa, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
+      .all(resumoId) as ItemResumo[];
+  }
+
+  mensagens(resumoId: number) {
+    return (this.db.prepare('SELECT DISTINCT msg_id FROM resumo_itens WHERE resumo_id = ? AND msg_id IS NOT NULL').all(resumoId) as { msg_id: number }[]).map(
+      (m) => m.msg_id,
+    );
+  }
+
+  appSugerido(resumoId: number | null, taskId: string) {
+    return (
+      (this.db.prepare('SELECT app_sugerido FROM resumo_itens WHERE resumo_id = ? AND task_id = ?').get(resumoId, taskId) as { app_sugerido: string | null } | undefined)
+        ?.app_sugerido ?? null
+    );
   }
 }
 

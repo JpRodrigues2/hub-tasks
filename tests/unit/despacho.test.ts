@@ -4,9 +4,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Executor, Notificador, Teclado, TerminalExecutor } from '../../src/aplicacao/portas.js';
+import type { Executor, TerminalExecutor } from '../../src/aplicacao/portas.js';
 import type { App } from '../../src/config.js';
 import { TELAS, blocoResultado } from '../dominio/telas.js';
+import { ChatFalso, ate } from '../fakes.js';
 
 // Antes de importar o hub: dados, runs/ e históricos do Claude numa pasta temporária.
 const raiz = mkdtempSync(join(tmpdir(), 'hub-despacho-'));
@@ -73,30 +74,6 @@ class ExecutorFalso implements Executor {
   }
 }
 
-class ChatFalso implements Notificador {
-  mensagens: { id: number; html: string; teclado?: Teclado }[] = [];
-  private n = 100;
-  async enviar(html: string, teclado?: Teclado) {
-    this.mensagens.push({ id: ++this.n, html, teclado });
-    return this.n;
-  }
-  async botoes() {}
-  ultima() {
-    return this.mensagens.at(-1)!;
-  }
-  dados(m = this.ultima()) {
-    return (m.teclado ?? []).flat().map((b) => b.dado);
-  }
-}
-
-async function ate(cond: () => boolean, ms = 3000) {
-  const fim = Date.now() + ms;
-  while (!cond()) {
-    if (Date.now() > fim) throw new Error('condição não aconteceu a tempo');
-    await new Promise((r) => setTimeout(r, 5));
-  }
-}
-
 const pasta = join(raiz, 'repos', 'sandbox');
 mkdirSync(pasta, { recursive: true });
 const dev = { nome: 'dev', servidor: 's', conta: 'c', padrao: true, credencial: 'x' };
@@ -114,7 +91,7 @@ const despacho = criarDespacho({
   notificador: chat,
   cofre: new CofreMemoria(),
   gestao: [],
-  git: { branchesRemotas: async () => remotas, remotoOrigin: async () => 'https://github.com/org/sandbox.git' },
+  git: { branchesRemotas: async () => remotas, remotoOrigin: async () => 'https://github.com/org/sandbox.git', clonar: async () => {}, prepararPasta: async () => {} },
   apps: () => [app],
   dormir: () => new Promise((r) => setTimeout(r, 1)),
 });

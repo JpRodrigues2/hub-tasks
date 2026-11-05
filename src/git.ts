@@ -46,4 +46,6 @@ export const gitProjetos: GitProjetos = {
     const url = await gitEm(pasta, ['remote', 'get-url', 'origin']).catch(() => '');
     return url ? url.replace(/\/\/[^@/]+@/, '//') : null;
   },
+  clonar,
+  prepararPasta,
 };
