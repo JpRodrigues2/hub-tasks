@@ -1,6 +1,6 @@
 # Plano e andamento
 
-Onde estamos e o que falta. Atualizado em 05/11/2026. Ícones e siglas na [legenda](README.md#legenda).
+Onde estamos e o que falta. Atualizado em 05/11/2026. Cada pendência também está no [backlog](backlog.md) (B21–B41). Ícones e siglas na [legenda](README.md#legenda).
 
 ## Visão geral
 
