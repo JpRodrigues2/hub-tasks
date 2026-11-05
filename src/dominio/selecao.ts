@@ -22,3 +22,37 @@ export function acaoValida(etapa: string | null | undefined, acao: string): bool
   const acoes: readonly string[] | undefined = ACOES_POR_ETAPA[(etapa ?? '') as EtapaSelecao];
   return acoes?.includes(acao) ?? false;
 }
+
+// Linha da tabela selecoes (nomes iguais às colunas).
+export interface Selecao {
+  id: number;
+  ferramenta: string; // funifier-pm | bnexo | avulsa | teste
+  task_id: string;
+  resumo_id: number | null;
+  info_extra: string | null;
+  app: string | null;
+  gamificacoes: string | null; // JSON: nomes marcados (etapa alvo) ou as gamificações escolhidas
+  estado: string;
+  etapa: string | null;
+  msg_pergunta: number | null;
+  anexos: string | null; // JSON: arquivos mandados pelo Telegram
+  aviso_em: string | null;
+  aviso_motivo: string | null;
+  ambiente: string | null; // JSON { empresa, nome } enquanto monta um ambiente novo
+  lote_de: number | null; // id da líder do lote
+}
+
+// O que o hub guardou da task na ferramenta de gestão (tabela tasks_vistas).
+export interface TaskVista {
+  titulo: string;
+  descricao?: string | null;
+  projeto_nome: string | null;
+  projeto_id: string | null;
+  link: string | null;
+  empresa: 'funifier' | 'dac';
+  prazo: string | null;
+}
+
+// Ferramentas de gestão reais (avulsa e teste não têm task para atualizar).
+export const FERRAMENTA_REAL = new Set(['funifier-pm', 'bnexo']);
+export const NOME_FERRAMENTA: Record<string, string> = { 'funifier-pm': 'Funifier PM', bnexo: 'Bnexo' };

@@ -4,6 +4,7 @@
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import type { GitProjetos } from './aplicacao/portas.js';
 
 export function comandoGit(args: string[], como = process.env.HUB_GIT_COMO): [string, string[]] {
   const prefixo = (como ?? '').trim().split(/\s+/).filter(Boolean);
@@ -30,3 +31,19 @@ export async function prepararPasta(pasta: string) {
   mkdirSync(pasta, { recursive: true });
   if (!existsSync(join(pasta, '.git'))) await git(['init', '-q', pasta]);
 }
+
+// Porta GitProjetos: o que o despacho lê do git dos projetos (Abrir PR).
+export const gitProjetos: GitProjetos = {
+  async branchesRemotas(pasta) {
+    const out = await gitEm(pasta, ['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin']).catch(() => '');
+    return out
+      .split('\n')
+      .map((b) => b.replace(/^origin\//, ''))
+      .filter((b) => b && b !== 'origin' && b !== 'HEAD');
+  },
+  // URL do origin sem credenciais embutidas (https://user:token@host/...).
+  async remotoOrigin(pasta) {
+    const url = await gitEm(pasta, ['remote', 'get-url', 'origin']).catch(() => '');
+    return url ? url.replace(/\/\/[^@/]+@/, '//') : null;
+  },
+};
