@@ -1,13 +1,13 @@
 // Bot do Telegram (grammY, long polling). Só aceita o chat do usuário (TELEGRAM_CHAT_ID):
 // o bot controla terminais no computador, então qualquer outro chat é ignorado e registrado.
-import { Bot, InlineKeyboard } from 'grammy';
+import { InlineKeyboard, type Bot } from 'grammy';
 import { existsSync } from 'node:fs';
 import { loadCatalogo, type Env } from './config.js';
 import { contagens, type DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Cofre, Executor } from './aplicacao/portas.js';
 import type { PmAdapter } from './pm/types.js';
-import { Despachante } from './despacho.js';
+import type { CasosDespacho } from './aplicacao/despacho/index.js';
 import { Fluxo } from './fluxo.js';
 import { Gamificacoes } from './gamificacoes.js';
 import { limparRunsManual } from './limpeza.js';
@@ -38,11 +38,12 @@ export interface Deps {
   orca: Executor;
   cofre: Cofre;
   adapters: PmAdapter[];
+  despacho: CasosDespacho;
 }
 
-export function createBot(deps: Deps) {
-  const { env, db, orca, cofre, adapters } = deps;
-  const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
+// Liga os comandos, botões e mensagens do bot (criado no main.ts) aos casos de uso.
+export function instalarBot(bot: Bot, deps: Deps) {
+  const { env, db, cofre, adapters, despacho } = deps;
 
   // Filtro obrigatório de chat — o primeiro middleware, antes de qualquer handler.
   bot.use(async (ctx, next) => {
@@ -83,16 +84,15 @@ export function createBot(deps: Deps) {
     await ctx.reply(await montarStatus(deps), { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   });
 
-  const fluxo = new Fluxo(env, db, bot.api, adapters, orca);
+  const fluxo = new Fluxo(env, db, bot.api, adapters, deps.orca);
   const regras = new Regras(db, bot.api, chatId);
   const projetos = new Projetos(db, bot.api, chatId);
   const gamificacoes = new Gamificacoes(db, bot.api, chatId, cofre);
   const loginPm = new LoginPm(bot.api, chatId);
   fluxo.gamificacoes = gamificacoes;
   gamificacoes.onConcluido = () => fluxo.proximaPergunta();
-  const despachante = new Despachante(env, db, bot.api, orca, cofre, adapters);
   const confirmador = new ConfirmadorTelegram(bot.api, chatId);
-  fluxo.onDespachar = (id) => despachante.enfileirar(id);
+  fluxo.onDespachar = (id) => despacho.despachar.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
     await ctx.reply('🔎 Buscando suas tasks no Funifier PM e no Bnexo…');
@@ -100,7 +100,7 @@ export function createBot(deps: Deps) {
   });
 
   bot.command('nova', (ctx) => fluxo.criarAvulsa(ctx.match));
-  bot.command('continuar', () => despachante.listarConcluidos());
+  bot.command('continuar', () => despacho.proximos.listarConcluidos());
   bot.command('projetos', () => projetos.comando());
   bot.command('regras', () => regras.comando());
   bot.command('gamificacoes', () => gamificacoes.comando());
@@ -138,7 +138,7 @@ export function createBot(deps: Deps) {
     else if (tipo === 'r' && (b === 'go' || b === 'lote' || b === 'none'))
       resposta = await fluxo.finalizarResumo(Number(a), b);
     else if (tipo === 's') resposta = await fluxo.onAcao(Number(a), b, c);
-    else if (tipo === 'f') resposta = await despachante.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);
+    else if (tipo === 'f') resposta = await despacho.proximos.onBotao(Number(a), b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'g') resposta = await regras.onBotao(a, b, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'm') resposta = await gamificacoes.onBotao(a, b, c, ctx.callbackQuery.message!.message_id);
     else if (tipo === 'p') resposta = await projetos.alternar(Number(a), ctx.callbackQuery.message!.message_id);
@@ -173,7 +173,7 @@ export function createBot(deps: Deps) {
     // Conversas abertas por botão vêm antes da coleta de info das tasks.
     if (await gamificacoes.onTexto(ctx.message.text, ctx.message.message_id)) return;
     if (await regras.onTexto(ctx.message.text)) return;
-    if (await despachante.onTexto(ctx.message.text)) return;
+    if (await despacho.proximos.onTexto(ctx.message.text)) return;
     if (!(await fluxo.onTexto(ctx.message.text))) await ctx.reply('Não entendi. Use /status ou /tarefas.');
   });
 
@@ -190,7 +190,7 @@ export function createBot(deps: Deps) {
 
   bot.catch((err) => log.error('telegram: erro no handler', { ...errInfo(err.error), updateId: err.ctx.update.update_id }));
 
-  return { bot, fluxo, despachante, confirmador };
+  return { fluxo, confirmador };
 }
 
 async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> {

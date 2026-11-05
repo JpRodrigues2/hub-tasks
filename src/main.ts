@@ -1,23 +1,28 @@
 // Raiz de composição: o único lugar que escolhe os adaptadores concretos (Orca, cofre, ferramentas) e liga tudo.
 // O resto do código só conhece as portas (src/aplicacao/portas.ts e PmAdapter).
+import { Bot } from 'grammy';
 import cron from 'node-cron';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Cofre } from './aplicacao/portas.js';
 import { CofreArquivoCifrado } from './adaptadores/cofre/arquivo-cifrado.js';
 import { CofreKeychain } from './adaptadores/cofre/keychain.js';
+import { NotificadorTelegram } from './adaptadores/chat/telegram.js';
 import { ConexoesFunifier } from './adaptadores/funifier/conexoes.js';
 import { Orca } from './adaptadores/executor/orca.js';
+import { MemoriaSqlite, RepositorioDespachosSqlite, RepositorioSelecoesSqlite } from './adaptadores/persistencia/sqlite.js';
+import { criarDespacho } from './aplicacao/despacho/index.js';
 import { Broker, autorizadasDoBanco } from './broker/broker.js';
 import { CAMINHOS } from './caminhos.js';
 import { loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
+import { gitProjetos } from './git.js';
 import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
 import { migrarCofreAntigo } from './segredos.js';
-import { COMANDOS, createBot } from './telegram.js';
+import { COMANDOS, instalarBot } from './telegram.js';
 
 function criarCofre(env: Env): Cofre {
   return env.HUB_COFRE === 'keychain'
@@ -33,7 +38,20 @@ const cofre = criarCofre(env);
 await migrarCofreAntigo(cofre);
 const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
 
-const { bot, fluxo, despachante, confirmador } = createBot({ env, db, orca, cofre, adapters });
+const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
+const despacho = criarDespacho({
+  env,
+  despachos: new RepositorioDespachosSqlite(db),
+  selecoes: new RepositorioSelecoesSqlite(db),
+  memoria: new MemoriaSqlite(db),
+  executor: orca,
+  notificador: new NotificadorTelegram(bot.api, Number(env.TELEGRAM_CHAT_ID)),
+  cofre,
+  gestao: adapters,
+  git: gitProjetos,
+  apps: () => loadCatalogo().apps,
+});
+const { fluxo, confirmador } = instalarBot(bot, { env, db, orca, cofre, adapters, despacho });
 
 // Broker: a sessão usa as gamificações pelo MCP do hub, sem ver a chave (docs/estudo/broker.md).
 let broker: Broker | null = null;
@@ -50,7 +68,7 @@ if (env.HUB_BROKER === 'ligado') {
 }
 
 // Despacho: fila por app, a cada 30 s (e imediatamente após cada "Despachar").
-setInterval(() => void despachante.processar(), 30_000);
+setInterval(() => void despacho.despachar.processar(), 30_000);
 
 // Resumo diário no horário configurado + verificação a cada 5 min para catch-up
 // (computador desligado/dormindo no horário). Ambos são idempotentes por dia.
@@ -80,6 +98,6 @@ await bot.start({
   onStart: (me) => {
     log.info('hub: bot online', { bot: me.username, resumoHorario: env.RESUMO_HORARIO });
     void fluxo.talvezResumoDiario('catch_up');
-    void despachante.processar();
+    void despacho.despachar.processar();
   },
 });
