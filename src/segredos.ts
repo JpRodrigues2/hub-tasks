@@ -1,7 +1,7 @@
 // Credenciais das gamificações (API key + secret) na sessão da task. Ficam no Cofre (porta), nunca no apps.yaml,
 // prompts, logs ou commits. No despacho, só as das gamificações autorizadas vão para runs/<id>/credenciais.json,
 // apagado quando a task é encerrada. O broker (D-A14) vai acabar com esse arquivo: o agente não verá mais a chave.
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Cofre, Credencial } from './aplicacao/portas.js';
 import { CAMINHOS } from './caminhos.js';
@@ -29,8 +29,11 @@ export async function escreverCredenciaisDaTask(cofre: Cofre, selecaoId: number,
   return arq;
 }
 
+// Apaga também a pasta da task se ela ficar vazia (I13).
 export function apagarCredenciaisDaTask(selecaoId: number) {
-  rmSync(join(dirAnexos(selecaoId), 'credenciais.json'), { force: true });
+  const dir = dirAnexos(selecaoId);
+  rmSync(join(dir, 'credenciais.json'), { force: true });
+  if (existsSync(dir) && !readdirSync(dir).length) rmSync(dir, { recursive: true, force: true });
 }
 
 // v1 → v2: o cofre em texto puro (<dados>/segredos/gamificacoes.json) vai para o Cofre e o arquivo é apagado.
