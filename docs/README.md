@@ -15,7 +15,7 @@ Detalhes e pendências em [plano](plano.md).
 | 1 | Este README | O que é, onde estamos, o que significa cada sigla |
 | 2 | [plano](plano.md) | O que está feito, o que falta e quem faz |
 | 3 | [arquitetura](arquitetura.md) | Como o código está organizado e o que cada arquivo faz |
-| 4 | [backlog](backlog.md) | As regras pedidas pelo João (B01–B20) e o que falta delas |
+| 4 | [backlog](backlog.md) | As regras pedidas pelo João (B01–B20) e tudo o que falta (B20–B41) |
 | 5 | [decisões](decisoes.md) | Tudo o que foi decidido (D-S, D-A) e o que está em aberto |
 | 6 | [segurança](seguranca.md) | Credenciais: o risco, o cofre e o broker |
 | 7 | [servidor](servidor.md) | A VM da Oracle: o que existe, como operar, testes e atritos |
@@ -42,7 +42,7 @@ Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` 
 | **v1, v2** | v1: o hub de hoje, no Mac. v2: a versão para o servidor e para outros colaboradores | [plano](plano.md) |
 | **Etapa 1, 2** | As duas etapas da v2: o crítico (nuvem, credenciais seguras) e o resto (onboarding, Prisma, Jira) | [plano](plano.md) |
 | **Fases 0–9** | As fases do roadmap original da v1; as que sobraram estão no plano | [plano](plano.md) |
-| **B01–B20** | Itens do backlog: pedidos do João depois do primeiro uso | [backlog](backlog.md) |
+| **B01–B41** | Itens do backlog: B01–B20 são pedidos do João; B21–B41, o que falta das etapas 1 e 2 | [backlog](backlog.md) |
 | **I1–I13** | Impeditivos: o que impede entregar o hub a outras pessoas | [plano](plano.md#impeditivos-do-app-universal-i1i13) |
 | **D-S1–D-S7** | Decisões do servidor do João | [decisões](decisoes.md) |
 | **D-A1–D-A22** | Decisões do app universal | [decisões](decisoes.md) |

@@ -1,6 +1,7 @@
-# Backlog: pedidos do João (B01–B20)
+# Backlog (B01–B41)
 
-Ajustes pedidos depois do primeiro fluxo completo (15/10/2026). Cada item feito virou uma regra que vale hoje.
+B01–B20: ajustes pedidos pelo João depois do primeiro fluxo completo (15/10/2026); cada item feito virou uma regra
+que vale hoje. B21–B41: o que falta das etapas 1 e 2 da v2 (detalhes e contexto no [plano](plano.md)).
 Status: ⬜ a fazer · ✔️ feito.
 
 ## Feitos: o que vale hoje
@@ -52,3 +53,37 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 - Funifier PM: `list_my_tasks` traz `isSubtask` e a sprint, mas não a pai nem a ordem; `get_task` traz pai e
   subtarefas. Descobrir de onde vem a ordem das tasks pai na sprint.
 - Bnexo: subtarefas pelo `list_checklist`. Jira: campo `parent`.
+
+## Etapa 1 da v2: o que falta
+
+| # | Item | Quem |
+|---|---|---|
+| B21 ⬜ | **Broker no Mac (modo local):** a sessão do Mac deixa de receber o `credenciais.json` | Claude |
+| B22 ⬜ | **Prova do broker:** uma task real pelo broker e varredura dos históricos novos atrás de valores do cofre | Claude + João |
+| B23 ⬜ | **I2:** estado do agente pelo `worktree ps`; antes, capturar os estados reais no servidor (T3b) | Claude |
+| B24 ⬜ | **Heartbeat** no Healthchecks.io | João passa o endereço do check |
+| B25 ⬜ | **Testes T6, T11, T12:** front pelo Tailscale; reinício só do Orca; Mac dormindo | Claude |
+| B26 ⬜ | **T14 na Oracle:** celular continua a sessão com o Mac desligado | João |
+| B27 ⬜ | **Logins do `agente`:** `gh auth login` e o MCP do PM no Claude dele | João |
+| B28 ⬜ | **Identidade do Git no servidor** (A16) para o `agente` e o `hub` | João passa nome e e-mail |
+| B29 ⬜ | **Limpeza no Orca:** remover os projetos `teste-mw13visx*`; opcional: revogar o token do bot de teste e o pareamento | João |
+| B30 ⬜ | **Virada:** bot principal (`@JoaoTaskBot`) no servidor e hub do Mac parado | João + Claude |
+| B31 ⬜ | **Deploy automático** pelo CI; antes, ajustar o `deploy/atualizar.sh`, que espera um clone git em `/home/hub/app` | Claude |
+
+## Etapa 2 da v2: por ordem de valor
+
+| # | Item |
+|---|---|
+| B32 ⬜ | **Hexagonal, o resto:** `gamificacoes`, `regras`, `projetos`, `login-pm`, `confirmacao` no Notificador; botões tipados; Presenter e eventos de domínio com um segundo chat |
+| B33 ⬜ | **Prisma + SQLite** (D-A13), com o teste P1 |
+| B34 ⬜ | **Empresas e ferramentas fora do código** (I3, I4) e dados fora do repositório também no Mac (I5) |
+| B35 ⬜ | **Onboarding (`hub init`)** ([app universal](app-universal.md#3-onboarding-hub-init)): escolha das ferramentas, identidade do Git, documento de requisitos da VPS; junto com o B20 |
+| B36 ⬜ | **Jira** (D-A16) |
+| B37 ⬜ | **Suporte:** `/diagnostico` e logs estruturados com pino (I11) |
+| B38 ⬜ | **Distribuição**, site de suporte e sistemas operacionais (D-A19 a D-A21) |
+| B39 ⬜ | **Teams** (D-A10) |
+| B40 ⬜ | **I10:** perguntar ao time do PM se o formato das respostas do MCP é estável |
+| B41 ⬜ | **Estudo do João:** arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
+
+**Ideias sem data** (sobras do roadmap da v1): mensagens de voz com transcrição local; comandos pré-aprovados por
+projeto no Claude Code; conta do Claude por empresa; `/historico`.
