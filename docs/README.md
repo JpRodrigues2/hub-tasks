@@ -12,6 +12,8 @@ docs/
 ├── referencia/
 │   └── mcp-ferramentas-de-gestao.md       tools, status e particularidades do Funifier PM e do Bnexo
 ├── estudo/
+│   ├── arquitetura.md                     como a hexagonal ficou e perguntas para o estudo
+│   ├── broker.md                          o broker MCP: o que descobrimos, a política e perguntas
 │   ├── etapa-1.md                         estudo antes de implementar: hexagonal, cofre e broker, Tailscale, systemd, Docker, Orca serve
 │   └── infra-nuvem.md                     roteiro do módulo para aprender a infra em nuvem (a fazer)
 ├── v2/

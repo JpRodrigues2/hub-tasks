@@ -18,8 +18,8 @@ Legenda: ⬜ a fazer · 🔄 em andamento · ✔️ feito.
 | ✔️ | Testes (Vitest) | `npm test`; telas de exemplo em `tests/dominio/telas.ts` |
 | ✔️ | CI no GitHub Actions | `.github/workflows/ci.yml`: tipos + testes em todo push e PR |
 | ✔️ | Sem o nome do usuário no código (I9) | Estado `aguardando_joao` → `aguardando_usuario`, com migração do banco; textos do prompt e das regras |
-| 🔄 | Arquitetura hexagonal (D-A12) | Começou pelo domínio: `src/dominio/tela.ts`, `despacho.ts` (máquina de estados com tabela de transições), `selecao.ts` |
-| ✔️ | Portas das fronteiras críticas | `src/aplicacao/portas.ts`: `Executor` (adaptador Orca em `src/adaptadores/executor/`) e `Cofre` (`src/adaptadores/cofre/`); `GestorTasks` já existia como `PmAdapter`; raiz de composição em `src/main.ts`. **`Notificador` fica para a etapa 2**: os avisos do despacho usam teclados do Telegram, e a porta só faz sentido junto com o Presenter, quando entrar o Teams (D-A10) |
+| 🔄 | Arquitetura hexagonal (D-A12) | Domínio em `src/dominio/`. **Casos de uso (05/11):** `src/aplicacao/despacho/` (Despachar, Monitor, ProximosPassos, Sessoes) e `src/aplicacao/selecao/` (ResumoDiario, ConfigurarSelecao, Ambientes), sem SQL e sem grammy; repositórios SQLite em `src/adaptadores/persistencia/`; testes de ponta a ponta dos dois ciclos; validado na VM com task real no sandbox. Falta: `gamificacoes`, `regras`, `projetos`, `login-pm` e `confirmacao` ainda usam o Telegram direto; Presenter; codec tipado dos botões; eventos de domínio |
+| ✔️ | Portas das fronteiras críticas | `src/aplicacao/portas.ts`: `Executor` (adaptador Orca em `src/adaptadores/executor/`) e `Cofre` (`src/adaptadores/cofre/`); `GestorTasks` já existia como `PmAdapter`; raiz de composição em `src/main.ts`. `Notificador` (05/11): HTML + teclado abstrato (`Teclado`), adaptador `NotificadorTelegram`; também `GitProjetos`, `CatalogoApps`, `Memoria` e os repositórios |
 | ⬜ | Deploy automático | `.github/workflows/deploy.yml` pronto e desligado (`DEPLOY_ENABLED`); liga quando a VM existir |
 
 ### 1.2 Cofre e broker (D-A14)
@@ -55,11 +55,11 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 | | Item |
 |---|---|
 | ✔️ | Configuração em vez de caminhos do Mac: `src/caminhos.ts` (`HUB_DADOS_DIR`, `HUB_RUNS_DIR`, `HUB_REPOS_DIR`, `HUB_CLAUDE_DIR`…), pasta relativa no `apps.yaml`, `ORCA_ENVIRONMENT`, pasta confiável (`HUB_CONFIAR_PASTA_CMD`) |
-| ⬜ | Fase 7 da v1: serviço systemd, espera o `orca serve`, aviso "Hub online", heartbeat no Healthchecks.io |
+| 🔄 | Fase 7 da v1: serviço systemd ✔️, espera o `orca serve` ✔️, aviso "Hub online" ✔️ (05/11), heartbeat no Healthchecks.io ⬜ (precisa do endereço do check) |
 | ⬜ | Batimento para um monitor externo |
 | ✔️ | `/pm_login` pelo Telegram (colar o endereço de retorno do OAuth): testado com o Funifier PM real |
-| ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2) |
-| ⬜ | Pasta vazia em `runs/` (I13) |
+| ⬜ | Estado dos agentes pelo `worktree ps` (menos dependência da tela, I2): o `classificarTela` já usa o estado do agente para "working"; confiar nele para ocioso exige capturar antes os estados reais no servidor (T3b) |
+| ✔️ | Pasta vazia em `runs/` (I13): sai junto com as credenciais |
 | 🔄 | Ensaio com bot de teste (`@HubTasksCloudBot`) ✔️; catálogo completo, projetos e históricos migrados (`deploy/migrar-do-mac.sh`) ✔️; falta a virada (fase 7) |
 
 **Etapa 1 pronta quando:** uma task real vai do Telegram ao Encerrar com o hub na Oracle; o João acompanha pelo celular com o Mac desligado e continua a mesma sessão pelo Mac; a credencial da gamificação não aparece em nenhum histórico; um push na `v2` com CI verde atualiza o servidor sozinho.
@@ -68,7 +68,7 @@ Testes do [plano de execução do servidor](../hospedagem/plano-execucao.md) (fa
 
 Depois da etapa 1, por ordem de valor:
 
-- Resto da arquitetura hexagonal: quebrar `fluxo.ts` e `despacho.ts` em casos de uso; repositórios; Presenter; codec tipado dos botões; eventos de domínio.
+- Resto da arquitetura hexagonal: módulos menores no Notificador; Presenter; codec tipado dos botões; eventos de domínio.
 - Prisma + SQLite (D-A13) e teste P1.
 - Empresas e ferramentas fora do código (I3, I4); dados fora do repositório (I5).
 - **Configuração inicial fluida** ([requisito](configuracao-inicial.md)), depois da hexagonal, do cofre e do broker; a VPS é escolhida e criada pelo usuário: assistente que guia do zero ao hub no ar, junto com o onboarding e as telas de autoconfiguração (D-A15: entrada das credenciais fora do chat).
