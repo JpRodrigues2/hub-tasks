@@ -2,7 +2,7 @@
 
 Pedido do João em 03/11/2026, depois de subir o hub na Oracle: **o projeto deve sair com um fluxo de configuração
 inicial mais fluido.** A primeira subida funcionou, mas foi travada e com muitos erros
-(ver os atritos A1–A15 em [oracle-hub-cloud](../hospedagem/oracle-hub-cloud.md)). O desenho fica para depois;
+(ver os atritos A1–A16 em [oracle-hub-cloud](../hospedagem/oracle-hub-cloud.md)). O desenho fica para depois;
 este documento guarda o requisito e o que já sabemos.
 
 ## O que o fluxo precisa garantir
@@ -16,6 +16,10 @@ este documento guarda o requisito e o que já sabemos.
 - **Login das ferramentas fora do navegador do Telegram**, ou por código curto.
 - **Catálogo e pastas criados pelo assistente**, já no formato do servidor.
 - **Mensagens de erro que dizem o próximo passo**, não só o erro.
+- **Identidade do Git configurada** (A16). O `hub init` pergunta nome e e-mail (sugere os do `git config --global` do Mac)
+  e roda `git config --global user.name` e `user.email` para cada usuário que faz commit: no servidor, o `agente`
+  (sessões do Claude) e o `hub` (pastas novas); no Mac, o próprio usuário, se ainda não tiver. Sem isso, criar uma
+  pasta ou fazer commit para com "A identidade do autor do Git não está configurada". O `hub diagnostico` confere os dois.
 
 ## Ideias para o desenho
 

@@ -52,6 +52,7 @@ Cada linha é um requisito do [fluxo de configuração inicial](../v2/configurac
 | A13 | Orca da VM nova não conhecia a pasta → `selector_not_found` | Despacho adiciona a pasta | — |
 | A14 | Projetos de teste da verificação ficaram no Orca (CLI não remove) | Remover pela interface | Verificação sem sobras |
 | A15 | `tar` do Mac levou arquivos `._*` | Apagados | Copiar com `COPYFILE_DISABLE=1` ou clonar |
+| A16 | Criar uma pasta parou em "A identidade do autor do Git não está configurada" | `git config --global user.name/user.email` à mão | `hub init` configura nome e e-mail do Git ([configuração inicial](../v2/configuracao-inicial.md)) |
 
 ## Testes
 
