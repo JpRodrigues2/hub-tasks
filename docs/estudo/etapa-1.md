@@ -1,6 +1,8 @@
 # Estudo da etapa 1
 
-Antes de implementar a etapa 1 do [plano v2](../v2/plano-v2.md), estudamos cada peça. A ordem de leitura sugerida é a mesma das seções.
+> Escrito em 02/11/2026, **antes** de implementar: descreve o problema e a proposta. Como ficou de fato: [arquitetura](../arquitetura.md), [segurança](../seguranca.md) e [servidor](../servidor.md).
+
+Antes de implementar a etapa 1 do [plano](../plano.md), estudamos cada peça. A ordem de leitura sugerida é a mesma das seções.
 
 | # | Tópico | Pergunta que responde |
 |---|---|---|
@@ -160,7 +162,7 @@ Telegram ──▶ data/segredos/gamificacoes.json ──▶ runs/<id>/credencia
                                                                                  ──▶ fica gravada em ~/.claude/projects/*.jsonl
 ```
 
-Na verificação de [segurança e dados](../v2/seguranca-e-dados.md), **os valores do cofre já foram encontrados nos históricos das sessões do Claude**. São dois furos:
+Na verificação de [segurança](../seguranca.md), **os valores do cofre já foram encontrados nos históricos das sessões do Claude**. São dois furos:
 
 | Furo | Onde | Quem resolve |
 |---|---|---|
@@ -328,7 +330,7 @@ Na prática, por causa do Tailscale:
 A relação é indireta: a tabela da seção 2 mostrou que o cofre **não protege** contra alguém com root na VM ligada. Quem diminui essa chance é o Tailscale, porque ninguém de fora chega até a VM. Uma camada cobre o ponto fraco da outra. Isso se chama **defesa em profundidade**.
 
 ### Perguntas para fixar
-1. Depois de fechar a porta 22, como você entra na VM se o Tailscale cair? (Resposta no [plano de execução](../hospedagem/plano-execucao.md): o console serial ou o Run Command da Oracle.)
+1. Depois de fechar a porta 22, como você entra na VM se o Tailscale cair? (Resposta: o console serial ou o Run Command da Oracle.)
 2. Por que o deploy usa uma tag `tag:ci` em vez da sua conta?
 
 ---

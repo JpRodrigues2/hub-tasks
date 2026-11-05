@@ -1,35 +1,7 @@
-# Estudo: a arquitetura hexagonal do hub, como ficou
+# Estudo: a arquitetura hexagonal do hub
 
-Para estudar depois que o backend estiver pronto. A proposta está em [arquitetura da v2](../v2/arquitetura-v2.md);
-aqui fica o que foi feito em 05/11/2026 e as perguntas para o estudo.
-
-## O mapa
-
-```
-src/dominio/            regras puras: estados da seleção e do despacho, leitura da tela, política do broker
-src/aplicacao/
-  portas.ts             o que o hub precisa de fora: Executor, Notificador, repositórios, Cofre, GitProjetos, CatalogoApps…
-  despacho/             Despachar (fila → sessão) · Monitor (sessão → resultado) · ProximosPassos (instrução, PR, encerrar)
-  selecao/              ResumoDiario (marcar tasks) · ConfigurarSelecao (a conversa) · Ambientes (projeto sem app)
-src/adaptadores/
-  persistencia/sqlite   todo o SQL de seleções, despachos e resumos
-  chat/telegram         NotificadorTelegram: HTML + botões, download de anexos
-  executor/orca         Orca pela CLI
-  cofre/                arquivo cifrado (servidor) ou Keychain (Mac)
-src/main.ts             raiz de composição: o único lugar que escolhe os adaptadores e liga os casos de uso
-```
-
-**Regra de dependência:** os casos de uso só importam `dominio/` e `portas.ts`; quem conhece SQLite, grammy e Orca
-são os adaptadores. Por isso os testes dos dois ciclos rodam com um chat falso e um Orca falso, sem Telegram e sem
-terminal, em menos de um segundo (`tests/unit/despacho.test.ts`, `tests/unit/selecao.test.ts`).
-
-## O que ainda não segue a regra
-
-- `gamificacoes.ts`, `regras.ts`, `projetos.ts`, `login-pm.ts` e `confirmacao.ts` ainda falam com o Telegram direto.
-- Os casos de uso montam o HTML das mensagens (`cartao()`): falta o Presenter, que só vale a pena quando houver um
-  segundo chat (Teams, D-A10).
-- Os botões ainda são texto (`f:12:pr`): falta o codec tipado.
-- Os casos de uso se chamam por callbacks (`aoLiberar`, `onDespachar`): eventos de domínio quando houver mais ouvintes.
+Para estudar depois que o backend estiver pronto. Leia antes a [arquitetura](../arquitetura.md): a seção 2 explica
+as camadas e a seção 3 diz a responsabilidade de cada arquivo.
 
 ## Perguntas para o estudo
 

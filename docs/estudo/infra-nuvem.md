@@ -2,7 +2,7 @@
 
 Pedido do João (02 e 03/11/2026): aprender a fazer sozinho **tudo** o que envolve o ambiente em nuvem do hub.
 Este é o roteiro do módulo; cada tópico vira uma aula com o porquê, os comandos e um exercício numa VM descartável.
-O registro do que foi feito está em [oracle-hub-cloud](../hospedagem/oracle-hub-cloud.md) e [ensaio-local](../hospedagem/ensaio-local.md).
+O registro do que foi feito está em [servidor](../servidor.md).
 
 ## Roteiro
 
@@ -22,7 +22,7 @@ O registro do que foi feito está em [oracle-hub-cloud](../hospedagem/oracle-hub
 | 12 | Cofre e segredos | AES-256-GCM, chave-mestra no `systemd-creds`, cópia de recuperação, o que um snapshot do disco expõe | `CofreArquivoCifrado` |
 | 13 | Deploy e CI | `git archive`, `atualizar.sh`, GitHub Actions entrando pela tailnet | `deploy/` |
 | 14 | Operação | Logs, reinício, atualizar o Orca, heartbeat (Healthchecks.io), recuperar a VM | dia a dia |
-| 15 | Ensaio local | Lima, VMs Ubuntu ARM no Mac, como testar antes da nuvem | `ensaio-local.md` |
+| 15 | Ensaio local | Lima, VMs Ubuntu ARM no Mac, como testar antes da nuvem | [servidor](../servidor.md#testes-t) |
 
 ## Como vai ser
 
