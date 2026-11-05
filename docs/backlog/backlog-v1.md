@@ -106,13 +106,29 @@ Uma task que não está cadastrada em nenhuma ferramenta de gestão. O João esc
 
 ---
 
-### B20 — Listagem de tasks por projeto, com task pai e filhas · ⬜
-Pedido em 2026-11-05. Hoje o resumo diário e o `/tarefas` separam as tasks só por status.
-- **Projetos:** as tasks aparecem agrupadas por projeto, dentro de cada empresa.
-- **Hierarquia:** a task pai aparece com as filhas logo abaixo, recuadas. Uma filha cuja pai não está na lista aparece com o nome da pai como referência.
-- **Status:** continua visível em cada task (ícone ou etiqueta), mas deixa de ser o critério de agrupamento.
-- **Seleção:** os botões ✅/⬜ e o lote (B19) seguem a mesma ordem da lista.
-- **Falta no código:** a `Task` do hub (`src/pm/types.ts`) não guarda a task pai. Os adaptadores do Funifier PM e do Bnexo precisam ler esse vínculo.
+### B20 — Listagem de tasks igual ao PM: por projeto, pai e filhas, seleção pelo número · ⬜
+Pedido em 2026-11-05. Entra junto com o onboarding ([configuração inicial](../v2/configuracao-inicial.md)).
+
+**Problema.** No Telegram, o resumo diário e o `/tarefas` separam as tasks só por status, numa ordem diferente da do
+Funifier PM. Os botões ✅/⬜ ficam embaixo, com o título cortado, e fica difícil achar a task certa.
+
+**Como deve ficar:**
+- **Um projeto por vez.** Tudo de um projeto, depois tudo do outro, sem misturar.
+- **Mesma ordem e hierarquia do PM.** Dentro do projeto, a sprint como na tela do PM (ex.: "Novembro 2026"), e cada task
+  pai seguida das subtasks dela, na ordem do PM (1., 2., 3. …), recuadas com `↳`. Uma subtask cuja pai não está na
+  lista aparece com o nome da pai como referência.
+- **Status na linha**, como etiqueta, sem ser o critério de agrupamento. Link, projeto e prazo continuam.
+- **Selecionar pelo número na própria linha**, em vez dos botões com o título cortado lá embaixo. O Telegram não deixa
+  um trecho de texto virar botão; o caminho é um comando clicável por task (ex.: `/t3`). O toque manda o comando, o
+  bot marca ✅ na própria linha (edita a mensagem) e apaga o comando enviado. Os botões ▶️ Iniciar, 📦 Em lote e
+  💤 Nenhuma continuam no fim, para disparar sozinha ou em lote (B19).
+- **Bnexo e Jira** seguem a mesma regra, com a hierarquia que cada ferramenta tiver.
+
+**O que falta no código:**
+- A `Task` do hub (`src/pm/types.ts`) não guarda a task pai, a sprint nem a ordem.
+- Funifier PM: o `list_my_tasks` traz `isSubtask` e a sprint, mas não a pai nem a ordem; o `get_task` traz
+  pai/subtarefas. Ver se a ordem das tasks pai na sprint vem de algum campo ou do `list_tasks` da sprint.
+- Bnexo: subtarefas pelo `list_checklist`. Jira: campo `parent`.
 
 ## 5. Manutenção
 
