@@ -95,19 +95,19 @@ matar as sessões, issue #15956). Manter o Orca do Mac na mesma versão.
 | T1, T2 | Mac pareado; Mac, celular e hub na mesma sessão | ✔️ |
 | T3a, T3b, T3c, T3 | Hub operando o Orca do servidor; task do sandbox de ponta a ponta | ✔️ (T3b capturado em 06/11: `tests/dominio/agentes.ts`) |
 | T5 | Memória e CPU com várias sessões | ⬜ medir no uso |
-| T6 | Front de um servidor de dev pelo Tailscale (Mac e celular) | ✔️ Mac (06/11; pelo IP público não abre) · ⬜ celular |
+| T6 | Front de um servidor de dev pelo Tailscale (Mac e celular) | ✔️ Mac e celular (06/11); pelo IP público não abre |
 | T6b | Link público temporário (opcional) | ⬜ |
 | T7 | Reinício da VM: tudo volta sozinho | ✔️ |
 | T8, T9, T10 | Login do Claude, git e PM sem navegador | ✔️ (falta `gh auth login` do agente) |
 | T11 | Reinício só do Orca com sessão aberta | ✔️ na Oracle (06/11): terminais sobrevivem, Orca volta em ~6 s |
-| T12 | Mac dormindo com tasks rodando | ⬜ |
+| T12 | Mac dormindo com tasks rodando | ✔️ (06/11): task concluída com o Mac fechado |
 | T13 | Versões do Orca diferentes entre Mac e servidor | regra: manter iguais |
-| T14 | Celular continua a sessão com o Mac desligado | ✔️ no ensaio · ⬜ na Oracle (João) |
+| T14 | Celular continua a sessão com o Mac desligado | ✔️ na Oracle (06/11) |
 
 O **ensaio** foi feito numa VM Ubuntu ARM no próprio Mac, com o [Lima](https://lima-vm.io/) (`limactl shell
 hub-ensaio`), antes da Oracle liberar. Serve para testar mudanças de infra sem mexer na `hub-cloud`.
 
-## Atritos (A1–A16)
+## Atritos (A1–A17)
 
 O que travou na primeira subida. Cada um é um requisito do [onboarding](app-universal.md#3-onboarding-hub-init).
 
@@ -129,6 +129,7 @@ O que travou na primeira subida. Cada um é um requisito do [onboarding](app-uni
 | A14 | Projetos de teste ficaram no Orca | Verificação sem sobras |
 | A15 | `tar` do Mac levou arquivos `._*` | `COPYFILE_DISABLE=1` ou clonar |
 | A16 | "A identidade do autor do Git não está configurada" | `hub init` configura nome e e-mail |
+| A17 | Depois de reiniciar o Mac, o SSH para o servidor falha ("Permission denied"): a chave tem senha e saiu do agente | `ssh-add --apple-use-keychain` e `UseKeychain yes` no `~/.ssh/config` |
 
 ## Riscos e custos
 

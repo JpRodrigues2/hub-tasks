@@ -26,8 +26,8 @@ com o Claude Code dele. O modo servidor já roda no piloto do João ([servidor](
 
 ## 3. Onboarding (`hub init`)
 
-Pedido de 03/11/2026, depois da primeira subida na Oracle, que funcionou mas teve 16 atritos
-([A1–A16](servidor.md#atritos-a1a16)).
+Pedido de 03/11/2026, depois da primeira subida na Oracle, que funcionou mas teve 17 atritos
+([A1–A17](servidor.md#atritos-a1a17)).
 
 **Canal:** assistente no terminal (`hub init`). O Claude Code pode ser copiloto (lê o `hub diagnostico`, nunca digita
 segredos). O Telegram serve para o depois: o que falta, QR de pareamento, projetos.
