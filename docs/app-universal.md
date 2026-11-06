@@ -38,8 +38,8 @@ segredos). O Telegram serve para o depois: o que falta, QR de pareamento, projet
 3. **Telegram:** criar o bot no BotFather, receber o token direto (nunca pelo chat) e descobrir o chat id pelo `/start`.
 4. **Ferramentas de gestão:** o usuário marca quais usa (Funifier PM, Bnexo, Jira). Só as marcadas são configuradas:
    login (OAuth quando houver), projetos e catálogo. Dá para adicionar outra depois.
-5. **Identidade do Git** (A16): pergunta nome e e-mail (sugere os do Mac) e configura em todo usuário que faz commit
-   (no servidor, `agente` e `hub`).
+5. **Identidade do Git** (A16): nome, e-mail, chave SSH e login do `gh` **por espaço**, nunca globais, porque a mesma
+   pessoa costuma ter conta corporativa e pessoal (B27). Vale no Mac e no servidor (`agente` e `hub`).
 6. **Repositórios e catálogo:** acha os repositórios, liga cada projeto a um, gera o `apps.yaml`.
 7. **Regras de trabalho:** copia o modelo, editável depois pelo `/regras`.
 8. **Serviço, cofre e pareamento:** sobe o serviço; no servidor, cria o cofre, guarda a cópia de recuperação e mostra

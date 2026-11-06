@@ -59,12 +59,12 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | # | Item | Quem |
 |---|---|---|
 | B21 ❌ | **Broker no Mac (modo local):** fora do lançamento (06/11). O broker fica só no servidor; no Mac a sessão continua recebendo o `credenciais.json` | — |
-| B22 ⬜ | **Prova do broker:** uma task real pelo broker e varredura dos históricos novos atrás de valores do cofre | Claude + João |
+| B22 ✔️ | **Prova do broker** (06/11): task fictícia no sandbox com `teensmart-app/dev`, só leitura (`funifier_list` pelo broker); nenhum dos arquivos novos (históricos, `runs/`, logs) tem valor do cofre. Os 8 que têm são os históricos migrados do Mac (até 04/11). Task fictícia porque uma real mudaria o status no PM | Claude |
 | B23 ✔️ | **I2:** estado do agente e `RESULTADO HUB` pelo `worktree ps` do Orca (capturas reais do T3b); a tela fica só como reserva | Claude |
 | B24 ⬜ | **Heartbeat** no Healthchecks.io | João passa o endereço do check |
-| B25 ⬜ | **Testes T6, T11, T12:** front pelo Tailscale; reinício só do Orca; Mac dormindo | Claude |
+| B25 🔄 | **Testes T6, T11, T12:** T11 ✔️ (Orca reiniciado: terminais sobrevivem, volta em ~6 s, hub segue despachando); T6 ✔️ pelo Mac, falta o celular; T12 falta (Mac dormindo) | Claude + João |
 | B26 ⬜ | **T14 na Oracle:** celular continua a sessão com o Mac desligado | João |
-| B27 ⬜ | **GitHub do `agente`:** `gh auth login` no servidor, para as sessões darem push e abrirem PR (🔀). O MCP do PM não precisa: o hub já põe a task no prompt | João |
+| B27 ⬜ | **GitHub do `agente`:** login para as sessões darem push e abrirem PR (🔀). O MCP do PM não precisa: o hub já põe a task no prompt. **Não pode ser um login global:** o usuário tem conta corporativa e pessoal (caso do João), então git, chave SSH e `gh` precisam ser por espaço (pasta-mãe), no Mac e no servidor. Decidir no onboarding (B35) | João + Claude |
 | B28 ⬜ | **Identidade do Git no servidor** (A16) para o `agente` e o `hub` | João passa nome e e-mail |
 | B29 ⬜ | **Limpeza no Orca:** remover os projetos `teste-mw13visx*`; opcional: revogar o token do bot de teste e o pareamento | João |
 | B30 ⬜ | **Virada:** bot principal (`@JoaoTaskBot`) no servidor e hub do Mac parado | João + Claude |

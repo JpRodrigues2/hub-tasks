@@ -95,11 +95,11 @@ matar as sessões, issue #15956). Manter o Orca do Mac na mesma versão.
 | T1, T2 | Mac pareado; Mac, celular e hub na mesma sessão | ✔️ |
 | T3a, T3b, T3c, T3 | Hub operando o Orca do servidor; task do sandbox de ponta a ponta | ✔️ (T3b capturado em 06/11: `tests/dominio/agentes.ts`) |
 | T5 | Memória e CPU com várias sessões | ⬜ medir no uso |
-| T6 | Front de um servidor de dev pelo Tailscale (Mac e celular) | ⬜ |
+| T6 | Front de um servidor de dev pelo Tailscale (Mac e celular) | ✔️ Mac (06/11; pelo IP público não abre) · ⬜ celular |
 | T6b | Link público temporário (opcional) | ⬜ |
 | T7 | Reinício da VM: tudo volta sozinho | ✔️ |
 | T8, T9, T10 | Login do Claude, git e PM sem navegador | ✔️ (falta `gh auth login` do agente) |
-| T11 | Reinício só do Orca com sessão aberta | ✔️ no ensaio · ⬜ na Oracle |
+| T11 | Reinício só do Orca com sessão aberta | ✔️ na Oracle (06/11): terminais sobrevivem, Orca volta em ~6 s |
 | T12 | Mac dormindo com tasks rodando | ⬜ |
 | T13 | Versões do Orca diferentes entre Mac e servidor | regra: manter iguais |
 | T14 | Celular continua a sessão com o Mac desligado | ✔️ no ensaio · ⬜ na Oracle (João) |
