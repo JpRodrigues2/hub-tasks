@@ -2,7 +2,8 @@
 
 Pedido do João (02 e 03/11/2026): aprender a fazer sozinho **tudo** o que envolve o ambiente em nuvem do hub.
 Este é o roteiro do módulo; cada tópico vira uma aula com o porquê, os comandos e um exercício numa VM descartável.
-O registro do que foi feito está em [servidor](../servidor.md).
+O registro do que foi feito está em [servidor](../servidor.md). **Antes deste roteiro:** o módulo 0,
+[fundamentos](fundamentos.md) (sistema operacional, rede, SSH, scripts e o que cada script do hub monta).
 
 ## Roteiro
 
@@ -20,7 +21,7 @@ O registro do que foi feito está em [servidor](../servidor.md).
 | 10 | Claude Code no servidor | Login do `agente`, pasta confiável, `--permission-mode auto`, histórico em `~/.claude/projects` | `hub-confiar-pasta`, despacho |
 | 11 | Git no servidor | Git como `agente`, `safe.directory`, clone, contas e chaves por espaço | `src/git.ts` |
 | 12 | Cofre e segredos | AES-256-GCM, chave-mestra no `systemd-creds`, cópia de recuperação, o que um snapshot do disco expõe | `CofreArquivoCifrado` |
-| 13 | Deploy e CI | `git archive`, `atualizar.sh`, GitHub Actions entrando pela tailnet | `deploy/` |
+| 13 | Deploy e CI | GitHub Actions (CI), `atualizar.sh` puxado pelo `hub-atualizar.timer`, volta automática | `deploy/` |
 | 14 | Operação | Logs, reinício, atualizar o Orca, heartbeat (Healthchecks.io), recuperar a VM | dia a dia |
 | 15 | Ensaio local | Lima, VMs Ubuntu ARM no Mac, como testar antes da nuvem | [servidor](../servidor.md#testes-t) |
 
