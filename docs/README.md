@@ -21,7 +21,7 @@ Detalhes e pendências em [plano](plano.md).
 | 7 | [servidor](servidor.md) | A VM da Oracle: o que existe, como operar, testes e atritos |
 | 8 | [app universal](app-universal.md) | O produto para outros colaboradores e o onboarding (`hub init`) |
 | — | [referência dos MCPs](referencia/mcp-ferramentas-de-gestao.md) | Tools e status do Funifier PM e do Bnexo (para mexer em `src/pm/`) |
-| — | [estudo/](estudo/) | Material de estudo do João: [etapa 1](estudo/etapa-1.md), [arquitetura](estudo/arquitetura.md), [broker](estudo/broker.md), [infra em nuvem](estudo/infra-nuvem.md) |
+| — | [estudo/](estudo/) | Material de estudo do João: [fundamentos](estudo/fundamentos.md) (comece por aqui), [etapa 1](estudo/etapa-1.md), [arquitetura](estudo/arquitetura.md), [broker](estudo/broker.md), [infra em nuvem](estudo/infra-nuvem.md) |
 
 Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` e `regras/*.md`.
 

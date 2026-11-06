@@ -83,7 +83,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B38 ⬜ | **Distribuição**, site de suporte e sistemas operacionais (D-A19 a D-A21) |
 | B39 ⬜ | **Teams** (D-A10) |
 | B40 ⬜ | **I10:** perguntar ao time do PM se o formato das respostas do MCP é estável |
-| B41 ⬜ | **Estudo do João:** arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
+| B41 ⬜ | **Estudo do João:** primeiro os [fundamentos](estudo/fundamentos.md) (sistema operacional, rede, scripts e as perguntas de 06/11), depois arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
 
 **Ideias sem data** (sobras do roadmap da v1): mensagens de voz com transcrição local; comandos pré-aprovados por
 projeto no Claude Code; conta do Claude por empresa; `/historico`.
