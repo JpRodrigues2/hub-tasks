@@ -27,6 +27,8 @@ const EnvSchema = z.object({
   // Arquivo com o token que a sessão manda ao broker (o mesmo registrado no MCP "hub" do Claude do agente).
   HUB_BROKER_TOKEN_ARQ: z.string().optional(),
   HUB_FUNIFIER_MCP: z.string().default('npx -y funifier-mcp@0.8.1'),
+  // Heartbeat (B24): endereço de ping do Healthchecks.io. Sem ele, o hub não manda batimento.
+  HUB_HEARTBEAT_URL: z.url().optional(),
   // Modo de permissão das sessões do Claude que o hub abre (auto = classificador aprova o seguro e pede aprovação para o arriscado; bypassPermissions é proibido).
   HUB_CLAUDE_PERMISSAO: z.enum(['auto', 'acceptEdits', 'manual', 'plan']).default('auto'),
   // Trava de segurança: enquanto for false, o hub não muda status nas ferramentas de gestão.

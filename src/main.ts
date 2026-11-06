@@ -19,6 +19,7 @@ import { CAMINHOS } from './caminhos.js';
 import { adicionarApp, ligarProjeto, loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
 import { gitProjetos } from './git.js';
+import { INTERVALO_HEARTBEAT_MS, baterCoracao } from './heartbeat.js';
 import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
 import { BnexoAdapter } from './pm/bnexo.js';
@@ -89,6 +90,13 @@ if (env.HUB_BROKER === 'ligado') {
   await broker.iniciar();
 }
 
+// Heartbeat (B24): ping externo a cada 5 min; o Healthchecks.io avisa quando os pings param.
+if (env.HUB_HEARTBEAT_URL) {
+  const url = env.HUB_HEARTBEAT_URL;
+  void baterCoracao(url, orca);
+  setInterval(() => void baterCoracao(url, orca), INTERVALO_HEARTBEAT_MS);
+}
+
 // Despacho: fila por app, a cada 30 s (e imediatamente após cada "Despachar").
 setInterval(() => void despacho.despachar.processar(), 30_000);
 
@@ -125,7 +133,7 @@ await bot.start({
       cartao({
         icone: ICONE.status,
         titulo: 'Hub online',
-        contexto: [esc(hostname()), `broker ${env.HUB_BROKER}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
+        contexto: [esc(hostname()), `broker ${env.HUB_BROKER}`, `heartbeat ${env.HUB_HEARTBEAT_URL ? 'ligado' : 'desligado'}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
       }),
     );
     void selecao.resumo.talvezResumoDiario('catch_up');
