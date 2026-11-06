@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { resolve } from 'node:path';
 import {
   ErroExecutor,
+  type AgenteExecutor,
   type Executor,
   type StatusWorktree,
   type TerminalExecutor,
@@ -14,6 +15,27 @@ interface OrcaResponse<T> {
   ok: boolean;
   result?: T;
   error?: { code?: string; message?: string };
+}
+
+interface AgenteOrca {
+  paneKey: string;
+  state: string;
+  workingMode?: string;
+  lastAssistantMessage?: string | null;
+  programStatus?: { state?: string; kind?: string; message?: string } | null;
+  agentWait?: { source?: string } | null;
+}
+
+export function agenteDoOrca(a: AgenteOrca): AgenteExecutor {
+  const bloqueado = a.programStatus?.state === 'blocked';
+  const esperaHumano = !!a.agentWait || bloqueado || a.state === 'waiting';
+  return {
+    estado: a.state,
+    ...(a.workingMode === 'monitoring' ? { monitorando: true } : {}),
+    ...(esperaHumano ? { esperaHumano } : {}),
+    ...(esperaHumano && a.programStatus?.message ? { pergunta: a.programStatus.message } : {}),
+    ...(a.lastAssistantMessage ? { ultimaMensagem: a.lastAssistantMessage } : {}),
+  };
 }
 
 export class Orca implements Executor {
@@ -62,10 +84,11 @@ export class Orca implements Executor {
     return r.terminals.filter((t) => t.worktreePath && resolve(t.worktreePath) === alvo);
   }
 
-  // Estado dos agentes por pane ("tabId:leafId" → working | done | …), via worktree ps.
-  async agentStates(): Promise<Map<string, string>> {
-    const r = await this.run<{ worktrees: { agents?: { paneKey: string; state: string }[] }[] }>(['worktree', 'ps']);
-    return new Map(r.worktrees.flatMap((w) => (w.agents ?? []).map((a) => [a.paneKey, a.state] as [string, string])));
+  // Estado dos agentes por pane ("tabId:leafId"), via worktree ps. --agent-wait traz o agentWait (pergunta ou
+  // permissão esperando a pessoa, provada pelo hook). Formato capturado no servidor (T3b): tests/unit/orca.test.ts.
+  async agentStates(): Promise<Map<string, AgenteExecutor>> {
+    const r = await this.run<{ worktrees: { agents?: AgenteOrca[] }[] }>(['worktree', 'ps', '--agent-wait']);
+    return new Map(r.worktrees.flatMap((w) => (w.agents ?? []).map((a) => [a.paneKey, agenteDoOrca(a)] as [string, AgenteExecutor])));
   }
 
   // Tela atual do terminal (últimas `linhas` linhas).

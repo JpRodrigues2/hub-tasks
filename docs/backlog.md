@@ -60,7 +60,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 |---|---|---|
 | B21 ❌ | **Broker no Mac (modo local):** fora do lançamento (06/11). O broker fica só no servidor; no Mac a sessão continua recebendo o `credenciais.json` | — |
 | B22 ⬜ | **Prova do broker:** uma task real pelo broker e varredura dos históricos novos atrás de valores do cofre | Claude + João |
-| B23 ⬜ | **I2:** estado do agente pelo `worktree ps`; antes, capturar os estados reais no servidor (T3b) | Claude |
+| B23 ✔️ | **I2:** estado do agente e `RESULTADO HUB` pelo `worktree ps` do Orca (capturas reais do T3b); a tela fica só como reserva | Claude |
 | B24 ⬜ | **Heartbeat** no Healthchecks.io | João passa o endereço do check |
 | B25 ⬜ | **Testes T6, T11, T12:** front pelo Tailscale; reinício só do Orca; Mac dormindo | Claude |
 | B26 ⬜ | **T14 na Oracle:** celular continua a sessão com o Mac desligado | João |

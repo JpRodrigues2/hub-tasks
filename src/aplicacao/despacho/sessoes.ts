@@ -7,7 +7,7 @@ import type { Selecao } from '../../dominio/selecao.js';
 import { classificarTela, type EstadoSessao } from '../../dominio/tela.js';
 import { log } from '../../logger.js';
 import { ICONE, cartao, curto, esc } from '../../msg.js';
-import { ErroExecutor, type TerminalExecutor } from '../portas.js';
+import { ErroExecutor, type AgenteExecutor, type TerminalExecutor } from '../portas.js';
 import type { DepsDespacho, Tasks } from './contexto.js';
 
 const ESPERA_SESSAO_NOVA_MS = 120_000;
@@ -16,6 +16,12 @@ const ESPERA_SESSAO_NOVA_MS = 120_000;
 function temSessaoAnterior(pasta: string) {
   const dir = dirSessoesClaude(pasta);
   return existsSync(dir) && readdirSync(dir).some((f) => f.endsWith('.jsonl'));
+}
+
+export interface LeituraSessao {
+  estado: EstadoSessao;
+  tela: string;
+  agente?: AgenteExecutor;
 }
 
 export class Sessoes {
@@ -32,7 +38,7 @@ export class Sessoes {
     });
     const terms = todos.filter((t) => t.agentIdentity === 'claude' && t.writable);
     if (!terms.length) return [];
-    const estados = await this.d.executor.agentStates().catch(() => new Map<string, string>());
+    const estados = await this.d.executor.agentStates().catch(() => new Map<string, AgenteExecutor>());
     const out: { term: TerminalExecutor; estado: EstadoSessao }[] = [];
     for (const term of terms) {
       const tela = (await this.d.executor.readScreen(term.handle, 40)).join('\n');
@@ -42,14 +48,14 @@ export class Sessoes {
   }
 
   // Estado de um terminal específico: tela + estado do agente no Orca (via pasta → tabId:leafId).
-  async estado(handle: string, pasta?: string, paraEnviar = false): Promise<{ estado: EstadoSessao; tela: string }> {
+  async estado(handle: string, pasta?: string, paraEnviar = false): Promise<LeituraSessao> {
     const tela = (await this.d.executor.readScreen(handle, 60)).join('\n');
-    let estadoAgente: string | undefined;
+    let agente: AgenteExecutor | undefined;
     if (pasta) {
       const t = (await this.d.executor.listTerminals(pasta).catch(() => [])).find((x) => x.handle === handle);
-      if (t) estadoAgente = (await this.d.executor.agentStates().catch(() => new Map<string, string>())).get(`${t.tabId}:${t.leafId}`);
+      if (t) agente = (await this.d.executor.agentStates().catch(() => new Map<string, AgenteExecutor>())).get(`${t.tabId}:${t.leafId}`);
     }
-    return { estado: classificarTela(tela, estadoAgente, paraEnviar), tela };
+    return { estado: classificarTela(tela, agente, paraEnviar), tela, agente };
   }
 
   // Sessão do Claude ociosa na pasta (preferindo `preferida`); se não houver nenhuma, abre uma. null = avisou e espera.

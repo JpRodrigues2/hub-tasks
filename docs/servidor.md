@@ -93,7 +93,7 @@ matar as sessões, issue #15956). Manter o Orca do Mac na mesma versão.
 |---|---|---|
 | T0, T4, T4b | Orca para Linux ARM, sem tela, como serviço | ✔️ |
 | T1, T2 | Mac pareado; Mac, celular e hub na mesma sessão | ✔️ |
-| T3a, T3b, T3c, T3 | Hub operando o Orca do servidor; task do sandbox de ponta a ponta | ✔️ (T3b: falta capturar os estados reais para o I2) |
+| T3a, T3b, T3c, T3 | Hub operando o Orca do servidor; task do sandbox de ponta a ponta | ✔️ (T3b capturado em 06/11: `tests/dominio/agentes.ts`) |
 | T5 | Memória e CPU com várias sessões | ⬜ medir no uso |
 | T6 | Front de um servidor de dev pelo Tailscale (Mac e celular) | ⬜ |
 | T6b | Link público temporário (opcional) | ⬜ |

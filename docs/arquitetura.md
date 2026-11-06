@@ -43,7 +43,7 @@ o Telegram e o Orca por versões falsas (`tests/fakes.ts`) e rodam o ciclo intei
 |---|---|
 | `dominio/despacho.ts` | Estados do despacho e transições permitidas; tag da rodada (`#12.2`); validação de nome de branch |
 | `dominio/selecao.ts` | Estados da seleção; em cada etapa da conversa, quais botões ainda valem |
-| `dominio/tela.ts` | Lê a tela do Claude: `classificarTela` (ocioso, ocupado, aguardando, limite) e `extrairResultado` |
+| `dominio/tela.ts` | Estado da sessão: `classificarTela` (ocioso, ocupado, aguardando, limite), pelo estado do agente no Orca e, na falta, pela tela; `extrairResultado` lê o `RESULTADO HUB` da última mensagem ou da tela |
 | `dominio/broker.ts` | Política do broker: o que a sessão pode chamar na Funifier, e o que pede confirmação |
 
 ### Aplicação: portas e casos de uso
@@ -193,7 +193,8 @@ ordem: login do PM → gamificações → regras → próximos passos → config
 
 ## 9. Limites conhecidos
 
-- A leitura da tela depende do texto do Claude Code (`esc to interrupt`, `❯`): uma versão nova pode exigir ajuste
-  em `dominio/tela.ts` (I2).
+- O estado da sessão vem do Orca (`worktree ps --agent-wait`, campos capturados em `tests/dominio/agentes.ts`). A tela
+  ainda decide o limite de uso, que o Orca não informa, e serve de reserva: uma versão nova do Claude Code pode
+  exigir ajuste em `dominio/tela.ts`. Ao atualizar o Orca, capturar os campos de novo.
 - Os casos de uso ainda montam o HTML das mensagens; falta o Presenter, que só compensa com um segundo chat (Teams).
 - Os botões ainda são texto solto (`f:12:pr`); falta um formato tipado.

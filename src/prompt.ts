@@ -161,7 +161,7 @@ function blocoEncerramento(tag: string) {
   return [
     '## Formato obrigatório de encerramento',
     '',
-    'Termine a sua última mensagem com este bloco, exatamente neste formato (o hub lê a tela para encontrá-lo):',
+    'Termine a sua última mensagem com este bloco, exatamente neste formato (é por ele que o hub sabe que você terminou):',
     '',
     '```',
     '### RESULTADO HUB',

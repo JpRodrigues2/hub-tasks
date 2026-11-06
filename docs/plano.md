@@ -30,7 +30,6 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 | | Item | Quem | Detalhe |
 |---|---|---|---|
 | ⬜ | Prova do broker | Claude + João | Uma task real usando o broker, depois varrer os históricos novos atrás de valores do cofre |
-| ⬜ | I2: estado do agente pelo `worktree ps` | Claude | Antes, capturar no servidor os estados reais (T3b) |
 | ⬜ | Heartbeat no Healthchecks.io | João → Claude | Precisa do endereço do check |
 | ⬜ | Testes de servidor T6, T11, T12 | Claude | Front pelo Tailscale; reinício do `orca serve`; Mac dormindo |
 | ⬜ | T14 na Oracle | João | Celular continua a sessão com o Mac desligado |
@@ -63,7 +62,7 @@ O que impede entregar o hub a outras pessoas, levantado em 30/10/2026.
 | # | Impeditivo | Status |
 |---|---|---|
 | I1 | Sem testes automatizados | ✔️ 96 testes |
-| I2 | Depende do texto da tela do Claude Code | ⬜ (etapa 1) |
+| I2 | Depende do texto da tela do Claude Code | ✔️ estado e resultado pelo Orca; a tela só para o limite de uso (06/11) |
 | I3 | Bnexo obrigatório para o hub iniciar | ⬜ (etapa 2) |
 | I4 | Empresas `funifier`/`dac` fixas no código | ⬜ (etapa 2) |
 | I5 | Código e dados na mesma pasta | 🔄 separados no servidor; no Mac ainda juntos |

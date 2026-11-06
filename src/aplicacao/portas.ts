@@ -29,6 +29,15 @@ export interface TerminalExecutor {
   leafId?: string;
 }
 
+// Estado estruturado de um agente, como o executor informa (sem ler a tela).
+export interface AgenteExecutor {
+  estado: string; // working | done | waiting | …
+  monitorando?: boolean; // turno acabou, mas há shell em segundo plano que vai acordar o Claude
+  esperaHumano?: boolean; // parado numa pergunta ou permissão que só a pessoa responde
+  pergunta?: string; // o que está perguntando, quando esperaHumano
+  ultimaMensagem?: string; // última resposta do Claude, em markdown (sem as quebras do terminal)
+}
+
 export interface StatusExecutor {
   ok: boolean;
   versao?: string;
@@ -42,8 +51,8 @@ export interface Executor {
   listRepos(): Promise<{ id: string; path: string; displayName: string }[]>;
   addRepo(pasta: string): Promise<unknown>;
   listTerminals(pasta: string): Promise<TerminalExecutor[]>;
-  // Estado dos agentes por pane ("tabId:leafId" → working | done | …).
-  agentStates(): Promise<Map<string, string>>;
+  // Estado dos agentes por pane ("tabId:leafId"), pelos hooks do Claude Code no executor (I2).
+  agentStates(): Promise<Map<string, AgenteExecutor>>;
   createTerminal(pasta: string, comando: string, titulo?: string): Promise<string>;
   readScreen(handle: string, linhas?: number): Promise<string[]>;
   send(handle: string, linha: string): Promise<unknown>;
