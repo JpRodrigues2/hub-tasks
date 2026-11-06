@@ -61,14 +61,14 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B21 ❌ | **Broker no Mac (modo local):** fora do lançamento (06/11). O broker fica só no servidor; no Mac a sessão continua recebendo o `credenciais.json` | — |
 | B22 ✔️ | **Prova do broker** (06/11): task fictícia no sandbox com `teensmart-app/dev`, só leitura (`funifier_list` pelo broker); nenhum dos arquivos novos (históricos, `runs/`, logs) tem valor do cofre. Os 8 que têm são os históricos migrados do Mac (até 04/11). Task fictícia porque uma real mudaria o status no PM | Claude |
 | B23 ✔️ | **I2:** estado do agente e `RESULTADO HUB` pelo `worktree ps` do Orca (capturas reais do T3b); a tela fica só como reserva | Claude |
-| B24 ⬜ | **Heartbeat** no Healthchecks.io | João passa o endereço do check |
+| B24 🔄 | **Heartbeat** no Healthchecks.io: código pronto (ping a cada 5 min, `/fail` se o Orca cair, `HUB_HEARTBEAT_URL`); falta o João criar o check e pôr o endereço no `.env` do servidor | João |
 | B25 ✔️ | **Testes T6, T11, T12** (06/11): T11, Orca reiniciado: terminais sobrevivem, volta em ~6 s, hub segue despachando; T6, front de dev abre no Mac e no celular pela tailnet, não pela internet; T12, task concluída com o Mac fechado | Claude + João |
 | B26 ✔️ | **T14 na Oracle** (06/11): com o Mac fechado, o celular acompanhou a sessão e mandou mensagem nela; o Mac reconectou na mesma sessão | João |
 | B27 ⬜ | **GitHub do `agente`:** login para as sessões darem push e abrirem PR (🔀). O MCP do PM não precisa: o hub já põe a task no prompt. **Não pode ser um login global:** o usuário tem conta corporativa e pessoal (caso do João), então git, chave SSH e `gh` precisam ser por espaço (pasta-mãe), no Mac e no servidor. Decidir no onboarding (B35) | João + Claude |
 | B28 ⬜ | **Identidade do Git no servidor** (A16) para o `agente` e o `hub` | João passa nome e e-mail |
 | B29 ⬜ | **Limpeza no Orca:** remover os projetos `teste-mw13visx*`; opcional: revogar o token do bot de teste e o pareamento | João |
 | B30 ⬜ | **Virada:** bot principal (`@JoaoTaskBot`) no servidor e hub do Mac parado | João + Claude |
-| B31 ⬜ | **Deploy automático** pelo CI; antes, ajustar o `deploy/atualizar.sh`, que espera um clone git em `/home/hub/app` | Claude |
+| B31 ✔️ | **Deploy automático** (06/11): o servidor busca no GitHub, a cada 5 min, o commit da `v2` com CI verde; confere, troca e volta sozinho se o hub não subir ([servidor](servidor.md#deploy)) | Claude |
 
 ## Etapa 2 da v2: por ordem de valor
 

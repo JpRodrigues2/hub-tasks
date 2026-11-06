@@ -8,7 +8,6 @@
 # Variáveis opcionais:
 #   HUB_HOSTNAME     nome na tailnet (padrão hub-cloud)
 #   ORCA_VERSAO      versão do Orca (padrão abaixo; conferida pelo sha512 da release)
-#   DEPLOY_PUBKEY    chave pública do GitHub Actions; vira authorized_keys restrito ao atualizar.sh
 #   COFRE_CHAVE_B64  chave-mestra de recuperação (base64); só usada se o cofre ainda não tiver chave
 set -euo pipefail
 
@@ -277,13 +276,31 @@ EOF
 chmod 440 /etc/sudoers.d/hub-deploy
 visudo -cq
 
-if [[ -n "${DEPLOY_PUBKEY:-}" ]]; then
-  passo "Chave do deploy (só executa o atualizar.sh)"
-  linha="command=\"$APP/deploy/atualizar.sh\",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty $DEPLOY_PUBKEY"
-  touch /home/hub/.ssh/authorized_keys
-  grep -qxF "$linha" /home/hub/.ssh/authorized_keys || echo "$linha" >> /home/hub/.ssh/authorized_keys
-  chown hub:hub /home/hub/.ssh/authorized_keys && chmod 600 /home/hub/.ssh/authorized_keys
-fi
+passo "Deploy automático: o servidor busca no GitHub a cada 5 min (B31; nada entra no servidor)"
+unidade hub-atualizar.service <<EOF || true
+[Unit]
+Description=Atualiza o hub para o último commit com CI verde
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=hub
+ExecStart=$APP/deploy/atualizar.sh
+EOF
+unidade hub-atualizar.timer <<EOF || true
+[Unit]
+Description=Deploy automático do hub a cada 5 min
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target
+EOF
+systemctl enable --now hub-atualizar.timer >/dev/null 2>&1
 
 passo "Pronto. Falta o que exige você:"
 tailscale status >/dev/null 2>&1 || echo "  - sudo tailscale up --hostname $HUB_HOSTNAME   (depois: sudo systemctl restart orca.service)"
