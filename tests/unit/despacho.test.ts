@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Executor, TerminalExecutor } from '../../src/aplicacao/portas.js';
+import type { AgenteExecutor, Executor, TerminalExecutor } from '../../src/aplicacao/portas.js';
 import type { App } from '../../src/config.js';
 import { TELAS, blocoResultado } from '../dominio/telas.js';
 import { ChatFalso, ate } from '../fakes.js';
@@ -22,6 +22,7 @@ const { CAMINHOS } = await import('../../src/caminhos.js');
 
 class ExecutorFalso implements Executor {
   telas = new Map<string, string>();
+  agentes = new Map<string, AgenteExecutor>(); // por handle (o pane do terminal falso é "<handle>:l")
   terminais: TerminalExecutor[] = [];
   enviados: { handle: string; linha: string }[] = [];
   repos: string[] = [];
@@ -41,11 +42,11 @@ class ExecutorFalso implements Executor {
     return this.terminais.filter((t) => t.worktreePath === pasta);
   }
   async agentStates() {
-    return new Map<string, string>();
+    return new Map([...this.agentes].map(([h, a]) => [`${h}:l`, a]));
   }
   async createTerminal(pasta: string, _comando: string, titulo = '') {
     const handle = `term-${++this.n}`;
-    this.terminais.push({ handle, title: titulo, agentIdentity: 'claude', worktreePath: pasta, connected: true, writable: true });
+    this.terminais.push({ handle, title: titulo, agentIdentity: 'claude', worktreePath: pasta, connected: true, writable: true, tabId: handle, leafId: 'l' });
     this.telas.set(handle, TELAS.ocioso);
     return handle;
   }
@@ -192,6 +193,22 @@ describe('despacho de ponta a ponta', () => {
     expect(prompt).toMatch(/Não faça merge/);
     exec.responder(`${sel}.3`);
     await ate(() => despachoDe(sel).estado === 'concluido');
+  });
+
+  it('resultado só na última mensagem do Orca (tela sem o bloco) também conclui', async () => {
+    await ate(() => despacho.monitor.emAcompanhamento === 0);
+    await despacho.proximos.onBotao(desp, 'x', undefined, despachoDe(sel).msg_fechamento!);
+    const outra = novaTask('Resultado pelo Orca');
+    exec.telas.set('term-1', TELAS.ocioso);
+    despacho.despachar.enfileirar(outra);
+    await ate(() => exec.enviados.at(-1)!.linha.includes(`runs/${outra}.md`));
+    exec.telas.set('term-1', TELAS.ocioso);
+    exec.agentes.set('term-1', { estado: 'done', ultimaMensagem: `### RESULTADO HUB\ntask: #${outra}\nstatus: concluido\nresumo: feito\nbranch: feat/orca\npendencias: nenhuma` });
+    await ate(() => despachoDe(outra).estado === 'concluido');
+    expect(db.prepare('SELECT branch FROM historico WHERE titulo = ?').get('Resultado pelo Orca')).toEqual({ branch: 'feat/orca' });
+    exec.agentes.clear();
+    sel = outra;
+    desp = despachoDe(outra).id;
   });
 
   it('Encerrar: task sem ferramenta de gestão encerra direto', async () => {

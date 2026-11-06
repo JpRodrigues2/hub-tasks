@@ -1,13 +1,13 @@
 // Caso de uso: acompanhar um despacho até o "### RESULTADO HUB".
 //
-// Um laço por despacho ativo: espera o TUI ficar ocioso (timeout 60 s) e lê a tela.
+// Um laço por despacho ativo: espera o TUI ficar ocioso (timeout 60 s) e lê o estado do agente e a tela.
 //   ocupado                      → em_execucao
 //   ocioso com RESULTADO HUB     → fechamento (Orca em revisão, histórico, mensagem com os próximos passos)
 //   ocioso sem bloco / pergunta  → aguardando_usuario (aviso com as últimas linhas, no máx. 1 a cada 15 min)
 //   limite de uso                → pausado_limite (aviso para trocar de conta)
 //   terminal sumiu               → redescobre pela pasta; se não achar, interrompido
 import { ativo, podeTransicionar, tagRodada, type Despacho, type EstadoDespacho, type ResultadoHub } from '../../dominio/despacho.js';
-import { classificarTela, extrairResultado, ultimasLinhas, type EstadoSessao } from '../../dominio/tela.js';
+import { classificarTela, extrairResultado, ultimasLinhas } from '../../dominio/tela.js';
 import { errInfo, log } from '../../logger.js';
 import { comVinculo } from '../../mensagens.js';
 import { ICONE, campo, cartao, curto, esc } from '../../msg.js';
@@ -15,9 +15,14 @@ import { apagarCredenciaisDaTask } from '../../segredos.js';
 import { ErroExecutor } from '../portas.js';
 import { dormirDe, type DepsDespacho, type Tasks } from './contexto.js';
 import { tecladoFechamento } from './proximos-passos.js';
-import type { Sessoes } from './sessoes.js';
+import type { LeituraSessao, Sessoes } from './sessoes.js';
 
 const REPETIR_AVISO_MS = 15 * 60_000;
+
+// O bloco vem da última mensagem do Claude (inteira, pelo Orca) e, sem ela, da tela.
+function resultadoDa(l: LeituraSessao, tag: string) {
+  return (l.agente?.ultimaMensagem && extrairResultado(l.agente.ultimaMensagem, tag)) || extrairResultado(l.tela, tag);
+}
 
 export class Monitor {
   // Chamado quando um despacho termina (concluído ou interrompido): libera a fila do app.
@@ -60,7 +65,7 @@ export class Monitor {
       const d = this.d.despachos.obter(id);
       if (!d || !ativo(d.estado)) return;
 
-      let leitura: { estado: EstadoSessao; tela: string };
+      let leitura: LeituraSessao;
       try {
         if (!d.terminal_handle) throw new ErroExecutor('despacho sem terminal');
         // Lê antes de esperar: um terminal fechado falha na hora, sem gastar o timeout do wait.
@@ -75,8 +80,8 @@ export class Monitor {
         // a task acabou — o shell não é dela.
         if (
           leitura.estado === 'ocupado' &&
-          classificarTela(leitura.tela, undefined, true) === 'ocioso' &&
-          extrairResultado(leitura.tela, tagRodada(d.selecao_id, d.rodada))
+          classificarTela(leitura.tela, leitura.agente, true) === 'ocioso' &&
+          resultadoDa(leitura, tagRodada(d.selecao_id, d.rodada))
         )
           leitura = { ...leitura, estado: 'ocioso' };
         if (leitura.estado === 'ocupado') {
@@ -92,7 +97,7 @@ export class Monitor {
         continue;
       }
 
-      const resultado = leitura.estado === 'ocioso' ? extrairResultado(leitura.tela, tagRodada(d.selecao_id, d.rodada)) : null;
+      const resultado = leitura.estado === 'ocioso' ? resultadoDa(leitura, tagRodada(d.selecao_id, d.rodada)) : null;
       if (resultado) {
         await this.concluir(d, resultado);
         this.aoLiberar();
@@ -123,7 +128,7 @@ export class Monitor {
             icone: ICONE.voce,
             titulo: nome,
             contexto: [esc(d.app), 'precisa de você no Orca'],
-            corpo: [`<pre>${esc(ultimasLinhas(leitura.tela))}</pre>`],
+            corpo: [...(leitura.agente?.pergunta ? [`<b>${esc(curto(leitura.agente.pergunta, 300))}</b>`] : []), `<pre>${esc(ultimasLinhas(leitura.tela))}</pre>`],
           }),
         );
         await this.dormir(30_000);

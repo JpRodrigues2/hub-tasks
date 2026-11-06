@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { classificarTela, extrairResultado, ultimasLinhas } from '../../src/dominio/tela.js';
+import { agenteDoOrca } from '../../src/adaptadores/executor/orca.js';
+import { AGENTES } from './agentes.js';
 import { TELAS, blocoResultado } from './telas.js';
+
+const agente = (nome: keyof typeof AGENTES) => agenteDoOrca(AGENTES[nome]);
 
 describe('classificarTela', () => {
   it('caixa de entrada vazia = ocioso', () => {
@@ -15,21 +19,17 @@ describe('classificarTela', () => {
     expect(classificarTela(TELAS.permissao)).toBe('aguardando');
   });
 
-  it('diálogo tem prioridade sobre o agente "working" do Orca', () => {
-    expect(classificarTela(TELAS.permissao, 'working')).toBe('aguardando');
+  it('diálogo na tela tem prioridade sobre o agente "working" do Orca', () => {
+    expect(classificarTela(TELAS.permissao, agente('trabalhando'))).toBe('aguardando');
   });
 
   it.each([TELAS.limite, TELAS.limite5h])('mensagem de limite = limite', (tela) => {
     expect(classificarTela(tela)).toBe('limite');
   });
 
-  it('agente "working" no Orca = ocupado no acompanhamento', () => {
-    expect(classificarTela(TELAS.ocioso, 'working')).toBe('ocupado');
-  });
-
-  it('shell em segundo plano: ocupado no acompanhamento, ocioso na hora de enviar', () => {
+  it('shell em segundo plano (pela tela): ocupado no acompanhamento, ocioso na hora de enviar', () => {
     expect(classificarTela(TELAS.shellRodando)).toBe('ocupado');
-    expect(classificarTela(TELAS.shellRodando, 'working', true)).toBe('ocioso');
+    expect(classificarTela(TELAS.shellRodando, undefined, true)).toBe('ocioso');
   });
 
   it('prompt do zsh sem a caixa do Claude não é ocioso', () => {
@@ -47,7 +47,46 @@ describe('classificarTela', () => {
   });
 });
 
+describe('classificarTela com o estado do agente no Orca (I2, capturas reais)', () => {
+  // Tela vazia: o estado vem só do Orca.
+  it('done = ocioso; working = ocupado', () => {
+    expect(classificarTela('', agente('ocioso'))).toBe('ocioso');
+    expect(classificarTela('', agente('trabalhando'))).toBe('ocupado');
+    expect(classificarTela('', agente('trabalhando'), true)).toBe('ocupado');
+  });
+
+  it('pergunta esperando a pessoa = aguardando, com o texto da pergunta', () => {
+    expect(classificarTela('', agente('pergunta'))).toBe('aguardando');
+    expect(agente('pergunta').pergunta).toMatch(/azul ou verde/);
+  });
+
+  it('monitorando (shell em segundo plano): ocupado no acompanhamento, ocioso na hora de enviar', () => {
+    expect(classificarTela('', agente('monitorando'))).toBe('ocupado');
+    expect(classificarTela('', agente('monitorando'), true)).toBe('ocioso');
+  });
+
+  it('o limite de uso ainda vem da tela (o Orca não informa)', () => {
+    expect(classificarTela(TELAS.limite, agente('ocioso'))).toBe('limite');
+  });
+
+  it('estado desconhecido do Orca: decide pela tela', () => {
+    expect(classificarTela(TELAS.ocioso, { estado: 'outro' })).toBe('ocioso');
+    expect(classificarTela(TELAS.zsh, { estado: 'outro' })).toBe('ocupado');
+  });
+});
+
 describe('extrairResultado', () => {
+  it('lê o bloco da última mensagem do Claude (markdown, sem quebras do terminal)', () => {
+    const r = extrairResultado(agente('resultado').ultimaMensagem!, '999');
+    expect(r).toMatchObject({ task: '#999', status: 'concluido', branch: 'teste-t3b', arquivos: 'a.ts, b.ts', pendencias: 'nenhuma' });
+    expect(r!.resumo).toMatch(/^linha de teste longa.*longa$/);
+  });
+
+  it('bloco dentro de ``` termina no fechamento', () => {
+    const msg = ['Pronto.', '', '```', '### RESULTADO HUB', 'task: #7', 'status: concluido', 'resumo: ok', 'pendencias: nenhuma', '```'].join('\n');
+    expect(extrairResultado(msg, '7')?.pendencias).toBe('nenhuma');
+  });
+
   it('lê os campos do bloco, juntando linhas quebradas pelo terminal', () => {
     expect(extrairResultado(blocoResultado('12'), '12')).toEqual({
       task: '#12',

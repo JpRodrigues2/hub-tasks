@@ -1,14 +1,20 @@
-// Leitura da tela do Claude Code: funções puras, sem Orca nem banco (domínio).
-// Dependem do texto da interface do Claude Code (impeditivo I2): os testes em tests/dominio/tela.test.ts
-// são a referência; uma versão nova do Claude Code que mude o rodapé quebra os testes antes de quebrar o hub.
+// Estado da sessão do Claude Code: funções puras, sem Orca nem banco (domínio).
+// Fonte principal: o estado estruturado do agente no Orca (hooks do Claude Code, I2). A tela fica como reserva:
+// para o limite de uso (o Orca não informa), diálogos antes dos hooks (confiança na pasta) e Orca sem os campos.
+// Os testes em tests/dominio/tela.test.ts são a referência, com capturas reais do servidor (T3b).
 
 export type EstadoSessao = 'ocioso' | 'ocupado' | 'aguardando' | 'limite';
 
-// Classificação pela tela do Claude Code (+ estado do agente no Orca, quando houver).
-// `paraEnviar`: na hora de mandar uma task, shell em segundo plano (ex.: servidor de dev) e o agente "working" que o
-// Orca mostra por causa dele não contam como ocupado — a caixa de entrada aceita mensagem. No acompanhamento contam,
-// porque o Claude volta a trabalhar quando o shell termina.
-export function classificarTela(telaInteira: string, estadoAgente?: string, paraEnviar = false): EstadoSessao {
+// O que o domínio usa do estado do agente (AgenteExecutor, em src/aplicacao/portas.ts).
+export interface SinaisAgente {
+  estado: string;
+  monitorando?: boolean;
+  esperaHumano?: boolean;
+}
+
+// `paraEnviar`: na hora de mandar uma task, shell em segundo plano (ex.: servidor de dev) não conta como ocupado —
+// a caixa de entrada aceita mensagem. No acompanhamento conta, porque o Claude volta a trabalhar quando o shell termina.
+export function classificarTela(telaInteira: string, agente?: SinaisAgente, paraEnviar = false): EstadoSessao {
   // Os sinais (spinner, diálogos, limite, rodapé) ficam no fim da tela; o meio é conversa e pode citar qualquer texto.
   const tela = telaInteira
     .split('\n')
@@ -21,16 +27,23 @@ export function classificarTela(telaInteira: string, estadoAgente?: string, para
   // Diálogo explícito (pergunta/permissão/confiança na pasta) tem prioridade sobre "working".
   if (/Do you want to|Would you like to|Esc to cancel|Enter to (select|confirm)|trust the files|Yes, proceed|\(y\/n\)/i.test(tela))
     return 'aguardando';
-  // Trabalhando: spinner, agente "working" no Orca, ou comando em segundo plano que vai acordar o Claude.
+  if (agente) {
+    if (agente.esperaHumano || agente.estado === 'waiting') return 'aguardando';
+    if (agente.estado === 'working') return agente.monitorando && paraEnviar ? 'ocioso' : 'ocupado';
+    if (agente.estado === 'done') return 'ocioso';
+    // estado desconhecido: decide pela tela
+  }
+  // Sem o estado do agente: pela tela. Trabalhando = spinner ou comando em segundo plano que vai acordar o Claude.
   if (/esc to interrupt/i.test(tela)) return 'ocupado';
-  if (!paraEnviar && (estadoAgente === 'working' || /\d+ shells? still running|· \d+ shells?\b/i.test(tela))) return 'ocupado';
+  if (!paraEnviar && /\d+ shells? still running|· \d+ shells?\b/i.test(tela)) return 'ocupado';
   // Ocioso = caixa de entrada do Claude Code (❯ entre linhas ────). Só "❯" pode ser o prompt do zsh.
   if (/^\s*❯/m.test(tela) && /─{10,}/.test(tela)) return 'ocioso';
   return 'ocupado'; // desconhecido: conservador, não envia
 }
 
+// Lê o bloco da tela ou da última mensagem do Claude (markdown, vinda do Orca). Na tela o Claude renderiza o
+// markdown: "### RESULTADO HUB" aparece só como "RESULTADO HUB".
 export function extrairResultado(tela: string, tag: string): Record<string, string> | null {
-  // O Claude renderiza o markdown: "### RESULTADO HUB" aparece só como "RESULTADO HUB".
   const linhas = tela.split('\n');
   let inicio = -1;
   for (let i = linhas.length - 1; i >= 0; i--) {
@@ -44,7 +57,7 @@ export function extrairResultado(tela: string, tag: string): Record<string, stri
   let atual: string | null = null;
   for (const bruta of linhas.slice(inicio + 1)) {
     const linha = bruta.replace(/^[\s│⎿●⏺]+/, '').trimEnd();
-    if (!linha || /^[─✻❯]/.test(linha)) break; // fim do bloco: linha vazia, caixa de entrada ou rodapé
+    if (!linha || /^([─✻❯]|```)/.test(linha)) break; // fim do bloco: linha vazia, caixa de entrada, rodapé ou fim do ```
     const m = linha.match(/^(task|status|resumo|arquivos|branch|pendencias|pendências):\s*(.*)$/i);
     if (m) {
       atual = m[1].toLowerCase().replace('pendências', 'pendencias');
