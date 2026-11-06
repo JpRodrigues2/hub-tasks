@@ -48,7 +48,7 @@ Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` 
 | **D-A1–D-A22** | Decisões do app universal | [decisões](decisoes.md) |
 | **C1–C5** | Camadas de proteção das credenciais (guardar, entrar, usar, limitar, auditar) | [segurança](seguranca.md) |
 | **T0–T14** | Testes do servidor (Orca sem tela, pareamento, celular sem o Mac…) | [servidor](servidor.md#testes-t) |
-| **A1–A16** | Atritos da primeira subida na Oracle; viram requisitos do onboarding | [servidor](servidor.md#atritos-a1a16) |
+| **A1–A17** | Atritos da primeira subida na Oracle; viram requisitos do onboarding | [servidor](servidor.md#atritos-a1a17) |
 | **P1** | Teste do Prisma com SQLite, antes de trocar o acesso ao banco | [decisões](decisoes.md) (D-A13) |
 
 ### Termos
