@@ -29,11 +29,10 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 
 | | Item | Quem | Detalhe |
 |---|---|---|---|
-| ⬜ | Prova do broker | Claude + João | Uma task real usando o broker, depois varrer os históricos novos atrás de valores do cofre |
 | ⬜ | Heartbeat no Healthchecks.io | João → Claude | Precisa do endereço do check |
-| ⬜ | Testes de servidor T6, T11, T12 | Claude | Front pelo Tailscale; reinício do `orca serve`; Mac dormindo |
+| 🔄 | Testes de servidor T6, T12 | Claude + João | T11 ✔️; T6 ✔️ pelo Mac, falta o celular; T12: Mac dormindo |
 | ⬜ | T14 na Oracle | João | Celular continua a sessão com o Mac desligado |
-| ⬜ | GitHub do `agente` | João | `gh auth login` no servidor, para push e PR |
+| ⬜ | GitHub do `agente` | João + Claude | Uma conta por espaço (corporativa e pessoal), não global: decidir no onboarding |
 | ⬜ | Identidade do Git no servidor (A16) | João → Claude | Nome e e-mail para o `agente` e o `hub` |
 | ⬜ | Limpeza no Orca | João | Remover os projetos `teste-mw13visx*`; opcional: revogar token do bot de teste e o pareamento |
 | ⬜ | Virada | João + Claude | Trocar o bot de teste (`@HubTasksCloudBot`) pelo principal (`@JoaoTaskBot`) e parar o hub do Mac |
