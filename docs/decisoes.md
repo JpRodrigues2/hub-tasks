@@ -40,7 +40,7 @@ outros colaboradores). ✅ decidida · 🟡 em aberto · ❌ descartada.
 | D-A19 🟡 | Distribuição | Proposta: Homebrew no Mac, script para Ubuntu no servidor |
 | D-A20 🟡 | Site de suporte | Proposta: site estático com downloads, docs, vídeos e aviso de versão nova |
 | D-A21 🟡 | Sistemas operacionais | Proposta: macOS (local) e Linux (servidor); Windows depois |
-| D-A22 ✅ | CI/CD | GitHub Actions: CI em todo push ✔️; deploy automático no backlog |
+| D-A22 ✅ | CI/CD | GitHub Actions: CI em todo push ✔️. Deploy: o servidor busca no GitHub o commit com CI verde (timer de 5 min), em vez de o Actions entrar no servidor; sem porta nem chave nova (06/11) ✔️ |
 
 ## Decisões de processo (do João)
 

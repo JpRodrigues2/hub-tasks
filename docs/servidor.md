@@ -52,13 +52,16 @@ sudo -u hub bash -c 'cd /home/hub/app && <comando>'  # rodar algo como o hub
 
 ### Deploy
 
-Manual, do Mac (o automático está no backlog):
-1. `git archive HEAD` da `v2` → `/home/hub/app-novo`, como o usuário `hub`.
-2. Lá: `npm ci`, `npx tsc --noEmit -p .`, `npx vitest run`.
-3. Trocar as pastas (`app` → `app-anterior`, `app-novo` → `app`), copiar `logs/` e `sudo systemctl restart hub.service`.
+**Automático (B31):** o servidor busca no GitHub; nada entra nele. A cada 5 min o `hub-atualizar.timer` roda o
+`deploy/atualizar.sh` como `hub`:
+1. Vê o último commit da `v2` (`git ls-remote`) e compara com o `app/.versao`.
+2. Só segue se o workflow **CI** do GitHub Actions passou nesse commit (API pública: o repositório é público).
+3. Baixa o commit exato para `app-novo`, roda `npm ci`, tipos e testes; troca as pastas e reinicia o hub.
+4. Se o hub não subir em 20 s, volta para `app-anterior`. Commit que falhou não é tentado de novo.
 
-O reinício não derruba tasks: as sessões vivem no Orca e o hub retoma o acompanhamento pelo banco.
-O `deploy/atualizar.sh` é do deploy automático e espera um clone git em `/home/hub/app`: ajustar quando ligar o CI.
+O "Hub online" no Telegram mostra a versão. Log: `sudo journalctl -u hub-atualizar.service`. Forçar agora:
+`sudo -u hub /home/hub/app/deploy/atualizar.sh --forcar`. O reinício não derruba tasks: as sessões vivem no Orca e
+o hub retoma o acompanhamento pelo banco.
 
 **Atualizar o Orca:** `apt install` do `.deb` novo, **só sem task rodando** (atualizar o servidor sem tela pode
 matar as sessões, issue #15956). Manter o Orca do Mac na mesma versão.

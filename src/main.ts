@@ -15,7 +15,7 @@ import { MemoriaSqlite, RepositorioDespachosSqlite, RepositorioResumosSqlite, Re
 import { criarDespacho } from './aplicacao/despacho/index.js';
 import { criarSelecao } from './aplicacao/selecao/index.js';
 import { Broker, autorizadasDoBanco } from './broker/broker.js';
-import { CAMINHOS } from './caminhos.js';
+import { CAMINHOS, ROOT } from './caminhos.js';
 import { adicionarApp, ligarProjeto, loadCatalogo, loadEnv, type Env } from './config.js';
 import { openDb } from './db.js';
 import { gitProjetos } from './git.js';
@@ -37,6 +37,14 @@ function criarCofre(env: Env): Cofre {
 }
 
 const env = loadEnv();
+// Commit em produção, gravado pelo deploy automático (deploy/atualizar.sh); no Mac não existe.
+const VERSAO = (() => {
+  try {
+    return readFileSync(join(ROOT, '.versao'), 'utf8').trim().slice(0, 7);
+  } catch {
+    return '';
+  }
+})();
 loadCatalogo(); // falha cedo se o apps.yaml estiver inválido
 const db = openDb();
 const orca = new Orca(env.ORCA_BIN, env.ORCA_ENVIRONMENT);
@@ -133,7 +141,7 @@ await bot.start({
       cartao({
         icone: ICONE.status,
         titulo: 'Hub online',
-        contexto: [esc(hostname()), `broker ${env.HUB_BROKER}`, `heartbeat ${env.HUB_HEARTBEAT_URL ? 'ligado' : 'desligado'}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
+        contexto: [esc(hostname()), ...(VERSAO ? [`versão ${VERSAO}`] : []), `broker ${env.HUB_BROKER}`, `heartbeat ${env.HUB_HEARTBEAT_URL ? 'ligado' : 'desligado'}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
       }),
     );
     void selecao.resumo.talvezResumoDiario('catch_up');

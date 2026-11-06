@@ -34,7 +34,6 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 | ⬜ | Identidade do Git no servidor (A16) | João → Claude | Nome e e-mail para o `agente` e o `hub` |
 | ⬜ | Limpeza no Orca | João | Remover os projetos `teste-mw13visx*`; opcional: revogar token do bot de teste e o pareamento |
 | ⬜ | Virada | João + Claude | Trocar o bot de teste (`@HubTasksCloudBot`) pelo principal (`@JoaoTaskBot`) e parar o hub do Mac |
-| ⬜ | Deploy automático | — | Fica no backlog; hoje o deploy é manual ([servidor](servidor.md#deploy)) |
 
 ## Etapa 2: o resto, por ordem de valor
 
