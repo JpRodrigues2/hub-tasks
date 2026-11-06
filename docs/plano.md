@@ -29,13 +29,12 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 
 | | Item | Quem | Detalhe |
 |---|---|---|---|
-| ⬜ | Broker no Mac (modo local) | Claude | No Mac a sessão ainda recebe o `credenciais.json` |
 | ⬜ | Prova do broker | Claude + João | Uma task real usando o broker, depois varrer os históricos novos atrás de valores do cofre |
 | ⬜ | I2: estado do agente pelo `worktree ps` | Claude | Antes, capturar no servidor os estados reais (T3b) |
 | ⬜ | Heartbeat no Healthchecks.io | João → Claude | Precisa do endereço do check |
 | ⬜ | Testes de servidor T6, T11, T12 | Claude | Front pelo Tailscale; reinício do `orca serve`; Mac dormindo |
 | ⬜ | T14 na Oracle | João | Celular continua a sessão com o Mac desligado |
-| ⬜ | Logins do `agente` | João | `gh auth login` e o MCP do PM no Claude do agente |
+| ⬜ | GitHub do `agente` | João | `gh auth login` no servidor, para push e PR |
 | ⬜ | Identidade do Git no servidor (A16) | João → Claude | Nome e e-mail para o `agente` e o `hub` |
 | ⬜ | Limpeza no Orca | João | Remover os projetos `teste-mw13visx*`; opcional: revogar token do bot de teste e o pareamento |
 | ⬜ | Virada | João + Claude | Trocar o bot de teste (`@HubTasksCloudBot`) pelo principal (`@JoaoTaskBot`) e parar o hub do Mac |
@@ -70,7 +69,7 @@ O que impede entregar o hub a outras pessoas, levantado em 30/10/2026.
 | I5 | Código e dados na mesma pasta | 🔄 separados no servidor; no Mac ainda juntos |
 | I6 | Sem instalação nem serviço | 🔄 systemd no servidor; falta o `hub init` |
 | I7 | Sem versões nem distribuição | 🔄 repositório no GitHub; falta distribuição |
-| I8 | Credenciais no contexto do agente | 🔄 broker no servidor; falta no Mac |
+| I8 | Credenciais no contexto do agente | ✔️ no servidor (broker); no Mac fica como está (06/11) |
 | I9 | "João" no código | ✔️ |
 | I10 | Respostas do MCP do PM são texto para IA | ⬜ perguntar ao time do PM se o formato é estável |
 | I11 | Sem diagnóstico para suporte | ⬜ (etapa 2) |

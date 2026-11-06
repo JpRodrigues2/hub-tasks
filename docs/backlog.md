@@ -2,7 +2,7 @@
 
 B01–B20: ajustes pedidos pelo João depois do primeiro fluxo completo (15/10/2026); cada item feito virou uma regra
 que vale hoje. B21–B41: o que falta das etapas 1 e 2 da v2 (detalhes e contexto no [plano](plano.md)).
-Status: ⬜ a fazer · ✔️ feito.
+Status: ⬜ a fazer · ✔️ feito · ❌ fora.
 
 ## Feitos: o que vale hoje
 
@@ -58,13 +58,13 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 
 | # | Item | Quem |
 |---|---|---|
-| B21 ⬜ | **Broker no Mac (modo local):** a sessão do Mac deixa de receber o `credenciais.json` | Claude |
+| B21 ❌ | **Broker no Mac (modo local):** fora do lançamento (06/11). O broker fica só no servidor; no Mac a sessão continua recebendo o `credenciais.json` | — |
 | B22 ⬜ | **Prova do broker:** uma task real pelo broker e varredura dos históricos novos atrás de valores do cofre | Claude + João |
 | B23 ⬜ | **I2:** estado do agente pelo `worktree ps`; antes, capturar os estados reais no servidor (T3b) | Claude |
 | B24 ⬜ | **Heartbeat** no Healthchecks.io | João passa o endereço do check |
 | B25 ⬜ | **Testes T6, T11, T12:** front pelo Tailscale; reinício só do Orca; Mac dormindo | Claude |
 | B26 ⬜ | **T14 na Oracle:** celular continua a sessão com o Mac desligado | João |
-| B27 ⬜ | **Logins do `agente`:** `gh auth login` e o MCP do PM no Claude dele | João |
+| B27 ⬜ | **GitHub do `agente`:** `gh auth login` no servidor, para as sessões darem push e abrirem PR (🔀). O MCP do PM não precisa: o hub já põe a task no prompt | João |
 | B28 ⬜ | **Identidade do Git no servidor** (A16) para o `agente` e o `hub` | João passa nome e e-mail |
 | B29 ⬜ | **Limpeza no Orca:** remover os projetos `teste-mw13visx*`; opcional: revogar o token do bot de teste e o pareamento | João |
 | B30 ⬜ | **Virada:** bot principal (`@JoaoTaskBot`) no servidor e hub do Mac parado | João + Claude |

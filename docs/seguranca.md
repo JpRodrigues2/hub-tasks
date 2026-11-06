@@ -25,7 +25,7 @@ credenciais nos históricos.
 |---|---|---|
 | C1 | **Guardar:** porta `Cofre`. Mac: Keychain. Servidor: arquivo AES-256-GCM com a chave-mestra no `systemd-creds` (fora do disco do hub). Cópia de recuperação da chave no app Senhas | ✔️ |
 | C2 | **Entrar:** credenciais fora do chat; OAuth quando houver, senão pelo `hub init` (D-A15). Hoje ainda entram pelo `/gamificacoes`, e o bot apaga a mensagem | ⬜ etapa 2 |
-| C3 | **Usar:** broker entre a sessão e a Funifier (seção 3) | ✔️ servidor · ⬜ Mac |
+| C3 | **Usar:** broker entre a sessão e a Funifier (seção 3) | ✔️ servidor · ❌ Mac (fora do lançamento, 06/11) |
 | C4 | **Limitar a chave:** pedir à Funifier chaves com escopo (só leitura, por ambiente) | ⬜ |
 | C5 | **Auditar e revogar:** log de auditoria ✔️; `/credenciais` com último uso e revogação ⬜ | 🔄 |
 

@@ -50,6 +50,8 @@ outros colaboradores). ✅ decidida · 🟡 em aberto · ❌ descartada.
   Usuários novos nunca terão credenciais nos históricos.
 - **VPS:** o hub não escolhe nem cria; entregamos um documento de requisitos (04/11).
 - **Onboarding** só depois do backend da etapa 1 (04/11).
+- **Broker só no servidor** (06/11): no modo local (Mac) a sessão continua recebendo o `credenciais.json`; não entra
+  no lançamento (B21).
 - **Pastas sem git:** "Só criar a pasta" cria um git só local, porque o Orca só aceita repositórios (02/11).
 - **Várias contas git por pasta-mãe** (app universal): cada pasta-mãe vira um "espaço" com conta, chave SSH e
   `includeIf` no `~/.gitconfig` do agente. Substitui as empresas fixas (I3/I4).
