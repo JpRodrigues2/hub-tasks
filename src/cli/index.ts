@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { casaDoHub } from './casa.js';
 import { rodar, variaveisDoServico, type Modo } from './diagnostico.js';
 
-const AJUDA = `Uso: hub <comando>
+const AJUDA = `Uso: ./hub <comando>   (de dentro da pasta do hub)
 
   init                            Configura o hub neste computador, passo a passo (retoma de onde parou)
   init --refazer <passo>          Refaz a partir de um passo (pre, modo, ferramentas, espacos, repositorios,

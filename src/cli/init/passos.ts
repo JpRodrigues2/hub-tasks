@@ -49,7 +49,7 @@ export async function preRequisitos() {
   if (!existsSync(ORCA_BIN)) faltando.push('Orca (app para Mac)');
   if (faltando.length) {
     tela.nota(faltando.map((f) => `• ${f}`).join('\n'), 'Falta instalar');
-    tela.info(`Como instalar cada um: ${GUIA}. Depois rode \`hub init\` de novo: eu continuo daqui.`);
+    tela.info(`Como instalar cada um: ${GUIA}. Depois rode \`./hub init\` de novo: eu continuo daqui.`);
     throw new Interrompido();
   }
   tela.ok('Node, git, gh, Claude Code (com login) e Orca instalados.');
@@ -442,7 +442,7 @@ export async function servico(ctx: Ctx) {
   if (!subiu) {
     const fim = existsSync(log) ? readFileSync(log, 'utf8').split('\n').slice(-12).join('\n') : '(sem log)';
     tela.nota(fim, `Últimas linhas de ${log}`);
-    tela.info('Rode `hub diagnostico` para ver o que falta. Depois, `hub init` continua daqui.');
+    tela.info('Rode `./hub diagnostico` para ver o que falta. Depois, `./hub init` continua daqui.');
     throw new Interrompido();
   }
 }
@@ -496,7 +496,7 @@ export async function teste() {
   );
   db.close();
   if (estado !== 'concluido') {
-    tela.aviso('A task de teste não terminou. Veja o que o hub disse no Telegram e rode `hub diagnostico`. Rodar `hub init` de novo refaz este teste.');
+    tela.aviso('A task de teste não terminou. Veja o que o hub disse no Telegram e rode `./hub diagnostico`. Rodar `./hub init` de novo refaz este teste.');
     throw new Interrompido();
   }
 }
@@ -510,10 +510,10 @@ export function resumoFinal(ferramentasOk: string[]) {
     ...(ferramentasOk.includes('funifier-pm') ? ['  /gamificacoes  cadastre as credenciais das gamificações da Funifier'] : []),
     '',
     'No terminal:',
-    '  hub diagnostico              confere tudo e diz o próximo passo',
-    '  hub adicionar github-workspace   outro espaço (outra conta do GitHub)',
-    '  hub adicionar heartbeat      aviso se o hub cair (opcional)',
-    '  hub desinstalar              desfaz tudo o que o hub init fez',
+    '  ./hub diagnostico              confere tudo e diz o próximo passo',
+    '  ./hub adicionar github-workspace   outro espaço (outra conta do GitHub)',
+    '  ./hub adicionar heartbeat      aviso se o hub cair (opcional)',
+    '  ./hub desinstalar              desfaz tudo o que o hub init fez',
     '',
     'Na primeira task de cada projeto o Claude pergunta se confia na pasta: responda "Yes" no Orca.',
   ];
