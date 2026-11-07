@@ -19,6 +19,10 @@ export interface Task {
   categoria: Categoria;
   prazo: string | null; // ISO
   link: string | null;
+  // Hierarquia da ferramenta (B20): a task pai, a posição entre as subtarefas dela e a sprint.
+  pai?: { id: string; titulo: string } | null;
+  ordem?: number;
+  sprint?: string | null;
 }
 
 export interface TaskDetalhe extends Task {

@@ -25,6 +25,10 @@ export class NotificadorTelegram implements Notificador {
     }
   }
 
+  async editar(msgId: number, html: string, teclado?: Teclado) {
+    await this.api.editMessageText(this.chatId, msgId, html, { ...HTML, ...(teclado ? { reply_markup: tecladoTelegram(teclado) } : {}) }).catch(() => {});
+  }
+
   async botoes(msgId: number, teclado?: Teclado) {
     await this.api.editMessageReplyMarkup(this.chatId, msgId, teclado ? { reply_markup: tecladoTelegram(teclado) } : undefined).catch(() => {});
   }

@@ -13,6 +13,10 @@ export class ChatFalso implements Notificador {
   async botoes(msgId: number, teclado?: Teclado) {
     this.trocas.push({ msgId, teclado });
   }
+  async editar(msgId: number, html: string, teclado?: Teclado) {
+    const m = this.mensagens.find((x) => x.id === msgId);
+    if (m) Object.assign(m, { html, teclado });
+  }
   ultima() {
     return this.mensagens.at(-1)!;
   }

@@ -73,6 +73,7 @@ export class JiraAdapter implements PmAdapter {
       categoria: base !== 'concluida' && atrasada(prazo, this.env.TZ_HUB) ? 'atrasada' : base,
       prazo,
       link: `${this.base}/browse/${i.key}`,
+      pai: i.fields.parent ? { id: i.fields.parent.key, titulo: i.fields.parent.fields?.summary ?? i.fields.parent.key } : null,
     };
   }
 

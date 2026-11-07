@@ -131,6 +131,13 @@ export function instalarBot(bot: Bot, deps: Deps) {
 
   bot.command('nova', (ctx) => selecao.configurar.criarAvulsa(ctx.match));
   bot.command('continuar', () => despacho.proximos.listarConcluidos());
+
+  // /t3: marca ou desmarca a task 3 do último resumo, na própria linha (B20). O comando some do chat.
+  bot.hears(/^\/t(\d{1,3})(?:@\w+)?$/, async (ctx) => {
+    const r = await selecao.resumo.alternarPorNumero(Number(ctx.match[1]));
+    await ctx.deleteMessage().catch(() => {});
+    if (!/marcada$/.test(r)) await ctx.reply(r);
+  });
   bot.command('projetos', () => projetos.comando());
   bot.command('regras', () => regras.comando());
   bot.command('gamificacoes', () => gamificacoes.comando());

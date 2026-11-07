@@ -95,6 +95,8 @@ export interface Notificador {
   enviar(html: string, teclado?: Teclado): Promise<number | null>;
   // Troca os botões de uma mensagem; sem teclado, tira. Falha é ignorada (mensagem antiga ou apagada).
   botoes(msgId: number, teclado?: Teclado): Promise<void>;
+  // Troca o texto (e os botões) de uma mensagem já enviada. Falha é ignorada.
+  editar(msgId: number, html: string, teclado?: Teclado): Promise<void>;
 }
 
 // ─────────────── Repositórios: todo o acesso ao banco mora em src/adaptadores/persistencia/ ───────────────
@@ -163,6 +165,10 @@ export interface RepositorioResumos {
   marcados(resumoId: number): ItemResumo[];
   mensagens(resumoId: number): number[];
   appSugerido(resumoId: number | null, taskId: string): string | null;
+  // Texto de cada mensagem do resumo (B20): para redesenhar a linha marcada.
+  guardarTexto(resumoId: number, msgId: number, texto: string): void;
+  texto(msgId: number): string | null;
+  ultimoAberto(): number | null;
 }
 
 // Valores soltos que sobrevivem a reinícios (tabela meta).
