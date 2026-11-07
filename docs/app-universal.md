@@ -83,6 +83,8 @@ erros que dizem o próximo passo.
 | O14 | Regras de trabalho | Padrão **por espaço** (ex.: tudo da Funifier segue as mesmas regras). Também dá para ter **nenhuma regra** ou uma **regra personalizada por projeto**, para o espaço cujas pastas não têm relação entre si (ex.: um "laboratório de testes" pessoal) |
 | O15 | Teste de instalação do zero | No fim, instalar como um usuário novo, sem interferência do ambiente atual. Orca, Claude Code e outros pré-requisitos podem já estar instalados (considera-se que o usuário instalou); a **configuração** tem de começar do zero. Proposta: uma **conta de usuário nova no macOS** (pasta pessoal vazia: sem `~/.claude`, `~/.gitconfig`, Keychain, nem configuração do Orca), e para o modo servidor uma VM nova (Lima no Mac ou outra VM na nuvem). Alternativa: um computador emprestado |
 
+**Desenho completo:** [onboarding](onboarding.md).
+
 **No mesmo pacote:** a listagem de tasks igual à do PM ([B20](backlog.md#b20)), porque é a primeira tela que o
 usuário novo vê depois de configurar.
 
