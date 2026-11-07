@@ -21,7 +21,7 @@ Orca pareado: nenhum dos dois guarda estado. Siglas na [legenda](README.md#legen
 | VM | `VM.Standard.A1.Flex` (ARM), 2 OCPU, 12 GB, Ubuntu 24.04 |
 | Acesso | `ssh -i ~/.ssh/oracle_hub ubuntu@100.109.123.99` (porta 22 pública fechada) |
 | Orca | `orca.service`, usuário `agente`, `ws://100.109.123.99:6768` |
-| Hub | `hub.service`, usuário `hub`, bot de teste `@HubTasksCloudBot` |
+| Hub | `hub.service`, usuário `hub`, bot `@HubTasksCloudBot` (o hub em uso desde 06/11) |
 | Tailnet | `hub-cloud` 100.109.123.99 · `macbook` 100.88.138.47 · `iphone` 100.65.221.83 |
 
 ### Usuários e pastas
