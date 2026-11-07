@@ -76,8 +76,10 @@ export class Sessoes {
   private async abrir(app: App, sel: Selecao): Promise<TerminalExecutor | null> {
     const { executor, env, notificador } = this.d;
     const base = app.sessao_resume_id ? `claude --resume ${app.sessao_resume_id}` : temSessaoAnterior(app.pasta) ? 'claude -c' : 'claude';
-    const comando = `${base} --permission-mode ${env.HUB_CLAUDE_PERMISSAO}`;
-    if (!/^claude( -c| --resume [A-Za-z0-9-]+)? --permission-mode [A-Za-z]+$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
+    // Login do GitHub do espaço (O5): o gh da sessão usa a conta certa para o PR.
+    const gh = app.gh_config ? `GH_CONFIG_DIR=${app.gh_config} ` : '';
+    const comando = `${gh}${base} --permission-mode ${env.HUB_CLAUDE_PERMISSAO}`;
+    if (!/^(GH_CONFIG_DIR=\/[A-Za-z0-9/._-]+ )?claude( -c| --resume [A-Za-z0-9-]+)? --permission-mode [A-Za-z]+$/.test(comando)) throw new Error(`comando inesperado: ${comando}`);
     await notificador.enviar(cartao({ icone: ICONE.sessao, titulo: `Abrindo sessão em ${esc(app.app)}`, contexto: [`<code>${esc(comando)}</code>`] }));
     // No servidor, antes do Claude, marca a pasta como confiável no Claude do agente (senão ele para perguntando).
     const linha = env.HUB_CONFIAR_PASTA_CMD ? `${env.HUB_CONFIAR_PASTA_CMD} && ${comando}` : comando;
