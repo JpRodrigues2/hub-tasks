@@ -13,6 +13,10 @@ const EnvSchema = z.object({
   BNEXO_MCP_URL: z.url().optional(),
   BNEXO_MCP_TOKEN: z.string().min(10).optional(),
   FUNIFIER_PM_MCP_URL: z.url().optional(),
+  // Jira Cloud: endereço do site, e-mail da conta e API token (id.atlassian.com → Segurança → Tokens de API).
+  JIRA_URL: z.url().optional(),
+  JIRA_EMAIL: z.string().optional(),
+  JIRA_API_TOKEN: z.string().min(10).optional(),
   RESUMO_HORARIO: z.string().regex(/^\d{2}:\d{2}$/).default('09:00'),
   TZ_HUB: z.string().default('America/Sao_Paulo'),
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
@@ -68,7 +72,7 @@ const EspacoSchema = z.object({
 const AppSchema = z.object({
   app: z.string().regex(/^[a-z0-9._-]+$/),
   espaco: z.string(),
-  ferramenta: z.enum(['funifier-pm', 'bnexo', 'teste']), // teste = tasks fictícias (sandbox)
+  ferramenta: z.enum(['funifier-pm', 'bnexo', 'jira', 'teste']), // teste = tasks fictícias (sandbox)
   projetos_na_ferramenta: z.array(z.string()).default([]),
   pasta: z.string().min(1), // relativa: dentro da pasta do espaço
   sessao_resume_id: z.string().nullable().default(null),

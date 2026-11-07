@@ -118,7 +118,7 @@ function waitForAuthCode(timeoutMs = 5 * 60_000): Promise<string> {
   });
 }
 
-export type PmName = 'funifier-pm' | 'bnexo';
+export type PmName = 'funifier-pm' | 'bnexo' | 'jira';
 
 export class PmLoginRequiredError extends Error {
   constructor(name: PmName) {

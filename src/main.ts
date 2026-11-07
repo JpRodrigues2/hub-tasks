@@ -24,6 +24,7 @@ import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
+import { JiraAdapter } from './pm/jira.js';
 import type { PmAdapter } from './pm/types.js';
 import { filtrarPorProjeto } from './projetos.js';
 import { buscarTasks } from './resumo.js';
@@ -56,6 +57,7 @@ await migrarCofreAntigo(cofre);
 const adapters: PmAdapter[] = [
   ...(env.FUNIFIER_PM_MCP_URL ? [new FunifierPmAdapter(env)] : []),
   ...(env.BNEXO_MCP_URL && env.BNEXO_MCP_TOKEN ? [new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)] : []),
+  ...(env.JIRA_URL && env.JIRA_EMAIL && env.JIRA_API_TOKEN ? [new JiraAdapter(env)] : []),
 ];
 
 const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
