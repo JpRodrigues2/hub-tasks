@@ -32,6 +32,6 @@ describe('política do broker', () => {
   });
 
   it('id da gamificação', () => {
-    expect(idGamificacao('teensmart-app', 'dev')).toBe('teensmart-app/dev');
+    expect(idGamificacao('meu-app', 'dev')).toBe('meu-app/dev');
   });
 });

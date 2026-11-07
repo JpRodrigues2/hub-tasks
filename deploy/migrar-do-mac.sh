@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Leva para o servidor os projetos do catálogo do Mac e os históricos do Claude de cada um, para as sessões
 # continuarem na nuvem com o mesmo contexto. Roda NO MAC:
-#   HUB_SERVIDOR=ubuntu@100.109.123.99 bash deploy/migrar-do-mac.sh [app ...]
+#   HUB_SERVIDOR=ubuntu@<ip do servidor na tailnet> bash deploy/migrar-do-mac.sh [app ...]
 # Sem nomes, leva todos os apps do catálogo. Idempotente: rodar de novo atualiza o que mudou.
 #
 # Projeto: copia a pasta como está (o .git, a branch atual, mudanças sem commit e commits não enviados), sem o que
@@ -9,7 +9,7 @@
 # sem node_modules. Destino: /srv/hub/repos/<caminho relativo a ~/Documents>, dono agente.
 # Históricos: ~/.claude/projects/<pasta do Mac> → /home/agente/.claude/projects/<pasta do servidor>, com os
 # caminhos do Mac trocados pelos do servidor e as datas preservadas (o `claude -c` retoma o mais recente).
-# Sem limpeza de segredos: decisão de 04/11/2026 para o ambiente do João (docs/seguranca.md).
+# Sem limpeza de segredos nos históricos: quem migra decide (os históricos podem conter credenciais antigas).
 # Imprime no fim o catálogo do servidor (pastas relativas); o script não o grava.
 set -euo pipefail
 

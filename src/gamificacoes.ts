@@ -11,8 +11,8 @@ import { ICONE, campo, cartao, esc } from './msg.js';
 import type { Cofre } from './aplicacao/portas.js';
 
 const HTML = { parse_mode: 'HTML' as const, link_preview_options: { is_disabled: true } };
-// Servidores da Funifier já usados nos projetos (os do apps.yaml entram também).
-const SERVIDORES_BASE = ['service2.funifier.com', 'playdps-service.funifier.com', 'assban-service.funifier.com'];
+// Sugestões de servidor: os já usados no apps.yaml, mais o servidor padrão da Funifier.
+const SERVIDORES_BASE = ['service2.funifier.com'];
 
 interface Conversa {
   app: string;

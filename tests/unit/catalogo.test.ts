@@ -16,11 +16,11 @@ const repos = process.env.HUB_REPOS_DIR;
 
 const ANTIGO = `# catálogo do servidor
 apps:
-  - app: teensmart-app
+  - app: meu-app
     empresa: funifier # comentário do usuário
     ferramenta: funifier-pm
     projetos_na_ferramenta: [p1]
-    pasta: FUNIFIER/teensmart-app
+    pasta: FUNIFIER/meu-app
   - app: vista
     empresa: dac
     ferramenta: bnexo
@@ -48,11 +48,11 @@ describe('catálogo com espaços (B34)', () => {
     const cat = loadCatalogo();
     expect(cat.espacos.map((e) => e.id)).toEqual(['funifier', 'dac']);
     const app = (n: string) => cat.apps.find((a) => a.app === n)!;
-    expect(app('teensmart-app')).toMatchObject({ espaco: 'funifier', pasta: join(repos, 'FUNIFIER', 'teensmart-app'), gamificacao: true, regras: 'funifier' });
+    expect(app('meu-app')).toMatchObject({ espaco: 'funifier', pasta: join(repos, 'FUNIFIER', 'meu-app'), gamificacao: true, regras: 'funifier' });
     expect(app('vista')).toMatchObject({ espaco: 'dac', pasta: join(repos, 'DAC', 'vista'), gamificacao: false, regras: 'dac' });
     // Fora da pasta do espaço: fica absoluta.
     expect(app('sandbox').pasta).toBe(join(repos, 'sandbox'));
-    expect(yaml).toMatch(/pasta: teensmart-app/);
+    expect(yaml).toMatch(/pasta: meu-app/);
   });
 
   it('migrar de novo não faz nada', () => {

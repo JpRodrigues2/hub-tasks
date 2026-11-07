@@ -101,7 +101,7 @@ export class Broker {
       'funifier_ferramentas',
       {
         description: 'Ferramentas da Funifier disponíveis para uma gamificação autorizada, com o esquema dos argumentos e a classe (leitura, escrita, destrutiva).',
-        inputSchema: { gamificacao: z.string().describe('id da gamificação, ex.: teensmart-app/dev') },
+        inputSchema: { gamificacao: z.string().describe('id da gamificação, ex.: meu-app/dev') },
         annotations: { readOnlyHint: true },
       },
       async ({ gamificacao }) => {
@@ -130,7 +130,7 @@ export class Broker {
         description:
           'Chama uma ferramenta da Funifier numa gamificação autorizada. Ação destrutiva e escrita em produção esperam a confirmação do usuário no Telegram.',
         inputSchema: {
-          gamificacao: z.string().describe('id da gamificação, ex.: teensmart-app/dev'),
+          gamificacao: z.string().describe('id da gamificação, ex.: meu-app/dev'),
           ferramenta: z.string().describe('nome vindo de funifier_ferramentas'),
           argumentos: z.record(z.string(), z.unknown()).default({}).describe('argumentos da ferramenta'),
         },

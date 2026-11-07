@@ -28,7 +28,7 @@ export function ehProducao(g: { nome: string; ambiente?: 'dev' | 'producao' }): 
   return g.ambiente ? g.ambiente === 'producao' : /^prod/i.test(g.nome);
 }
 
-// Como a sessão chama uma gamificação: "<app>/<nome>", ex.: "teensmart-app/dev".
+// Como a sessão chama uma gamificação: "<app>/<nome>", ex.: "meu-app/dev".
 export const idGamificacao = (app: string, nome: string) => `${app}/${nome}`;
 
 // A sessão nunca recebe a ferramenta que pede a chave como argumento (a chave entraria no histórico).
