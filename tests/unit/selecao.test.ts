@@ -93,17 +93,23 @@ afterAll(() => db.close());
 describe('resumo e conversa até o despacho', () => {
   let s = 0;
 
-  it('resumo com uma linha por task e os botões de iniciar', async () => {
+  it('resumo por projeto (B20): o número da task na linha é o comando de marcar; botões só de iniciar', async () => {
     expect(await resumo.enviar('manual')).toBe(true);
     const comBotoes = chat.mensagens.find((m) => m.teclado)!;
-    expect(comBotoes.html).toMatch(/Ranking semanal/);
-    expect(chat.dados(comBotoes)).toEqual(['t:1:1', 't:1:2', 'r:1:go', 'r:1:lote', 'r:1:none']);
+    expect(comBotoes.html).toMatch(/📋 <b>Projeto X<\/b>/);
+    expect(comBotoes.html).toMatch(/⬜ \/t1 <a href="https:\/\/pm\/a1">Ranking semanal<\/a>/);
+    expect(comBotoes.html).toMatch(/⬜ \/t2 /);
+    expect(chat.dados(comBotoes)).toEqual(['r:1:go', 'r:1:lote', 'r:1:none']);
   });
 
-  it('marcar troca o ⬜ por ✅ na mesma mensagem; iniciar sem marcar é recusado', async () => {
+  it('/t1 troca o ⬜ por ✅ na própria linha; iniciar sem marcar é recusado', async () => {
     expect(await resumo.finalizar(1, 'go')).toMatch(/Marque pelo menos uma/);
-    expect(await resumo.alternarItem(1, 1)).toBe('Task 1 marcada');
-    expect(chat.trocas.at(-1)!.teclado![0][0].texto).toBe('✅ 1. Ranking semanal');
+    expect(await resumo.alternarPorNumero(1)).toBe('Task 1 marcada');
+    const m = chat.mensagens.find((x) => x.html.includes('/t1 '))!;
+    expect(m.html).toMatch(/✅ \/t1 /);
+    expect(m.html).toMatch(/⬜ \/t2 /);
+    expect(chat.dados(m)).toEqual(['r:1:go', 'r:1:lote', 'r:1:none']); // os botões continuam
+    expect(await resumo.alternarPorNumero(9)).toMatch(/Não há task 9/);
   });
 
   it('iniciar abre a conversa da task: info extra → app sugerido → gamificações → confirmar → despachar', async () => {

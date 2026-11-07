@@ -302,6 +302,20 @@ export class RepositorioResumosSqlite implements RepositorioResumos {
     );
   }
 
+  guardarTexto(resumoId: number, msgId: number, texto: string) {
+    this.db
+      .prepare('INSERT INTO resumo_mensagens (msg_id, resumo_id, texto) VALUES (?, ?, ?) ON CONFLICT(msg_id) DO UPDATE SET texto = excluded.texto')
+      .run(msgId, resumoId, texto);
+  }
+
+  texto(msgId: number) {
+    return (this.db.prepare('SELECT texto FROM resumo_mensagens WHERE msg_id = ?').get(msgId) as { texto: string } | undefined)?.texto ?? null;
+  }
+
+  ultimoAberto() {
+    return (this.db.prepare("SELECT MAX(id) id FROM resumos WHERE estado = 'aberto'").get() as { id: number | null }).id ?? null;
+  }
+
   appSugerido(resumoId: number | null, taskId: string) {
     return (
       (this.db.prepare('SELECT app_sugerido FROM resumo_itens WHERE resumo_id = ? AND task_id = ?').get(resumoId, taskId) as { app_sugerido: string | null } | undefined)

@@ -46,14 +46,14 @@ export function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-const GRUPOS: { categoria: Categoria; titulo: string }[] = [
-  { categoria: 'atrasada', titulo: '🔴 Atrasadas' },
-  { categoria: 'em_progresso', titulo: '🔵 Em progresso' },
-  { categoria: 'pendente', titulo: '🟡 Pendentes' },
-  { categoria: 'backlog', titulo: '⚪ Backlog' },
-  { categoria: 'revisao', titulo: '🟣 Em revisão' },
-];
-
+// Status como etiqueta na linha (B20); concluídas e canceladas não entram.
+const ETIQUETA: Partial<Record<Categoria, string>> = {
+  atrasada: '🔴 atrasada',
+  em_progresso: '🔵 em progresso',
+  pendente: '🟡 a fazer',
+  backlog: '⚪ backlog',
+  revisao: '🟣 em revisão',
+};
 
 function formatarPrazo(prazo: string | null, tz: string) {
   if (!prazo) return null;
@@ -76,42 +76,91 @@ export function appSugerido(t: Task, cat: Catalogo): string | null {
   return t.projetoId ? (appsDoProjeto(cat, t.ferramenta, t.projetoId)[0]?.app ?? null) : null;
 }
 
-// Uma task = duas linhas (número + título com link; projeto e prazo em itálico) e uma linha em branco depois.
-function linhaTask(i: ItemResumo, tz: string) {
+// O número da task vira um comando clicável (/t3): tocar nele marca ✅ na própria linha (B20).
+export const marcador = (idx: number, marcada: boolean) => `${marcada ? '✅' : '⬜'} /t${idx} `;
+
+function linhaTask(i: ItemResumo, tz: string, filha: boolean) {
   const t = i.task;
   const titulo = escapeHtml(t.titulo.length > 90 ? t.titulo.slice(0, 87) + '…' : t.titulo);
   const link = t.link ? `<a href="${escapeHtml(t.link)}">${titulo}</a>` : titulo;
-  const meta = [escapeHtml(t.projetoNome ?? t.projetoId ?? 'sem projeto'), formatarPrazo(t.prazo, tz), i.app ? null : 'sem ambiente: configuro ao iniciar']
-    .filter(Boolean)
-    .join(' · ');
-  return `${i.idx}. ${link}\n<i>${meta}</i>`;
+  const meta = [ETIQUETA[t.categoria], formatarPrazo(t.prazo, tz)].filter(Boolean).join(' · ');
+  const recuo = filha ? '   ↳ ' : '';
+  return `${recuo}${marcador(i.idx, false)}${link}\n${filha ? '        ' : '     '}<i>${meta}</i>`;
 }
 
-// Um bloco (mensagem) por ferramenta de gestão, com as tasks numeradas na ordem de exibição.
-// (B20 troca por: um projeto por vez, com a hierarquia da ferramenta.)
+// As tasks de um projeto na ordem e hierarquia da ferramenta: por sprint; cada pai seguido das subtarefas (na ordem
+// do pai); subtarefa cujo pai não está na lista aparece embaixo do nome do pai.
+export function ordenarProjeto(tasks: Task[]): { sprint: string | null; linhas: ({ tipo: 'task'; task: Task; filha: boolean } | { tipo: 'pai'; titulo: string })[] }[] {
+  const posicao = new Map(tasks.map((t, i) => [t, i]));
+  const sprints = [...new Set(tasks.map((t) => t.sprint ?? null))].sort((a, b) => (a === null ? 1 : b === null ? -1 : 0));
+  return sprints.map((sprint) => {
+    const doSprint = tasks.filter((t) => (t.sprint ?? null) === sprint);
+    const ids = new Set(doSprint.map((t) => t.id));
+    const filhas = new Map<string, Task[]>();
+    const raiz: (Task | { orfasDe: string; titulo: string })[] = [];
+    for (const t of doSprint) {
+      const pai = t.pai;
+      if (!pai) {
+        raiz.push(t);
+        continue;
+      }
+      if (!filhas.has(pai.id)) {
+        filhas.set(pai.id, []);
+        if (!ids.has(pai.id)) raiz.push({ orfasDe: pai.id, titulo: pai.titulo });
+      }
+      filhas.get(pai.id)!.push(t);
+    }
+    const emOrdem = (l: Task[]) => [...l].sort((a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9) || posicao.get(a)! - posicao.get(b)!);
+    const linhas: ({ tipo: 'task'; task: Task; filha: boolean } | { tipo: 'pai'; titulo: string })[] = [];
+    for (const r of raiz) {
+      const id = 'orfasDe' in r ? r.orfasDe : r.id;
+      if ('orfasDe' in r) linhas.push({ tipo: 'pai', titulo: r.titulo });
+      else linhas.push({ tipo: 'task', task: r, filha: false });
+      for (const f of emOrdem(filhas.get(id) ?? [])) linhas.push({ tipo: 'task', task: f, filha: true });
+    }
+    return { sprint, linhas };
+  });
+}
+
+// Uma mensagem por projeto (B20), na ordem: ferramenta, depois projeto como a ferramenta devolveu.
 export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string, rotulo = 'Suas tasks'): BlocoResumo[] {
   let idx = 0;
-  return r.ferramentas.map((ferramenta) => {
-    const nome = NOME_FERRAMENTA[ferramenta] ?? ferramenta;
-    const doGrupo = r.tasks.filter((t) => t.ferramenta === ferramenta);
-    const itens: ItemResumo[] = [];
-    const corpo: string[] = [];
+  const blocos: BlocoResumo[] = [];
+  for (const ferramenta of r.ferramentas) {
+    const nomeFer = NOME_FERRAMENTA[ferramenta] ?? ferramenta;
+    const abertas = r.tasks.filter((t) => t.ferramenta === ferramenta && ETIQUETA[t.categoria]);
     const erro = r.erros.find((e) => e.ferramenta === ferramenta);
-    if (erro) corpo.push(`⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}`);
-    for (const g of GRUPOS) {
-      const ts = doGrupo
-        .filter((t) => t.categoria === g.categoria)
-        .sort((a, b) => (a.prazo ?? '9999').localeCompare(b.prazo ?? '9999'));
-      if (!ts.length) continue;
-      const doG = ts.map((task) => ({ idx: ++idx, task, app: appSugerido(task, cat) }));
-      itens.push(...doG);
-      corpo.push(`<b>${g.titulo} (${ts.length})</b>\n\n${doG.map((i) => linhaTask(i, tz)).join('\n\n')}`);
+    if (erro || !abertas.length) {
+      const corpo = erro ? `⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}` : 'Nenhuma task aberta.';
+      blocos.push({ ferramenta, texto: `📋 <b>${escapeHtml(nomeFer)}</b>\n<i>${rotulo}</i>\n\n${corpo}`, itens: [] });
+      continue;
     }
-    if (!erro && doGrupo.length === 0) corpo.push('Nenhuma task aberta.');
-    const n = doGrupo.length;
-    const texto = [`📋 <b>${escapeHtml(nome)}</b>\n<i>${rotulo} · ${n} task${n === 1 ? '' : 's'}</i>`, ...corpo].join('\n\n');
-    return { ferramenta, texto, itens };
-  });
+    const projetos = [...new Set(abertas.map((t) => t.projetoId ?? ''))];
+    for (const pid of projetos) {
+      const doProjeto = abertas.filter((t) => (t.projetoId ?? '') === pid);
+      const nomeProjeto = doProjeto[0].projetoNome ?? (pid ? `projeto ${pid}` : 'Sem projeto');
+      const itens: ItemResumo[] = [];
+      const corpo: string[] = [];
+      const app = appSugerido(doProjeto[0], cat);
+      for (const g of ordenarProjeto(doProjeto)) {
+        const linhas: string[] = [];
+        for (const l of g.linhas) {
+          if (l.tipo === 'pai') {
+            linhas.push(`<b>${escapeHtml(l.titulo)}</b>`);
+            continue;
+          }
+          const item = { idx: ++idx, task: l.task, app: appSugerido(l.task, cat) };
+          itens.push(item);
+          linhas.push(linhaTask(item, tz, l.filha));
+        }
+        corpo.push([...(g.sprint ? [`🗓 <b>${escapeHtml(g.sprint)}</b>`] : []), ...linhas].join('\n'));
+      }
+      const n = doProjeto.length;
+      const contexto = [nomeFer, rotulo, `${n} task${n === 1 ? '' : 's'}`, ...(app ? [] : ['sem ambiente: configuro ao iniciar'])].join(' · ');
+      blocos.push({ ferramenta, texto: [`📋 <b>${escapeHtml(nomeProjeto)}</b>\n<i>${contexto}</i>`, ...corpo].join('\n\n'), itens });
+    }
+  }
+  return blocos;
 }
 
 // Telegram limita mensagens a 4096 caracteres; quebra por linhas.

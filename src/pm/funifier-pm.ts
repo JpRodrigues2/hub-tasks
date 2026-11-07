@@ -22,6 +22,10 @@ interface PmTask {
   url?: string;
   notes?: string;
   attachments?: { url?: string; name?: string }[];
+  isSubtask?: boolean;
+  sprint?: { id: string; name: string };
+  parentTask?: { id: string; name: string };
+  subtasks?: { id: string }[];
   comments?: { author?: { name?: string }; createdAt?: string; created?: string; content?: string; text?: string }[];
 }
 
@@ -38,6 +42,9 @@ const STATUS: Record<StatusHub, string> = { em_progresso: 'in_progress', em_revi
 export class FunifierPmAdapter implements PmAdapter {
   readonly nome = 'funifier-pm' as const;
   private mcp = new McpConexao('funifier-pm');
+  // Pai de cada subtarefa e a ordem das subtarefas de cada pai (B20). Não mudam na prática: cache do processo.
+  private paiDe = new Map<string, { id: string; titulo: string } | null>();
+  private filhasDe = new Map<string, string[]>();
 
   constructor(private env: Env) {}
 
@@ -65,10 +72,29 @@ export class FunifierPmAdapter implements PmAdapter {
         tasks?: PmTask[];
         nextCursor?: string;
       };
-      out.push(...(r.tasks ?? []).map((t) => this.toTask(t)));
+      out.push(...(r.tasks ?? []).map((t) => ({ ...this.toTask(t), sprint: t.sprint?.name ?? null, ...(t.isSubtask ? {} : { pai: null }) })));
       cursor = r.nextCursor;
     } while (cursor);
-    return out;
+    return this.hierarquia(out);
+  }
+
+  // A listagem só diz se é subtarefa; o pai e a ordem vêm do get_task (do filho e do pai).
+  private async hierarquia(tasks: Task[]) {
+    for (const t of tasks) {
+      if (t.pai === null) continue;
+      if (!this.paiDe.has(t.id)) {
+        const d = (await this.mcp.call('get_task', { taskId: t.id }).catch(() => null)) as PmTask | null;
+        this.paiDe.set(t.id, d?.parentTask ? { id: d.parentTask.id, titulo: d.parentTask.name } : null);
+      }
+      t.pai = this.paiDe.get(t.id) ?? null;
+      if (t.pai && !this.filhasDe.has(t.pai.id)) {
+        const p = (await this.mcp.call('get_task', { taskId: t.pai.id }).catch(() => null)) as PmTask | null;
+        this.filhasDe.set(t.pai.id, (p?.subtasks ?? []).map((s) => s.id));
+      }
+      const i = t.pai ? (this.filhasDe.get(t.pai.id) ?? []).indexOf(t.id) : -1;
+      if (i >= 0) t.ordem = i;
+    }
+    return tasks;
   }
 
   async getTask(id: string): Promise<TaskDetalhe> {

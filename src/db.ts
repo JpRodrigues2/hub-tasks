@@ -175,6 +175,14 @@ const MIGRATIONS: string[] = [
   UPDATE selecoes SET ambiente = json_object('espaco', json_extract(ambiente, '$.empresa'), 'nome', json_extract(ambiente, '$.nome'))
     WHERE ambiente IS NOT NULL AND json_extract(ambiente, '$.empresa') IS NOT NULL;
   `,
+  // B20: texto de cada mensagem do resumo, para marcar ✅ na linha da task escolhida pelo número (/t3).
+  `
+  CREATE TABLE resumo_mensagens (
+    msg_id    INTEGER PRIMARY KEY,
+    resumo_id INTEGER NOT NULL REFERENCES resumos(id),
+    texto     TEXT NOT NULL
+  );
+  `,
 ];
 
 export type DB = Database.Database;
