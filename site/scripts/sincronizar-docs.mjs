@@ -1,6 +1,6 @@
 // Gera content/docs (a documentação do site) a partir de ../instalacao, que é a fonte única: o mesmo texto serve ao
 // site, ao GitHub e à IA de quem instala. Roda antes do dev e do build. Não edite content/docs à mão.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,3 +54,7 @@ mkdirSync(destino, { recursive: true });
 for (const [slug, arq] of Object.entries(PAGINAS)) writeFileSync(join(destino, `${slug}.md`), converter(slug, readFileSync(join(origem, arq), 'utf8')));
 writeFileSync(join(destino, 'meta.json'), JSON.stringify(META, null, 2) + '\n');
 console.log(`docs: ${Object.keys(PAGINAS).length} páginas geradas de instalacao/`);
+
+// Os scripts de instalação, servidos em muxor.com.br/install e /uninstall (curl … | bash). A fonte é instalacao/scripts.
+for (const [nome, arq] of [['install', 'install.sh'], ['uninstall', 'uninstall.sh']]) copyFileSync(join(origem, 'scripts', arq), join(site, 'public', nome));
+console.log('scripts: public/install e public/uninstall');

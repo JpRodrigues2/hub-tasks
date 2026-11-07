@@ -16,13 +16,11 @@ import { tela } from '../tela.js';
 import { MODELO_REGRAS, type Ctx } from './contexto.js';
 import { aplicarContaGit } from './git-espaco.js';
 import { conteudoPlist, instalarServico, pararServico, ROTULO } from './servico-mac.js';
+import { claudeComLogin, esperar, Interrompido, ORCA_BIN, orcaAberto } from './preparar.js';
 import { conferirBot, esperarDono, mandar } from './telegram.js';
 
-export class Interrompido extends Error {}
-
-const ORCA_BIN = '/Applications/Orca.app/Contents/Resources/bin/orca';
+export { Interrompido };
 const ORCA_APARELHOS = join(homedir(), 'Library', 'Application Support', 'orca', 'orca-devices.json');
-const GUIA = 'instalacao/pre-requisitos.md';
 export type Ferramenta = 'funifier-pm' | 'bnexo' | 'jira';
 
 export const slug = (s: string) =>
@@ -35,33 +33,6 @@ export const slug = (s: string) =>
     .slice(0, 40);
 
 const expandir = (p: string) => (p.startsWith('~') ? join(homedir(), p.slice(1)) : p);
-
-// ───────────────────────── 1. Pré-requisitos ─────────────────────────
-
-export async function preRequisitos() {
-  const faltando: string[] = [];
-  if (Number(process.version.slice(1).split('.')[0]) < 22) faltando.push(`Node 22 ou mais novo (você tem ${process.version})`);
-  if (!(await rodar('git', ['--version'])).ok) faltando.push('git');
-  if (!(await rodar('gh', ['--version'])).ok) faltando.push('GitHub CLI (gh): brew install gh');
-  const claude = await rodar('claude', ['--version']);
-  if (!claude.ok) faltando.push('Claude Code');
-  else if (!/"loggedIn":\s*true/.test((await rodar('claude', ['auth', 'status'])).saida)) faltando.push('login no Claude Code: rode `claude` no terminal e entre com a sua conta');
-  if (!existsSync(ORCA_BIN)) faltando.push('Orca (app para Mac)');
-  if (faltando.length) {
-    tela.nota(faltando.map((f) => `• ${f}`).join('\n'), 'Falta instalar');
-    tela.info(`Como instalar cada um: ${GUIA}. Depois rode \`./muxor init\` de novo: eu continuo daqui.`);
-    throw new Interrompido();
-  }
-  tela.ok('Node, git, gh, Claude Code (com login) e Orca instalados.');
-  for (;;) {
-    const s = await rodar(ORCA_BIN, ['status', '--json']);
-    if (s.ok && /"reachable":\s*true/.test(s.saida)) break;
-    tela.aviso('O Orca precisa estar aberto. Vou abri-lo agora.');
-    await rodar('open', ['-a', 'Orca']);
-    await tela.enter('Quando a janela do Orca aparecer, aperte Enter');
-  }
-  tela.ok('Orca aberto.');
-}
 
 // ───────────────────────── 2. Modo ─────────────────────────
 
@@ -183,6 +154,7 @@ export async function espacos(ctx: Ctx) {
     ].join('\n'),
     'Espaços',
   );
+  await esperar('gh');
   const usaFunifier = !!process.env.FUNIFIER_PM_MCP_URL;
   do await novoEspaco(ctx, usaFunifier);
   while (await tela.sim('Adicionar outro espaço (outra conta do GitHub)?', false));
@@ -294,6 +266,7 @@ async function desfazerCredenciaisNovas(antes: Record<string, string[]>) {
 // ───────────────────────── 5. Projetos que a pessoa já tem no Orca ─────────────────────────
 
 export async function existentes(ctx: Ctx) {
+  await orcaAberto();
   const { Orca } = await import('../../adaptadores/executor/orca.js');
   const cat = loadCatalogo();
   const noHub = new Set(cat.apps.map((a) => a.pasta));
@@ -336,6 +309,7 @@ export async function existentes(ctx: Ctx) {
 // ───────────────────────── 6. Repositórios (pelo Claude Code do usuário) ─────────────────────────
 
 export async function repositorios(ctx: Ctx) {
+  await claudeComLogin();
   const cat = loadCatalogo();
   const lista = cat.espacos
     .map((e) => `- ${nomeEspaco(e)}: pasta ${e.pasta}${e.github ? `, conta do GitHub ${e.github}` : ''}${e.gh_config ? `, login do espaço GH_CONFIG_DIR=${e.gh_config}` : ''}`)
@@ -520,7 +494,7 @@ export async function servico(ctx: Ctx) {
     () =>
       instalarServico(
         conteudoPlist({
-          node: process.execPath,
+          node: nodeEstavel(),
           repo: ctx.repo,
           log,
           ambiente: { HUB_DADOS_DIR: ctx.casa.dados, DOTENV_CONFIG_PATH: ctx.casa.env, PATH: [...new Set(caminho)].join(':'), HOME: homedir(), LANG: 'pt_BR.UTF-8' },
@@ -537,6 +511,13 @@ export async function servico(ctx: Ctx) {
     tela.info('Rode `./muxor diagnostico` para ver o que falta. Depois, `./muxor init` continua daqui.');
     throw new Interrompido();
   }
+}
+
+// O Node do Homebrew mora numa pasta com a versão (Cellar/node/25.1.0): o serviço usa o atalho estável, que continua
+// valendo depois de um brew upgrade.
+function nodeEstavel() {
+  if (!process.execPath.includes('/Cellar/')) return process.execPath;
+  return ['/opt/homebrew/bin/node', '/usr/local/bin/node'].find(existsSync) ?? process.execPath;
 }
 
 async function esperarOnline(ctx: Ctx, limiteMs = 90_000) {

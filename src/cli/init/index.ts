@@ -4,6 +4,7 @@ import type { Casa } from '../casa.js';
 import { Parou, tela } from '../tela.js';
 import { criarCtx, type Ctx } from './contexto.js';
 import * as passos from './passos.js';
+import * as preparar from './preparar.js';
 
 interface Passo {
   id: string;
@@ -12,8 +13,9 @@ interface Passo {
   sempre?: boolean; // confere toda vez (é rápido e as coisas mudam)
 }
 
+// O fim de cada passo fica em instalacao.json; os pré-requisitos conferem toda vez (e instalam o que faltar).
 const PASSOS: Passo[] = [
-  { id: 'pre', titulo: 'Pré-requisitos', rodar: () => passos.preRequisitos(), sempre: true },
+  { id: 'pre', titulo: 'Pré-requisitos', rodar: (c) => preparar.preRequisitos(c), sempre: true },
   { id: 'modo', titulo: 'Onde o Muxor roda', rodar: (c) => passos.escolherModo(c) },
   { id: 'ferramentas', titulo: 'Ferramentas de gestão', rodar: async (c) => (c.estado.passos.ferramentasOk = JSON.stringify(await passos.ferramentas(c))) },
   { id: 'espacos', titulo: 'Espaços e contas do GitHub', rodar: (c) => passos.espacos(c) },
@@ -22,6 +24,7 @@ const PASSOS: Passo[] = [
   { id: 'depara', titulo: 'Projetos → pastas', rodar: (c) => passos.dePara(c) },
   { id: 'telegram', titulo: 'Bot do Telegram', rodar: (c) => passos.telegram(c) },
   { id: 'orca', titulo: 'Orca e celular', rodar: () => passos.orca() },
+  { id: 'front', titulo: 'Front-end no celular', rodar: (c) => preparar.front(c) },
   { id: 'servico', titulo: 'Hub como serviço', rodar: (c) => passos.servico(c) },
   { id: 'teste', titulo: 'Teste de ponta a ponta', rodar: () => passos.teste() },
 ];
