@@ -68,7 +68,7 @@ erros que dizem o próximo passo.
 | # | Assunto | Decisão |
 |---|---|---|
 | O1 | Modo | O usuário escolhe no começo (local ou servidor) e o `hub init` guia o modo escolhido até o fim; o que não é do nosso escopo (ex.: criar a VPS) ganha documento. A maioria vai começar local |
-| O2 | Mudar a instalação depois | Comandos de mudança no terminal, além do `hub init`: migrar do local para o servidor, ligar o heartbeat, adicionar um espaço… |
+| O2 | Mudar a instalação depois | Comandos no terminal, além do `hub init`, que retomam de onde pararam: `hub migrar servidor`, `hub adicionar github-workspace`, `hub adicionar heartbeat`, `hub diagnostico` (nomes a afinar) |
 | O3 | Tailscale | Não existe no modo local. O celular fala com o Orca do Mac pelo **relay do Orca** (qualquer rede) ou na mesma rede Wi-Fi; o `hub init` pergunta e recomenda o relay. No servidor continua (acesso SSH à VM) |
 | O4 | Espaços | **Um espaço por conta do GitHub** (pasta-mãe + conta). As ferramentas de gestão não definem espaço: um mesmo Jira pode ter projetos pessoais e profissionais; o de-para liga cada projeto da ferramenta a uma pasta/sessão de qualquer espaço |
 | O5 | Agentes com a conta certa | As sessões funcionam 100% em cada espaço: commit, push e PR com a conta do espaço. Configuração de contas sempre no terminal, nunca no Telegram |
@@ -79,7 +79,9 @@ erros que dizem o próximo passo.
 | O10 | Documentação de instalação | Pasta `instalacao/` na raiz, e o README do repositório manda começar por ela: pré-requisitos, modo local, modo servidor, migração, heartbeat, dicas e prompts para o Claude Code do usuário |
 | O11 | Ferramentas depois | Dá para adicionar e remover ferramentas de gestão pelo Telegram |
 | O12 | Comandos do Telegram | Na lista, só o do dia a dia: `/tarefas`, `/nova`, `/continuar`, e `/gamificacoes` e `/pm_login` só com a Funifier escolhida. O resto vai para um comando só (`/menu`), que mostra os outros com a descrição, clicáveis (B42) |
-| O13 | Site de documentação | A pensar: a documentação pública num domínio do João. Recomendação: hospedar fora da VM (ex.: GitHub Pages), para o servidor continuar sem nada exposto à internet |
+| O13 | Site de documentação | Para o fim (perfumaria): site público num domínio do João, com a pasta `instalacao/` como conteúdo e um visual caprichado (ex.: animações 3D com three.js). Hospedar fora da VM (GitHub Pages ou Cloudflare Pages, grátis, aceitam domínio próprio), para o servidor continuar sem nada exposto à internet |
+| O14 | Regras de trabalho | Padrão **por espaço** (ex.: tudo da Funifier segue as mesmas regras). Também dá para ter **nenhuma regra** ou uma **regra personalizada por projeto**, para o espaço cujas pastas não têm relação entre si (ex.: um "laboratório de testes" pessoal) |
+| O15 | Teste de instalação do zero | No fim, instalar como um usuário novo, sem interferência do ambiente atual. Orca, Claude Code e outros pré-requisitos podem já estar instalados (considera-se que o usuário instalou); a **configuração** tem de começar do zero. Proposta: uma **conta de usuário nova no macOS** (pasta pessoal vazia: sem `~/.claude`, `~/.gitconfig`, Keychain, nem configuração do Orca), e para o modo servidor uma VM nova (Lima no Mac ou outra VM na nuvem). Alternativa: um computador emprestado |
 
 **No mesmo pacote:** a listagem de tasks igual à do PM ([B20](backlog.md#b20)), porque é a primeira tela que o
 usuário novo vê depois de configurar.

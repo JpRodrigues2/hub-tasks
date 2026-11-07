@@ -43,13 +43,14 @@ Fora de `docs/` ficam só arquivos que o hub **lê em execução**: `apps.yaml` 
 | **v1, v2** | v1: o hub de hoje, no Mac. v2: a versão para o servidor e para outros colaboradores | [plano](plano.md) |
 | **Etapa 1, 2** | As duas etapas da v2: o crítico (nuvem, credenciais seguras) e o resto (onboarding, Prisma, Jira) | [plano](plano.md) |
 | **Fases 0–9** | As fases do roadmap original da v1; as que sobraram estão no plano | [plano](plano.md) |
-| **B01–B41** | Itens do backlog: B01–B20 são pedidos do João; B21–B41, o que falta das etapas 1 e 2 | [backlog](backlog.md) |
+| **B01–B42** | Itens do backlog: B01–B20 e B42 são pedidos do João; B21–B41, o que falta das etapas 1 e 2 | [backlog](backlog.md) |
 | **I1–I13** | Impeditivos: o que impede entregar o hub a outras pessoas | [plano](plano.md#impeditivos-do-app-universal-i1i13) |
 | **D-S1–D-S7** | Decisões do servidor do João | [decisões](decisoes.md) |
 | **D-A1–D-A22** | Decisões do app universal | [decisões](decisoes.md) |
 | **C1–C5** | Camadas de proteção das credenciais (guardar, entrar, usar, limitar, auditar) | [segurança](seguranca.md) |
 | **T0–T14** | Testes do servidor (Orca sem tela, pareamento, celular sem o Mac…) | [servidor](servidor.md#testes-t) |
 | **A1–A17** | Atritos da primeira subida na Oracle; viram requisitos do onboarding | [servidor](servidor.md#atritos-a1a17) |
+| **O1–O13** | Decisões do onboarding (debate de 06/11) | [app universal](app-universal.md#3-onboarding-hub-init) |
 | **P1** | Teste do Prisma com SQLite, antes de trocar o acesso ao banco | [decisões](decisoes.md) (D-A13) |
 
 ### Termos
