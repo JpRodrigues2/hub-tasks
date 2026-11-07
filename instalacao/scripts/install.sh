@@ -99,7 +99,7 @@ principal() {
     mkdir -p "$CASA" && chmod 700 "$CASA"
     git clone --quiet --depth 1 "$REPO" "$APP" || falha "Não consegui baixar o Muxor de $REPO."
   fi
-  (cd "$APP" && npm ci --omit=dev --no-audit --no-fund --loglevel=error) || falha "Falhou ao instalar as dependências do Muxor (npm ci)."
+  (cd "$APP" && NPM_CONFIG_UPDATE_NOTIFIER=false npm ci --omit=dev --no-audit --no-fund --loglevel=error >/dev/null) || falha "Falhou ao instalar as dependências do Muxor (npm ci)."
   ok "Muxor baixado em $APP."
 
   mkdir -p "$BIN"
