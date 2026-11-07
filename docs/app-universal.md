@@ -63,6 +63,24 @@ erros que dizem o próximo passo.
 - **Links e QR codes no terminal** (pareamento do Orca, logins): centralizar tudo no terminal; o Telegram fica para
   o depois.
 
+**Decisões do debate de 06/11/2026:**
+
+| # | Assunto | Decisão |
+|---|---|---|
+| O1 | Modo | O usuário escolhe no começo (local ou servidor) e o `hub init` guia o modo escolhido até o fim; o que não é do nosso escopo (ex.: criar a VPS) ganha documento. A maioria vai começar local |
+| O2 | Mudar a instalação depois | Comandos de mudança no terminal, além do `hub init`: migrar do local para o servidor, ligar o heartbeat, adicionar um espaço… |
+| O3 | Tailscale | Não existe no modo local. O celular fala com o Orca do Mac pelo **relay do Orca** (qualquer rede) ou na mesma rede Wi-Fi; o `hub init` pergunta e recomenda o relay. No servidor continua (acesso SSH à VM) |
+| O4 | Espaços | **Um espaço por conta do GitHub** (pasta-mãe + conta). As ferramentas de gestão não definem espaço: um mesmo Jira pode ter projetos pessoais e profissionais; o de-para liga cada projeto da ferramenta a uma pasta/sessão de qualquer espaço |
+| O5 | Agentes com a conta certa | As sessões funcionam 100% em cada espaço: commit, push e PR com a conta do espaço. Configuração de contas sempre no terminal, nunca no Telegram |
+| O6 | Terminal × Telegram | Terminal: instalação, contas e segredos, espaços, mudança de modo. Telegram: o dia a dia e ajustes de conteúdo (ferramentas, projetos, de-para, gamificações, regras) |
+| O7 | Repositórios iniciais | O `hub init` entrega um prompt curto para o usuário rodar no Claude Code dele, que clona os repositórios escolhidos (as credenciais já estão no espaço). Projeto **sem repositório remoto** também vale (ex.: pasta só para instalar o MCP da Funifier) |
+| O8 | Git sem SSH | Clonar e dar push por HTTPS, com o login do `gh` de cada espaço. Chave SSH só para entrar na VM, no modo servidor (A17 não existe no local) |
+| O9 | Gamificações | No fim do `hub init`, se a Funifier foi escolhida, avisa para cadastrar as credenciais pelo `/gamificacoes` no Telegram |
+| O10 | Documentação de instalação | Pasta `instalacao/` na raiz, e o README do repositório manda começar por ela: pré-requisitos, modo local, modo servidor, migração, heartbeat, dicas e prompts para o Claude Code do usuário |
+| O11 | Ferramentas depois | Dá para adicionar e remover ferramentas de gestão pelo Telegram |
+| O12 | Comandos do Telegram | Na lista, só o do dia a dia: `/tarefas`, `/nova`, `/continuar`, e `/gamificacoes` e `/pm_login` só com a Funifier escolhida. O resto vai para um comando só (`/menu`), que mostra os outros com a descrição, clicáveis (B42) |
+| O13 | Site de documentação | A pensar: a documentação pública num domínio do João. Recomendação: hospedar fora da VM (ex.: GitHub Pages), para o servidor continuar sem nada exposto à internet |
+
 **No mesmo pacote:** a listagem de tasks igual à do PM ([B20](backlog.md#b20)), porque é a primeira tela que o
 usuário novo vê depois de configurar.
 
