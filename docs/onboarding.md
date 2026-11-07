@@ -24,6 +24,27 @@ Proposta para o João revisar antes do código (06/11/2026). Parte das decisões
 | `prompts/` | Prompts prontos para o Claude Code do usuário (ex.: clonar os repositórios de um espaço) |
 | `dicas.md` | Dúvidas comuns e o que aprendemos na construção (atritos A1–A17) |
 
+### O agente de IA do usuário (O16)
+
+O Claude Code do usuário não pode sair navegando o repositório inteiro (`docs/`, `src/`, backlog…) para tirar
+dúvidas de instalação e uso. Três camadas:
+
+1. **`CLAUDE.md` e `AGENTS.md` na raiz** (o Claude Code lê o primeiro sozinho; outros agentes, o segundo): "para
+   instalar, configurar ou usar o hub, consulte **só** `instalacao/` e a saída do `hub diagnostico`; `docs/`, `src/`,
+   `tests/` e `deploy/` são para quem desenvolve o hub, só com pedido explícito para desenvolver".
+2. **Uma skill do projeto** (`.claude/skills/instalar-hub/`), que o Claude Code oferece sozinho quando o assunto é
+   instalar ou configurar e que aponta o arquivo certo de `instalacao/` para cada dúvida.
+3. **`instalacao/` autossuficiente:** cada arquivo responde por inteiro o seu assunto, sem mandar o agente para `docs/`.
+
+Se a distribuição for por pacote (sem o repositório, Q2), o comando `hub` mostra onde está a pasta `instalacao/`
+instalada e o `hub diagnostico` sai num formato que o agente lê.
+
+### Mensagens (O17)
+
+Cada passo tem mensagens **objetivas, sem omitir detalhes**: o que vai acontecer, o que o usuário precisa fazer, como
+saber que deu certo e, no erro, o próximo passo. A interação do usuário nesses passos é a parte mais pensada do
+onboarding.
+
 ## 2. Os comandos
 
 | Comando | O que faz |
@@ -97,10 +118,10 @@ QR code e, no Mac, abrem no navegador.
 
 | # | Pergunta | Recomendação |
 |---|---|---|
-| Q1 | No modo servidor, onde roda o `hub init`? | No próprio servidor, por SSH, depois do `preparar-vm.sh`: mesmo programa, mesmos passos. Orquestrar a VPS a partir do Mac fica para depois |
-| Q2 | Como o colega instala o comando `hub` no piloto? | `npm install -g` direto do GitHub; Homebrew depois (D-A19) |
-| Q3 | Dá para o `hub init` gravar os argumentos do Claude no Orca e parear por QR sozinho? | Verificar na CLI do Orca; se não der, o passo mostra onde clicar e confere depois |
-| Q4 | O relay do Orca é cifrado de ponta a ponta? | Verificar antes de recomendá-lo como padrão (O3) |
+| Q1 ✅ | No modo servidor, onde roda o `hub init`? | No próprio servidor, por SSH, depois do `preparar-vm.sh`. Com documentação clara para o usuário fazer com ajuda da IA dele: muitos vão ter dificuldade com o SSH |
+| Q2 🟡 | Como o colega instala o comando `hub`? | Em aberto (João): repositório, npm ou Homebrew |
+| Q3 | Dá para o `hub init` gravar os argumentos do Claude no Orca e parear o celular sozinho? | Claude verifica. A CLI do Orca 1.4.246 não tem comando para isso; se não houver outro caminho, o passo mostra onde clicar e confere depois |
+| Q4 | Como funciona o relay do Orca? | Claude verifica (o app tem o relay do celular: `mobile:relayStatusChanged`). **Requisito do João:** no modo local o celular acessa de qualquer rede, mesmo cedendo um pouco de segurança; o Orca não pode ficar limitado à mesma rede. O `hub init` explica o que passa pelo relay |
 
 ## 6. Como testar do zero (O15)
 
