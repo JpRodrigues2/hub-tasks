@@ -9,7 +9,8 @@ import { IconeGitHub, IconeTelegram } from '@/components/icones';
 import { Revelar } from '@/components/revelar';
 
 const GITHUB = 'https://github.com/JpRodrigues2/muxor';
-const DOCS = `${GITHUB}/tree/main/instalacao`;
+const DOCS = '/docs';
+const DOCS_GITHUB = `${GITHUB}/tree/main/instalacao`;
 const INSTALAR = 'curl -fsSL https://muxor.com.br/install | bash';
 
 // ───────────────────────── peças ─────────────────────────
@@ -21,7 +22,7 @@ function Cabecalho() {
       <div className="site-container flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <a href="#" className="flex items-center gap-2.5 text-texto transition-opacity hover:opacity-80">
-            <Image src="/icone-180.png" alt="" width={28} height={28} className="rounded-full bg-superficie-2" />
+            <Image src="/muxor-cabecalho.png" alt="" width={19} height={32} className="h-8 w-auto" priority />
             <span className="text-[15px] font-semibold tracking-[-0.02em]">Muxor</span>
           </a>
           <nav className="hidden items-center gap-1 sm:flex">
@@ -37,6 +38,9 @@ function Cabecalho() {
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          <a href={DOCS} className="inline-flex h-8 items-center px-2 text-[13.5px] font-medium text-texto/65 transition-colors hover:text-texto sm:hidden">
+            Docs
+          </a>
           <a href={GITHUB} className="hidden h-8 items-center gap-1.5 px-2.5 text-[13.5px] font-medium text-texto/65 transition-colors hover:text-texto sm:inline-flex">
             <IconeGitHub className="h-4 w-4" /> GitHub
           </a>
@@ -51,15 +55,12 @@ function Cabecalho() {
 
 function Hero() {
   return (
-    <section className="relative overflow-x-clip pt-28 md:pt-32">
+    <section className="relative overflow-x-clip pt-24 md:pt-32">
       {/* Brilho de nebulosa ao fundo (o céu em three.js entra depois). */}
       <div aria-hidden className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-poeira/10 blur-[120px]" />
       <div className="site-container grid items-center gap-12 md:grid-cols-[1.25fr_1fr]">
         <Revelar>
-          <span className="inline-flex items-center gap-2 rounded-full border border-borda px-3 py-1 font-mono text-[12px] text-dourado">
-            <span className="h-1.5 w-1.5 rounded-full bg-ok" /> código aberto · MIT
-          </span>
-          <h1 className="text-display mt-6 text-balance">Suas tasks, despachadas para o Claude Code.</h1>
+          <h1 className="text-display text-balance">Suas tasks, despachadas para o Claude Code.</h1>
           <p className="text-lede mt-6 max-w-[40rem] text-balance text-suave">
             O Muxor lê suas tasks no Funifier PM, no Bnexo e no Jira, manda a lista no Telegram e coloca o Claude Code para
             trabalhar no Orca. Você escolhe, ele despacha e avisa quando termina, e você responde até pelo celular.
@@ -85,8 +86,8 @@ function Hero() {
             </p>
           </div>
         </Revelar>
-        <Revelar atraso={150} className="flex justify-center">
-          <Image src="/muxor.png" alt="O estagiário do Muxor, com um cabo em Y no braço" width={265} height={447} priority className="h-auto w-[230px] drop-shadow-[0_0_40px_rgba(232,215,176,0.12)] md:w-[300px]" />
+        <Revelar atraso={150} className="hidden justify-center md:flex">
+          <Image src="/muxor.png" alt="O estagiário do Muxor, com um cabo em Y no braço" width={653} height={1100} priority className="h-auto w-[300px] drop-shadow-[0_0_40px_rgba(232,215,176,0.12)] lg:w-[340px]" />
         </Revelar>
       </div>
     </section>
@@ -97,7 +98,7 @@ const NOMES = ['Claude Code', 'Orca', 'Telegram', 'GitHub', 'Jira', 'Funifier PM
 
 function FuncionaCom() {
   return (
-    <section className="mt-24 border-y border-borda/60 py-6">
+    <section className="mt-16 border-y border-borda/60 py-6 md:mt-24">
       <p className="text-center font-mono text-[12px] uppercase tracking-[0.18em] text-suave">Funciona com</p>
       <div className="relative mt-4 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
         <div className="faixa-rolando flex w-max gap-12 whitespace-nowrap text-lg font-medium text-texto/50">
@@ -117,7 +118,7 @@ function Chat({ linhas }: { linhas: ReactNode[] }) {
       <div className="flex items-center gap-2 border-b border-borda pb-3 text-[13px] text-suave">
         <IconeTelegram className="h-4 w-4 text-dourado" /> Muxor · bot
       </div>
-      <div className="mt-3 space-y-2.5 font-mono text-[12.5px] leading-relaxed">{linhas}</div>
+      <div className="mt-3 space-y-2.5 font-mono text-[11.5px] leading-relaxed sm:text-[12.5px]">{linhas}</div>
     </div>
   );
 }
@@ -131,7 +132,7 @@ function Tela({ linhas }: { linhas: ReactNode[] }) {
         <span className="h-2.5 w-2.5 rounded-full bg-borda" />
         <span className="h-2.5 w-2.5 rounded-full bg-borda" />
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-[12.5px] leading-relaxed text-texto/85">{linhas}</pre>
+      <pre className="overflow-x-auto p-4 font-mono text-[11.5px] leading-relaxed text-texto/85 sm:text-[12.5px]">{linhas}</pre>
     </div>
   );
 }
@@ -264,7 +265,7 @@ const ABAS = [
 
 function Recursos() {
   return (
-    <section id="como-funciona" className="site-container mt-28 scroll-mt-24">
+    <section id="como-funciona" className="site-container mt-20 scroll-mt-24 md:mt-28">
       <Revelar>
         <h2 className="text-heading text-balance text-center">Do PM ao pull request.</h2>
         <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">O caminho inteiro de uma task, sem você abrir cada ferramenta.</p>
@@ -283,7 +284,7 @@ function Passos() {
     { icone: Terminal, titulo: 'O Claude trabalhando', texto: 'Uma sessão do Claude Code no Orca, na pasta do projeto, com as regras de trabalho do espaço.' },
   ];
   return (
-    <section className="site-container mt-32">
+    <section className="site-container mt-20 md:mt-32">
       <Revelar>
         <h2 className="text-heading text-balance">Três passos. Um estagiário.</h2>
       </Revelar>
@@ -308,7 +309,7 @@ function Passos() {
 
 function Modos() {
   return (
-    <section className="site-container mt-32">
+    <section className="site-container mt-20 md:mt-32">
       <Revelar>
         <h2 className="text-heading text-balance">No seu Mac ou no seu servidor.</h2>
         <p className="text-lede mt-5 max-w-2xl text-suave">Comece no Mac. Quando quiser rodar 24 h, leve para uma VPS sua: o mesmo Muxor, o mesmo bot.</p>
@@ -347,7 +348,7 @@ function Seguranca() {
     { icone: Stethoscope, titulo: 'Desinstala sem deixar rastro', texto: 'O muxor desinstalar desfaz exatamente o que a instalação fez.' },
   ];
   return (
-    <section className="site-container mt-32">
+    <section className="site-container mt-20 md:mt-32">
       <Revelar>
         <h2 className="text-heading text-balance">Seguro por padrão.</h2>
       </Revelar>
@@ -377,7 +378,7 @@ const PERGUNTAS = [
 
 function Perguntas() {
   return (
-    <section id="perguntas" className="site-container mt-32 scroll-mt-24">
+    <section id="perguntas" className="site-container mt-20 scroll-mt-24 md:mt-32">
       <Revelar>
         <h2 className="text-heading text-balance text-center">Perguntas frequentes</h2>
       </Revelar>
@@ -398,11 +399,11 @@ function Perguntas() {
 
 function ChamadaFinal() {
   return (
-    <section className="site-container mt-32">
+    <section className="site-container mt-20 md:mt-32">
       <Revelar>
-        <div className="relative overflow-hidden rounded-2xl border border-borda bg-superficie px-6 py-14 text-center md:px-16">
+        <div className="relative overflow-hidden rounded-2xl border border-borda bg-superficie px-5 py-12 text-center md:px-16 md:py-14">
           <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[640px] -translate-x-1/2 rounded-full bg-nebulosa/10 blur-[100px]" />
-          <Image src="/icone-180.png" alt="" width={72} height={72} className="mx-auto rounded-full bg-superficie-2" />
+          <Image src="/muxor.png" alt="O estagiário do Muxor" width={653} height={1100} className="mx-auto h-auto w-[120px] md:w-[140px]" />
           <h2 className="text-heading mt-6 text-balance">Contrate o seu estagiário.</h2>
           <p className="text-lede mx-auto mt-4 max-w-xl text-suave">Um comando no terminal e o muxor init cuida do resto.</p>
           <div className="mx-auto mt-8 max-w-md">
@@ -424,16 +425,16 @@ function ChamadaFinal() {
 
 function Rodape() {
   const colunas: [string, [string, string][]][] = [
-    ['Produto', [['Instalar', '#instalar'], ['Documentação', DOCS], ['Como funciona', '#como-funciona']]],
+    ['Produto', [['Instalar', '#instalar'], ['Documentação', DOCS], ['Docs no GitHub', DOCS_GITHUB], ['Como funciona', '#como-funciona']]],
     ['Comunidade', [['GitHub', GITHUB], ['Relatar um problema', `${GITHUB}/issues`]]],
     ['Projeto', [['Licença MIT', `${GITHUB}/blob/main/LICENSE`], ['Perguntas', '#perguntas']]],
   ];
   return (
-    <footer className="mt-32 border-t border-borda">
-      <div className="site-container grid gap-10 py-14 md:grid-cols-[1.5fr_repeat(3,1fr)]">
-        <div>
+    <footer className="mt-20 border-t border-borda md:mt-32">
+      <div className="site-container grid grid-cols-2 gap-10 py-12 md:grid-cols-[1.5fr_repeat(3,1fr)] md:py-14">
+        <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2.5">
-            <Image src="/icone-180.png" alt="" width={28} height={28} className="rounded-full bg-superficie-2" />
+            <Image src="/muxor-cabecalho.png" alt="" width={19} height={32} className="h-8 w-auto" />
             <span className="font-semibold tracking-[-0.02em]">Muxor</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-suave">O estagiário que despacha suas tasks para o Claude Code.</p>

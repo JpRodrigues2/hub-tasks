@@ -1,5 +1,7 @@
-import type { Metadata } from 'next';
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { traducoes } from '@/lib/traducoes';
 import './globals.css';
 
 // Mesma tipografia do onorca.dev: Inter no texto, JetBrains Mono nos comandos e detalhes.
@@ -15,10 +17,27 @@ export const metadata: Metadata = {
   openGraph: { title: 'Muxor', description: 'Suas tasks, despachadas para o Claude Code.', images: ['/icone-512.png'] },
 };
 
+// Celular: largura do aparelho e zoom bloqueado (a navegação fica fixa, sem pinça nem toque duplo).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#0e0f11',
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="pt-BR" className={`dark ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <RootProvider
+          theme={{ forcedTheme: 'dark', defaultTheme: 'dark' }}
+          search={{ options: { type: 'static' } }}
+          i18n={{ locale: 'pt-BR', translations: traducoes }}
+        >
+          {children}
+        </RootProvider>
+      </body>
     </html>
   );
 }

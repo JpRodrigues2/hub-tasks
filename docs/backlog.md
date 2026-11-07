@@ -1,4 +1,4 @@
-# Backlog (B01–B42)
+# Backlog (B01–B43)
 
 B01–B20: ajustes pedidos pelo João depois do primeiro fluxo completo (15/10/2026); cada item feito virou uma regra
 que vale hoje. B21–B41: o que falta das etapas 1 e 2 da v2 (detalhes e contexto no [plano](plano.md)).
@@ -84,6 +84,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B39 ⬜ | **Teams** (D-A10) |
 | B40 ⬜ | **I10:** perguntar ao time do PM se o formato das respostas do MCP é estável |
 | B42 ✔️ | **Comandos do Telegram enxutos** (O12, 06/11): na lista só `/tarefas`, `/nova`, `/continuar` (+ `/gamificacoes` e `/pm_login` com a Funifier); o resto num `/menu` com os comandos clicáveis e a descrição |
+| B43 ⬜ | **Vídeo de apresentação** (pedido de 07/11): um vídeo curto feito com IA, como o do Orca, na primeira página da documentação do site (`/docs`, hoje com o aviso "em breve") |
 | B41 ⬜ | **Estudo do João:** primeiro os [fundamentos](estudo/fundamentos.md) (sistema operacional, rede, scripts e as perguntas de 06/11), depois arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
 
 **Ideias sem data** (sobras do roadmap da v1): mensagens de voz com transcrição local; comandos pré-aprovados por

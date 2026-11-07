@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import 'fumadocs-ui/css/black.css';
+@import 'fumadocs-ui/css/preset.css';
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
 
 /*
  * Paleta do Muxor: TODAS as cores do site vêm destas variáveis. Para trocar a paleta, mude só aqui.
@@ -18,6 +21,27 @@
   --cor-botao: #eceae5; /* botão principal (como no Orca: claro com texto escuro) */
   --cor-botao-texto: #0e0f11;
   --cor-ok: #8fd19e; /* estados "online", ✔ */
+}
+
+/* A documentação (Fumadocs) usa as mesmas variáveis: o site inteiro troca de paleta junto. */
+:root,
+.dark {
+  --color-fd-background: var(--cor-fundo);
+  --color-fd-foreground: var(--cor-texto);
+  --color-fd-card: var(--cor-superficie);
+  --color-fd-card-foreground: var(--cor-texto);
+  --color-fd-popover: var(--cor-superficie);
+  --color-fd-popover-foreground: var(--cor-texto);
+  --color-fd-primary: var(--cor-dourado);
+  --color-fd-primary-foreground: var(--cor-fundo);
+  --color-fd-secondary: var(--cor-superficie-2);
+  --color-fd-secondary-foreground: var(--cor-texto);
+  --color-fd-muted: var(--cor-superficie);
+  --color-fd-muted-foreground: var(--cor-texto-suave);
+  --color-fd-accent: var(--cor-superficie-2);
+  --color-fd-accent-foreground: var(--cor-texto);
+  --color-fd-border: var(--cor-borda);
+  --color-fd-ring: var(--cor-dourado);
 }
 
 @theme inline {
@@ -45,6 +69,15 @@ html {
 body {
   background: var(--cor-fundo);
   color: var(--cor-texto);
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Toque mais rápido no celular (sem a espera do toque duplo). */
+a,
+button,
+summary {
+  touch-action: manipulation;
 }
 
 /* Escala tipográfica (a mesma lógica do onorca.dev: títulos médios, apertados, com clamp). */

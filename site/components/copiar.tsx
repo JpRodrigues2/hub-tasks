@@ -17,7 +17,7 @@ export function ComandoInstalar({ comando }: { comando: string }) {
       aria-label="Copiar o comando de instalação"
     >
       <span className="text-nebulosa select-none">$</span>
-      <span className="min-w-0 flex-1 truncate">{comando}</span>
+      <span className="min-w-0 flex-1 break-all sm:truncate sm:break-normal">{comando}</span>
       {copiado ? <Check className="h-4 w-4 shrink-0 text-ok" /> : <Copy className="h-4 w-4 shrink-0 text-suave transition-colors group-hover:text-texto" />}
     </button>
   );

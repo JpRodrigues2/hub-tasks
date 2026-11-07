@@ -1,0 +1,28 @@
+// Textos da documentação (Fumadocs) em português. As chaves são as do próprio Fumadocs.
+export const traducoes: Record<string, string> = {
+  'Search(search trigger)': 'Buscar',
+  'Search(search dialog)': 'Buscar na documentação',
+  'No results found(search dialog)': 'Nada encontrado',
+  'Search failed(search dialog)': 'A busca falhou',
+  'On this page(table of contents)': 'Nesta página',
+  'No Headings(table of contents)': 'Sem seções',
+  'Table of Contents(inline table of contents)': 'Sumário',
+  'Next Page(pagination)': 'Próxima',
+  'Previous Page(pagination)': 'Anterior',
+  'Last updated on(page footer)': 'Atualizado em',
+  'Edit on GitHub(edit page)': 'Editar no GitHub',
+  'Page Not Found(404 page)': 'Página não encontrada',
+  'Back to Home(404 page)': 'Voltar ao início',
+  'The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.(404 page)':
+    'A página que você procura pode ter sido removida ou mudado de nome.',
+  'Copy Text(code block)(aria-label)': 'Copiar',
+  'Copied Text(code block)(aria-label)': 'Copiado',
+  'Open Search(search trigger)(aria-label)': 'Abrir a busca',
+  'Close Search(search dialog)(aria-label)': 'Fechar a busca',
+  'Open Sidebar(sidebar)(aria-label)': 'Abrir o menu',
+  'Close Sidebar(sidebar)(aria-label)': 'Fechar o menu',
+  'Collapse Sidebar(sidebar)(aria-label)': 'Recolher o menu',
+  'Toggle Menu(mobile menu)(aria-label)': 'Menu',
+  'Show Sidebar(sidebar)': 'Mostrar o menu',
+  'Hide Sidebar(sidebar)': 'Esconder o menu',
+};
