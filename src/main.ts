@@ -28,7 +28,7 @@ import { filtrarPorProjeto } from './projetos.js';
 import { buscarTasks } from './resumo.js';
 import { migrarCofreAntigo } from './segredos.js';
 import { ICONE, cartao, esc } from './msg.js';
-import { COMANDOS, instalarBot } from './telegram.js';
+import { comandosDaLista, instalarBot, temFunifier } from './telegram.js';
 
 function criarCofre(env: Env): Cofre {
   return env.HUB_COFRE === 'keychain'
@@ -118,7 +118,7 @@ cron.schedule('*/5 * * * *', () => selecao.resumo.talvezResumoDiario('catch_up')
 cron.schedule('0 4 * * *', () => limparRuns(db), { timezone: env.TZ_HUB, noOverlap: true });
 limparRuns(db);
 
-await bot.api.setMyCommands(COMANDOS);
+await bot.api.setMyCommands(comandosDaLista({ funifier: temFunifier() }));
 
 async function parar(sinal: string) {
   log.info('hub: encerrando', { sinal });

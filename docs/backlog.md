@@ -83,7 +83,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B38 ⬜ | **Distribuição**, site de suporte e sistemas operacionais (D-A19 a D-A21) |
 | B39 ⬜ | **Teams** (D-A10) |
 | B40 ⬜ | **I10:** perguntar ao time do PM se o formato das respostas do MCP é estável |
-| B42 ⬜ | **Comandos do Telegram enxutos** (O12): na lista só `/tarefas`, `/nova`, `/continuar` (+ `/gamificacoes` e `/pm_login` com a Funifier); o resto num `/menu` com os comandos clicáveis e a descrição |
+| B42 ✔️ | **Comandos do Telegram enxutos** (O12, 06/11): na lista só `/tarefas`, `/nova`, `/continuar` (+ `/gamificacoes` e `/pm_login` com a Funifier); o resto num `/menu` com os comandos clicáveis e a descrição |
 | B41 ⬜ | **Estudo do João:** primeiro os [fundamentos](estudo/fundamentos.md) (sistema operacional, rede, scripts e as perguntas de 06/11), depois arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
 
 **Ideias sem data** (sobras do roadmap da v1): mensagens de voz com transcrição local; comandos pré-aprovados por

@@ -20,17 +20,39 @@ import { Regras } from './regras.js';
 import { ICONE, cartao } from './msg.js';
 import { escapeHtml } from './resumo.js';
 
-export const COMANDOS = [
+// Comandos (B42): na lista do Telegram, só os do dia a dia; os da Funifier só com ela no catálogo.
+// Os usados raramente ficam no /menu, clicáveis. Todos continuam funcionando se digitados.
+const PRINCIPAIS = [
   { command: 'tarefas', description: 'Suas tasks agora, para selecionar' },
   { command: 'nova', description: 'Atividade avulsa: /nova <instruções>' },
   { command: 'continuar', description: 'Próximos passos das tasks concluídas' },
+];
+const DA_FUNIFIER = [
+  { command: 'gamificacoes', description: 'Gamificações e credenciais por app' },
+  { command: 'pm_login', description: 'Conecta o Funifier PM pelo celular' },
+];
+export const DO_MENU = [
   { command: 'status', description: 'Orca, ferramentas, fila e despachos' },
   { command: 'projetos', description: 'Projetos que entram na listagem' },
   { command: 'regras', description: 'Regras de trabalho por empresa' },
-  { command: 'gamificacoes', description: 'Gamificações e credenciais por app' },
-  { command: 'pm_login', description: 'Conecta o Funifier PM pelo celular' },
   { command: 'limpar', description: 'Limpa a conversa' },
   { command: 'limpar_runs', description: 'Apaga os arquivos de instruções (runs/)' },
+];
+const MENU = { command: 'menu', description: 'Outros comandos e a legenda dos ícones' };
+
+export function comandosDaLista(o: { funifier: boolean }) {
+  return [...PRINCIPAIS, ...(o.funifier ? DA_FUNIFIER : []), MENU];
+}
+
+// A Funifier entra quando algum app do catálogo é dela (empresa ou ferramenta).
+export const temFunifier = () => loadCatalogo().apps.some((a) => a.empresa === 'funifier' || a.ferramenta === 'funifier-pm');
+
+const linhaComando = (c: { command: string; description: string }) => `/${c.command} — ${escapeHtml(c.description)}`;
+const LEGENDA = [
+  '<b>Ícones</b>',
+  `${ICONE.rodando} rodando · ${ICONE.fila} na fila · ${ICONE.voce} precisa de você`,
+  `${ICONE.ok} concluída · ${ICONE.revisao} revisar · ${ICONE.bloqueado} bloqueada`,
+  `${ICONE.falha} interrompida · ${ICONE.aviso} aviso · ${ICONE.pergunta} espera resposta`,
 ];
 
 export interface Deps {
@@ -68,14 +90,18 @@ export function instalarBot(bot: Bot, deps: Deps) {
       cartao({
         icone: ICONE.lista,
         titulo: 'Hub de tasks',
-        corpo: [
-          COMANDOS.map((c) => `/${c.command} — ${escapeHtml(c.description)}`).join('\n'),
-          '',
-          '<b>Ícones</b>',
-          `${ICONE.rodando} rodando · ${ICONE.fila} na fila · ${ICONE.voce} precisa de você`,
-          `${ICONE.ok} concluída · ${ICONE.revisao} revisar · ${ICONE.bloqueado} bloqueada`,
-          `${ICONE.falha} interrompida · ${ICONE.aviso} aviso · ${ICONE.pergunta} espera resposta`,
-        ],
+        corpo: [comandosDaLista({ funifier: temFunifier() }).map(linhaComando).join('\n')],
+      }),
+      { parse_mode: 'HTML' },
+    ),
+  );
+
+  bot.command('menu', (ctx) =>
+    ctx.reply(
+      cartao({
+        icone: ICONE.lista,
+        titulo: 'Outros comandos',
+        corpo: [DO_MENU.map(linhaComando).join('\n'), '', ...LEGENDA],
       }),
       { parse_mode: 'HTML' },
     ),
