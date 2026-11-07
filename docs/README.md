@@ -4,8 +4,9 @@ O hub lê as suas tasks nas ferramentas de gestão (Funifier PM, Bnexo), manda a
 escolher, escreve as instruções e as despacha para uma sessão do Claude Code aberta no Orca. Depois acompanha a sessão
 e avisa quando terminou ou quando precisa de você. **O hub em si não usa IA:** a IA está só nas sessões do Claude.
 
-**Onde estamos (05/11/2026):** a v1 roda no Mac do João (branch `main`). A v2 (branch `v2`) já roda numa VM da
-Oracle com o bot de teste, e a etapa 1 está quase pronta. Depois vêm o onboarding e o app para outros colaboradores.
+**Onde estamos (06/11/2026):** a v2 (branch `v2`) é o hub em uso, numa VM da Oracle, com o bot `@HubTasksCloudBot`
+e deploy automático. A etapa 1 está validada; a v1 (branch `main`, Mac) ficou obsoleta. Agora: o onboarding e o app
+para outros colaboradores.
 Detalhes e pendências em [plano](plano.md).
 
 ## Ordem de leitura

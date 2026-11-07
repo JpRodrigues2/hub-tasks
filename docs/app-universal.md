@@ -50,6 +50,19 @@ segredos). O Telegram serve para o depois: o que falta, QR de pareamento, projet
 cada passo de verdade (ex.: a porta 22 fechou mesmo); segredos nunca passam pelo chat; nada pelo console da nuvem;
 erros que dizem o próximo passo.
 
+**Pedidos do João em 06/11/2026** (base do debate, a decidir):
+- **Documento de configuração do ambiente** (README ou pasta própria): só os **pré-requisitos** que a pessoa instala
+  à mão (Orca, Tailscale, Claude Code, Node…). Precisa servir também para entregar ao Claude Code dela, que faz a
+  instalação.
+- **Todo o resto pelo `hub init`, no terminal:** pede as credenciais e amarra todas as pontas sozinho, sem deixar
+  nada para quem não fez o projeto configurar.
+- **Ordem:** a escolha das ferramentas de gestão vem entre os primeiros passos; depois a configuração de cada uma,
+  a conexão com o Claude, o Tailscale, os repositórios iniciais clonados e o de-para projeto da ferramenta → pasta e
+  sessão do Claude.
+- **Espaços:** ex.: profissional 1, profissional 2, pessoal, cada um com a própria conta git.
+- **Links e QR codes no terminal** (pareamento do Orca, logins): centralizar tudo no terminal; o Telegram fica para
+  o depois.
+
 **No mesmo pacote:** a listagem de tasks igual à do PM ([B20](backlog.md#b20)), porque é a primeira tela que o
 usuário novo vê depois de configurar.
 

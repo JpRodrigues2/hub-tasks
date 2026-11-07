@@ -76,6 +76,30 @@ Mac desligado, o SSH deu "Operation timed out".
   `deploy/preparar-vm.sh` o escreve na VM.
 - **Idempotente:** pode rodar de novo sem estragar; só faz o que falta.
 
+### 1.7 Como funciona um comando como `hub init` (ou `npm create vite`)
+
+Pergunta do João (06/11): o que acontece por baixo dos panos quando se digita um comando desses?
+
+1. **O terminal procura o programa.** Ao digitar `hub`, o shell (zsh no Mac) procura um arquivo executável chamado
+   `hub` nas pastas listadas no `PATH` (ex.: `/opt/homebrew/bin`). Achou, executa. Não achou: "command not found".
+2. **Como o `hub` chega ao `PATH`.** No `package.json` do projeto, o campo `"bin": { "hub": "dist/cli.js" }` diz
+   "este pacote tem um comando chamado hub". Ao instalar (`npm install -g hub-tasks` ou `brew install`), o
+   instalador cria um atalho `hub` numa pasta do `PATH` apontando para esse arquivo.
+3. **O arquivo começa com um *shebang*:** `#!/usr/bin/env node`, a primeira linha que diz "rode isto com o Node".
+4. **O resto da linha são argumentos.** Em `hub init --modo servidor`, o programa recebe `["init", "--modo",
+   "servidor"]` e decide o que fazer: `init` chama o assistente; `diagnostico` chama o diagnóstico.
+5. **`npx` e `npm create`** fazem os passos 2 e 3 sem instalar de vez: baixam o pacote, rodam o `bin` dele e
+   descartam. `npm create vite` = `npx create-vite`.
+6. **A conversa no terminal.** O programa escreve perguntas na tela (saída) e lê o que a pessoa digita (entrada).
+   Bibliotecas como `@clack/prompts` desenham menus, caixas de seleção e campos de senha que não mostram o que se digita.
+7. **Links e QR codes no terminal.** Um link é só texto; o programa pode também abrir o navegador (`open <link>` no
+   Mac). Um QR code é desenhado com caracteres de bloco (█ ▀ ▄), que o celular lê direto da tela.
+8. **Lembrar onde parou.** O assistente grava o progresso num arquivo (ex.: `configuracao.json`). Rodar de novo lê
+   esse arquivo e continua do primeiro passo que falta.
+9. **Fazer o trabalho.** Cada passo é código comum: chamar o Orca, o git, o `tailscale`, gravar o `.env`, o cofre e
+   o `apps.yaml`, criar o serviço. É o que hoje fazemos à mão, ou pelos scripts `.sh`, juntado num programa só.
+10. **Sair com um código.** `0` = deu certo; outro número = erro. É assim que scripts e o CI sabem se algo falhou.
+
 ## Parte 2: o que cada script do hub monta
 
 | Script | Onde roda | O que monta |
@@ -120,6 +144,7 @@ Respostas dadas no chat em 06/11; revisar com calma, com a VM de ensaio (Lima) a
 6. Se a conexão é por SSH, por que o Tailscale?
 7. O que é o `hub.service` e por que ele não está no repositório?
 8. O que faz `journalctl -u hub.service -f`?
+9. Como funciona por baixo dos panos um comando como `hub init`? (seção 1.7)
 
 ## Depois deste módulo
 

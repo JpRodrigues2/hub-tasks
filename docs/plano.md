@@ -6,9 +6,9 @@ Onde estamos e o que falta. Atualizado em 05/11/2026. Cada pendência também es
 
 | # | Etapa | Status |
 |---|---|---|
-| 1 | v1: o hub no Mac do João (roadmap fases 0–6 e backlog B01–B19) | ✔️ em uso, branch `main` |
-| 2 | v2 etapa 1: **o crítico funciona** (nuvem, cofre e broker, celular + Mac, hexagonal) | 🔄 quase pronta |
-| 3 | v2 etapa 2: **o resto** (onboarding, Prisma, Jira, distribuição) | ⬜ |
+| 1 | v1: o hub no Mac do João (roadmap fases 0–6 e backlog B01–B19) | ✔️ obsoleta desde 06/11, branch `main` |
+| 2 | v2 etapa 1: **o crítico funciona** (nuvem, cofre e broker, celular + Mac, hexagonal) | ✔️ validada em 06/11, em uso |
+| 3 | v2 etapa 2: **o resto** (onboarding, Prisma, Jira, distribuição) | 🔄 decidindo o onboarding |
 | 4 | Estudo do João (arquitetura, broker, infra em nuvem) | ⬜ depois do backend |
 
 A etapa 1 está pronta quando: uma task real vai do Telegram ao Encerrar com o hub na Oracle; o João acompanha pelo
@@ -29,11 +29,9 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 
 | | Item | Quem | Detalhe |
 |---|---|---|---|
-| ⬜ | Heartbeat no Healthchecks.io | João → Claude | Precisa do endereço do check |
 | ⬜ | GitHub do `agente` | João + Claude | Uma conta por espaço (corporativa e pessoal), não global: decidir no onboarding |
 | ⬜ | Identidade do Git no servidor (A16) | João → Claude | Nome e e-mail para o `agente` e o `hub` |
 | ⬜ | Limpeza no Orca | João | Remover os projetos `teste-mw13visx*`; opcional: revogar token do bot de teste e o pareamento |
-| ⬜ | Virada | João + Claude | Trocar o bot de teste (`@HubTasksCloudBot`) pelo principal (`@JoaoTaskBot`) e parar o hub do Mac |
 
 ## Etapa 2: o resto, por ordem de valor
 
