@@ -22,6 +22,11 @@ Ao iniciar a task, o hub pergunta pelo Telegram em qual pasta roda (ou cria uma)
 **Quero mudar as regras de trabalho.**
 `/regras` no Telegram: mostra o texto, você manda o novo inteiro. As regras vão em todo prompt do espaço.
 
+**Já uso o Orca para outras coisas. O hub vai mexer nos meus projetos?**
+Só nos que você trouxer para o hub (no `./hub init` ou com `./hub adicionar projeto`). Nesses, o hub manda tasks,
+escreve nas sessões do Claude daquela pasta (inclusive as que você abriu) e marca o status da área de trabalho no
+Orca. Os outros ele nunca toca. As configurações do Orca não mudam.
+
 **Quero mais uma conta do GitHub.**
 `./hub adicionar github-workspace`. Depois traga os repositórios com o [prompt de clonar](prompts/clonar-repositorios.md).
 

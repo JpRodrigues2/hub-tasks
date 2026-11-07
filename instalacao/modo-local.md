@@ -21,7 +21,7 @@ Ainda dentro da pasta `hub`:
 ./hub init
 ```
 
-Ele guia 10 passos e confere cada um de verdade. Se você parar no meio (Ctrl+C) ou algo falhar, rode `./hub init` de
+Ele guia 11 passos e confere cada um de verdade. Se você parar no meio (Ctrl+C) ou algo falhar, rode `./hub init` de
 novo: ele continua do passo que falta.
 
 | # | Passo | O que você faz | Tenha em mãos |
@@ -30,12 +30,13 @@ novo: ele continua do passo que falta.
 | 2 | Onde roda | Escolhe "Neste Mac" | — |
 | 3 | Ferramentas de gestão | Marca as que usa e faz o login de cada uma | Funifier PM: login no navegador. Bnexo: endereço e token do MCP. Jira: endereço do site, e-mail e API token (a página de criar abre sozinha) |
 | 4 | Espaços | Para cada conta do GitHub: nome, pasta, login no navegador (com um código de 8 letras), nome e e-mail dos commits, regras de trabalho. Se o GitHub perguntar "Authenticate Git with your GitHub credentials?", responda **N**: o hub já faz isso só para a pasta do espaço | As senhas do GitHub |
-| 5 | Repositórios | Cola no seu Claude Code o pedido que o hub copiou e diz quais repositórios quer | — |
-| 6 | Projetos → pastas | Para cada projeto das ferramentas, escolhe a pasta (ou cria uma sem repositório, ou deixa para depois) | — |
-| 7 | Telegram | Cria um bot no BotFather, cola o token e manda /start para ele | O celular com o Telegram |
-| 8 | Orca e celular | Opcional: pareia o celular pelo Relay (qualquer rede) | O celular com o app do Orca |
-| 9 | Serviço | Nada: o hub vira um serviço que sobe sozinho com o Mac | — |
-| 10 | Teste | Acompanha uma task de teste no Orca e no Telegram | — |
+| 5 | Projetos que você já tem no Orca | Marca quais trazer para o hub. O que entra recebe tasks (o hub escreve inclusive nas sessões que já existem nessa pasta); o que fica de fora o hub nunca toca | — |
+| 6 | Repositórios | Cola no seu Claude Code o pedido que o hub copiou e diz quais repositórios quer | — |
+| 7 | Projetos → pastas | Para cada projeto das ferramentas, escolhe a pasta (ou cria uma sem repositório, ou deixa para depois) | — |
+| 8 | Telegram | Cria um bot no BotFather, cola o token e manda /start para ele | O celular com o Telegram |
+| 9 | Orca e celular | Opcional: pareia o celular pelo Relay (qualquer rede) | O celular com o app do Orca |
+| 10 | Serviço | Nada: o hub vira um serviço que sobe sozinho com o Mac | — |
+| 11 | Teste | Acompanha uma task de teste no Orca e no Telegram | — |
 
 **Os segredos** (tokens) são digitados em campos que não aparecem na tela e vão direto para `~/.hub/dados/.env`
 (só o seu usuário lê). Nunca mande token pelo Telegram nem por chat.
@@ -64,8 +65,9 @@ Sempre de dentro da pasta `hub`:
 | Comando | O que faz |
 |---|---|
 | `./hub init` | Configura (ou continua a configuração) |
-| `./hub init --refazer <passo>` | Refaz a partir de um passo: `ferramentas`, `espacos`, `repositorios`, `depara`, `telegram`, `orca`, `servico`, `teste` |
+| `./hub init --refazer <passo>` | Refaz a partir de um passo: `ferramentas`, `espacos`, `existentes`, `repositorios`, `depara`, `telegram`, `orca`, `servico`, `teste` |
 | `./hub diagnostico` | Confere cada peça e diz o próximo passo de cada problema |
 | `./hub adicionar github-workspace` | Mais um espaço (outra conta do GitHub) |
+| `./hub adicionar projeto` | Traz para o hub projetos que já estão no Orca ou nas pastas dos espaços, e liga aos projetos das ferramentas |
 | `./hub adicionar heartbeat` | Aviso se o hub cair ([heartbeat](heartbeat.md)) |
 | `./hub desinstalar` | Tira o hub do Mac ([desinstalar](desinstalar.md)) |

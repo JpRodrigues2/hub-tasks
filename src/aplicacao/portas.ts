@@ -191,5 +191,5 @@ export interface GitProjetos {
 export interface CatalogoApps {
   atual(): Catalogo; // relido a cada uso: pega edições sem reiniciar
   adicionarApp(a: { app: string; espaco: string; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }): void;
-  ligarProjeto(app: string, projeto: string): void;
+  ligarProjeto(app: string, projeto: string, ferramenta?: App['ferramenta']): void;
 }

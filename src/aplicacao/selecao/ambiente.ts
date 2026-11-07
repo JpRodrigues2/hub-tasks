@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { espacoDe, type App, type Catalogo } from '../../config.js';
-import type { Selecao } from '../../dominio/selecao.js';
+import { FERRAMENTA_REAL, type Selecao } from '../../dominio/selecao.js';
 import { errInfo, log } from '../../logger.js';
 import { ICONE, cartao, esc } from '../../msg.js';
 import type { Conversa, DepsSelecao } from './contexto.js';
@@ -88,10 +88,10 @@ export class Ambientes {
   // App escolhido para uma task cujo projeto ainda não tem app: liga o projeto a ele no apps.yaml.
   async ligarSeSemApp(s: Selecao, app: App) {
     const t = this.conversa.task(s);
-    if (!t.projeto_id || (s.ferramenta !== 'funifier-pm' && s.ferramenta !== 'bnexo') || app.ferramenta !== s.ferramenta) return;
+    if (!t.projeto_id || !FERRAMENTA_REAL.has(s.ferramenta) || (app.ferramenta !== s.ferramenta && app.ferramenta !== 'nenhuma')) return;
     if (this.d.catalogo.atual().apps.some((a) => a.ferramenta === s.ferramenta && a.projetos_na_ferramenta.includes(t.projeto_id!))) return;
     try {
-      this.d.catalogo.ligarProjeto(app.app, t.projeto_id);
+      this.d.catalogo.ligarProjeto(app.app, t.projeto_id, s.ferramenta as App['ferramenta']);
       log.info('ambiente: projeto ligado', { app: app.app, projeto: t.projeto_id });
       await this.d.notificador.enviar(
         cartao({ icone: ICONE.ok, titulo: `${esc(t.projeto_nome ?? t.projeto_id)} ligado a ${esc(app.app)}`, rodape: 'As próximas tasks desse projeto já vêm com este app.' }),

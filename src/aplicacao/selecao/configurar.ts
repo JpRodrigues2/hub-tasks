@@ -199,11 +199,11 @@ export class ConfigurarSelecao {
   }
 
   // Apps que servem para a task: avulsa, os do espaço escolhido; task de teste, o sandbox; task de ferramenta,
-  // os ligados à mesma ferramenta.
+  // os ligados à mesma ferramenta e os ainda sem ferramenta (trazidos para o hub sem de-para).
   private appServe(s: Selecao, a: App) {
     if (s.ferramenta === 'avulsa') return a.espaco === this.conversa.task(s).espaco;
     if (s.ferramenta === 'teste') return a.ferramenta === 'teste';
-    return a.ferramenta === s.ferramenta;
+    return a.ferramenta === s.ferramenta || a.ferramenta === 'nenhuma';
   }
 
   private botoesEspacos(cat: Catalogo, b: (texto: string, acao: string) => Teclado[number][number], acao: string): Teclado {
