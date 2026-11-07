@@ -95,7 +95,7 @@ usuário novo vê depois de configurar.
 | Hoje | Na v2 |
 |---|---|
 | Bnexo obrigatório (I3) | Uma das ferramentas escolhidas no onboarding |
-| Empresas `funifier`/`dac` e pastas `~/Documents/FUNIFIER`, `DAC` (I4) | "Espaços" configuráveis: pasta-mãe, ferramenta, regras e conta git ([decisões](decisoes.md#decisões-de-processo-do-joão)) |
+| ✔️ Empresas `funifier`/`dac` e pastas `~/Documents/FUNIFIER`, `DAC` (I4, B34) | "Espaços" configuráveis: pasta-mãe, ferramenta, regras e conta git ([decisões](decisoes.md#decisões-de-processo-do-joão)) |
 | Servidores de gamificação que o João usa | Lista configurável |
 | `apps.yaml` e `.env` escritos à mão | Gerados pelo `hub init` |
 

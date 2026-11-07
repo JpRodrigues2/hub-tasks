@@ -11,7 +11,6 @@ export type StatusHub = 'em_progresso' | 'em_revisao' | 'concluida';
 
 export interface Task {
   ferramenta: PmName;
-  empresa: 'funifier' | 'dac';
   id: string;
   titulo: string;
   projetoId: string | null;

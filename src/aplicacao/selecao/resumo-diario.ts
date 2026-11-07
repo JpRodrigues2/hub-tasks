@@ -69,7 +69,7 @@ export class ResumoDiario {
       const resumoId = resumos.abrir(dataLocal(new Date(), this.d.env.TZ_HUB), origem);
       vincular({ resumoId });
 
-      // Uma mensagem por empresa; a última com tasks selecionáveis leva também os botões Iniciar/Nenhuma.
+      // Uma mensagem por ferramenta; a última com tasks selecionáveis leva também os botões Iniciar/Nenhuma.
       const blocos = montarResumo(r, cat, this.d.env.TZ_HUB, origem === 'manual' ? 'Suas tasks agora' : 'Resumo do dia');
       const selecionaveis = blocos.reduce((n, b) => n + b.itens.length, 0);
       const ultimoComBotoes = blocos.map((b) => b.itens.length > 0).lastIndexOf(true);
@@ -96,7 +96,7 @@ export class ResumoDiario {
           if (ultima) msgId = id;
         }
         for (const i of bloco.itens)
-          resumos.adicionarItem(resumoId, { idx: i.idx, ferramenta: i.task.ferramenta, task_id: i.task.id, empresa: i.task.empresa, app_sugerido: i.app }, msgId);
+          resumos.adicionarItem(resumoId, { idx: i.idx, ferramenta: i.task.ferramenta, task_id: i.task.id, espaco: cat.apps.find((a) => a.app === i.app)?.espaco ?? '', app_sugerido: i.app }, msgId);
         if (final) resumos.definirMsgBotoes(resumoId, msgId);
       }
       if (!selecionaveis) resumos.fechar(resumoId, 'nenhuma');
@@ -126,7 +126,7 @@ export class ResumoDiario {
     const marcadas = resumos.marcados(resumoId);
     if (acao !== 'none' && !marcadas.length) return 'Marque pelo menos uma task (ou toque em "Nenhuma hoje").';
     if (acao === 'lote' && marcadas.length < 2) return 'Lote precisa de pelo menos duas tasks.';
-    if (acao === 'lote' && new Set(marcadas.map((m) => m.empresa)).size > 1) return 'Lote só com tasks da mesma empresa (roda num app só).';
+    if (acao === 'lote' && new Set(marcadas.map((m) => m.ferramenta)).size > 1) return 'Lote só com tasks da mesma ferramenta (roda num app só).';
 
     resumos.fechar(resumoId, acao === 'go' ? 'iniciado' : 'nenhuma');
     for (const m of resumos.mensagens(resumoId)) await notificador.botoes(m);

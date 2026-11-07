@@ -10,8 +10,8 @@ const taskId = `teste-${Date.now()}`;
 
 const selecaoId = db.transaction(() => {
   db.prepare(
-    `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
-     VALUES ('teste', ?, 'dac', ?, NULL, 'sandbox', 'teste', NULL, NULL, ?, ?)`,
+    `INSERT INTO tasks_vistas (ferramenta, task_id, espaco, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+     VALUES ('teste', ?, '', ?, NULL, 'sandbox', 'teste', NULL, NULL, ?, ?)`,
   ).run(taskId, texto, agora, agora);
   const id = Number(
     db

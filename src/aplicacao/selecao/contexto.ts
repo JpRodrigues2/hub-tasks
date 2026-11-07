@@ -35,7 +35,7 @@ export class Conversa {
         projeto_nome: null,
         projeto_id: null,
         link: null,
-        empresa: s.ferramenta === 'bnexo' ? 'dac' : 'funifier',
+        espaco: '',
         prazo: null,
       }
     );

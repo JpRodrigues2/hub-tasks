@@ -55,7 +55,6 @@ export class BnexoAdapter implements PmAdapter {
     const fechada = base === 'concluida' || base === 'cancelada';
     return {
       ferramenta: this.nome,
-      empresa: 'dac',
       id: t.id,
       titulo: t.name,
       projetoId,

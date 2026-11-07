@@ -165,6 +165,16 @@ const MIGRATIONS: string[] = [
   UPDATE despachos SET estado = 'aguardando_usuario' WHERE estado = 'aguardando_joao';
   UPDATE despachos SET aviso_motivo = 'usuario' WHERE aviso_motivo = 'joao';
   `,
+  // B34: empresa (funifier | dac) vira espaço (id do espaço no apps.yaml; '' = ainda não definido).
+  //      A migração do apps.yaml cria os espaços "funifier" e "dac", então os valores continuam valendo.
+  `
+  ALTER TABLE tasks_vistas RENAME COLUMN empresa TO espaco;
+  ALTER TABLE resumo_itens RENAME COLUMN empresa TO espaco;
+  UPDATE selecoes SET etapa = 'espaco' WHERE etapa = 'empresa';
+  UPDATE selecoes SET etapa = 'amb_espaco' WHERE etapa = 'amb_empresa';
+  UPDATE selecoes SET ambiente = json_object('espaco', json_extract(ambiente, '$.empresa'), 'nome', json_extract(ambiente, '$.nome'))
+    WHERE ambiente IS NOT NULL AND json_extract(ambiente, '$.empresa') IS NOT NULL;
+  `,
 ];
 
 export type DB = Database.Database;

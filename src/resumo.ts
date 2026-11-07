@@ -4,9 +4,11 @@ import { appsDoProjeto, type Catalogo } from './config.js';
 import type { DB } from './db.js';
 import { errInfo, log } from './logger.js';
 import type { Categoria, PmAdapter, Task } from './pm/types.js';
+import { NOME_FERRAMENTA } from './dominio/selecao.js';
 import { registrarProjetos } from './projetos.js';
 
 export interface ResultadoBusca {
+  ferramentas: string[]; // as consultadas, na ordem de exibição
   tasks: Task[];
   erros: { ferramenta: string; erro: string }[];
 }
@@ -26,14 +28,14 @@ export async function buscarTasks(adapters: PmAdapter[], db: DB): Promise<Result
   );
   registrarVistas(db, tasks);
   registrarProjetos(db, tasks);
-  return { tasks, erros };
+  return { ferramentas: adapters.map((a) => a.nome), tasks, erros };
 }
 
 function registrarVistas(db: DB, tasks: Task[]) {
   const agora = new Date().toISOString();
   const stmt = db.prepare(`
-    INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
-    VALUES (@ferramenta, @id, @empresa, @titulo, @projetoId, @projetoNome, @status, @prazo, @link, @agora, @agora)
+    INSERT INTO tasks_vistas (ferramenta, task_id, espaco, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+    VALUES (@ferramenta, @id, '', @titulo, @projetoId, @projetoNome, @status, @prazo, @link, @agora, @agora)
     ON CONFLICT(ferramenta, task_id) DO UPDATE SET
       titulo = excluded.titulo, projeto_id = excluded.projeto_id, projeto_nome = excluded.projeto_nome,
       status = excluded.status, prazo = excluded.prazo, link = excluded.link, ultima_vez = excluded.ultima_vez`);
@@ -52,10 +54,6 @@ const GRUPOS: { categoria: Categoria; titulo: string }[] = [
   { categoria: 'revisao', titulo: '🟣 Em revisão' },
 ];
 
-const EMPRESAS = [
-  { empresa: 'funifier', nome: 'FUNIFIER', ferramenta: 'Funifier PM' },
-  { empresa: 'dac', nome: 'DAC', ferramenta: 'Bnexo' },
-] as const;
 
 function formatarPrazo(prazo: string | null, tz: string) {
   if (!prazo) return null;
@@ -68,8 +66,8 @@ export interface ItemResumo {
   app: string | null; // app sugerido; null = projeto não mapeado
 }
 
-export interface BlocoEmpresa {
-  empresa: 'funifier' | 'dac';
+export interface BlocoResumo {
+  ferramenta: string;
   texto: string;
   itens: ItemResumo[];
 }
@@ -89,14 +87,16 @@ function linhaTask(i: ItemResumo, tz: string) {
   return `${i.idx}. ${link}\n<i>${meta}</i>`;
 }
 
-// Um bloco (mensagem) por empresa, com as tasks numeradas na ordem de exibição.
-export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string, rotulo = 'Suas tasks'): BlocoEmpresa[] {
+// Um bloco (mensagem) por ferramenta de gestão, com as tasks numeradas na ordem de exibição.
+// (B20 troca por: um projeto por vez, com a hierarquia da ferramenta.)
+export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string, rotulo = 'Suas tasks'): BlocoResumo[] {
   let idx = 0;
-  return EMPRESAS.map(({ empresa, nome, ferramenta }) => {
-    const doGrupo = r.tasks.filter((t) => t.empresa === empresa);
+  return r.ferramentas.map((ferramenta) => {
+    const nome = NOME_FERRAMENTA[ferramenta] ?? ferramenta;
+    const doGrupo = r.tasks.filter((t) => t.ferramenta === ferramenta);
     const itens: ItemResumo[] = [];
     const corpo: string[] = [];
-    const erro = r.erros.find((e) => (empresa === 'funifier' ? e.ferramenta === 'funifier-pm' : e.ferramenta === 'bnexo'));
+    const erro = r.erros.find((e) => e.ferramenta === ferramenta);
     if (erro) corpo.push(`⚠️ Não consegui buscar: ${escapeHtml(erro.erro)}`);
     for (const g of GRUPOS) {
       const ts = doGrupo
@@ -109,8 +109,8 @@ export function montarResumo(r: ResultadoBusca, cat: Catalogo, tz: string, rotul
     }
     if (!erro && doGrupo.length === 0) corpo.push('Nenhuma task aberta.');
     const n = doGrupo.length;
-    const texto = [`📋 <b>${nome}</b>\n<i>${rotulo} · ${ferramenta} · ${n} task${n === 1 ? '' : 's'}</i>`, ...corpo].join('\n\n');
-    return { empresa, texto, itens };
+    const texto = [`📋 <b>${escapeHtml(nome)}</b>\n<i>${rotulo} · ${n} task${n === 1 ? '' : 's'}</i>`, ...corpo].join('\n\n');
+    return { ferramenta, texto, itens };
   });
 }
 

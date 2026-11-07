@@ -140,14 +140,14 @@ export interface RepositorioSelecoes {
   // Atividade avulsa (/nova): a "task" é o texto do usuário.
   registrarAvulsa(taskId: string, titulo: string, descricao: string | null): void;
   definirInstrucoes(ferramenta: string, taskId: string, titulo: string, descricao: string): void;
-  definirEmpresa(ferramenta: string, taskId: string, empresa: 'funifier' | 'dac'): void;
+  definirEspaco(ferramenta: string, taskId: string, espaco: string): void;
 }
 
 export interface ItemResumo {
   idx: number; // número mostrado ao usuário
   ferramenta: string;
   task_id: string;
-  empresa: string;
+  espaco: string; // espaço do app sugerido ('' = sem app)
   app_sugerido: string | null;
 }
 
@@ -184,6 +184,6 @@ export interface GitProjetos {
 
 export interface CatalogoApps {
   atual(): Catalogo; // relido a cada uso: pega edições sem reiniciar
-  adicionarApp(a: { app: string; empresa: App['empresa']; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }): void;
+  adicionarApp(a: { app: string; espaco: string; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }): void;
   ligarProjeto(app: string, projeto: string): void;
 }

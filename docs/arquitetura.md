@@ -88,7 +88,7 @@ Funcionam, mas falam direto com o Telegram ou o banco:
 | `main.ts` | Raiz de composição: cria adaptadores e casos de uso, timers (despacho 30 s, resumo, limpeza 04:00), "Hub online" |
 | `telegram.ts` | Filtro do chat, comandos (`/tarefas`, `/nova`…), roteador de botões e de texto livre |
 | `gamificacoes.ts` | `/gamificacoes`: cadastro de gamificação e credenciais (apaga a mensagem com a chave) |
-| `regras.ts` | `/regras`: ver e editar `regras/<empresa>.md` |
+| `regras.ts` | `/regras`: ver e editar `regras/<nome>.md` (do espaço ou do projeto) |
 | `projetos.ts` | `/projetos`: liga e desliga projetos da listagem |
 | `login-pm.ts` | `/pm_login`: login do Funifier PM pelo celular |
 | `confirmacao.ts` | Permitir/Negar no Telegram para chamadas do broker |
@@ -99,7 +99,7 @@ Funcionam, mas falam direto com o Telegram ou o banco:
 | `limpeza.ts` | Apaga `runs/` antigos (30 dias, ou `/limpar_runs`) |
 | `mensagens.ts` | Registra cada mensagem para o `/limpar` |
 | `msg.ts` | Padrão visual dos cartões (ícone, título, contexto, corpo, rodapé) |
-| `config.ts`, `caminhos.ts` | `.env` e `apps.yaml` validados (zod); onde ficam dados, runs e repositórios |
+| `config.ts`, `caminhos.ts` | `.env` e `apps.yaml` validados (zod): espaços e apps (o app herda pasta, regras e gamificação do espaço), migração do formato antigo; onde ficam dados, runs e repositórios |
 | `db.ts` | Abre o SQLite e roda as migrações |
 | `git.ts` | Git do hub (no servidor, como o usuário `agente`) e a porta `GitProjetos` |
 | `logger.ts` | Logs JSON por dia, sem segredos |
@@ -146,7 +146,7 @@ sequenceDiagram
 | Máquina | Estados |
 |---|---|
 | Seleção | `coletando` → `aguardando_despacho` → `despachada` → `finalizada` → `encerrada` (ou `cancelada`, `interrompida`) |
-| Etapa da conversa (dentro de `coletando`) | `instrucoes` → `info` → `empresa` → `destino` → (`ambiente`, `amb_*`, `escolher_app`) → `alvo` → `confirmar` |
+| Etapa da conversa (dentro de `coletando`) | `instrucoes` → `info` → `espaco` → `destino` → (`ambiente`, `amb_*`, `escolher_app`) → `alvo` → `confirmar` |
 | Despacho | `em_execucao` ⇄ `aguardando_usuario` / `pausado_limite` → `concluido` → `seguimento_fila` (nova rodada) ou `encerrado`; `interrompido` após 3 falhas de achar o terminal |
 
 Tudo fica no banco, então reiniciar o hub no meio de uma conversa ou de um despacho não perde nada.

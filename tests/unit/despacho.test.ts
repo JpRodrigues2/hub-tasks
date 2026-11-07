@@ -78,7 +78,7 @@ class ExecutorFalso implements Executor {
 const pasta = join(raiz, 'repos', 'sandbox');
 mkdirSync(pasta, { recursive: true });
 const dev = { nome: 'dev', servidor: 's', conta: 'c', padrao: true, credencial: 'x' };
-const app: App = { app: 'sandbox', empresa: 'funifier', ferramenta: 'teste', projetos_na_ferramenta: [], pasta, sessao_resume_id: null, gamificacoes: [dev] };
+const app: App = { app: 'sandbox', espaco: 'funifier', gamificacao: true, regras: null, ferramenta: 'teste', projetos_na_ferramenta: [], pasta, sessao_resume_id: null, gamificacoes: [dev] };
 const db = openDb(join(raiz, 'hub.db'));
 const exec = new ExecutorFalso();
 const chat = new ChatFalso();
@@ -101,7 +101,7 @@ function novaTask(titulo: string) {
   const agora = new Date().toISOString();
   const taskId = `teste-${Math.random().toString(36).slice(2)}`;
   db.prepare(
-    `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+    `INSERT INTO tasks_vistas (ferramenta, task_id, espaco, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
      VALUES ('teste', ?, 'dac', ?, NULL, 'sandbox', 'teste', NULL, NULL, ?, ?)`,
   ).run(taskId, titulo, agora, agora);
   return Number(

@@ -95,7 +95,6 @@ export class Tasks {
       const titulo = v?.titulo ?? sel.task_id;
       return {
         ferramenta: 'bnexo',
-        empresa: v?.empresa ?? 'dac',
         id: sel.task_id,
         titulo,
         projetoId: null,

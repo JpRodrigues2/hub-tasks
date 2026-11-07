@@ -22,30 +22,36 @@ const gamificacoes = [
   { nome: 'dev', servidor: 's.funifier.com', conta: 'c', padrao: true },
   { nome: 'prod', servidor: 's.funifier.com', conta: 'c', padrao: false },
 ];
+const espacos = [
+  { id: 'funifier', nome: 'Funifier', pasta: join(raiz, 'repos', 'FUNIFIER'), gamificacao: true },
+  { id: 'dac', nome: 'DAC', pasta: join(raiz, 'repos', 'DAC'), gamificacao: false },
+];
 const appX: App = {
   app: 'app-x',
-  empresa: 'funifier',
+  espaco: 'funifier',
+  gamificacao: true,
+  regras: 'funifier',
   ferramenta: 'funifier-pm',
   projetos_na_ferramenta: ['p1'],
   pasta: join(raiz, 'repos', 'app-x'),
   sessao_resume_id: null,
   gamificacoes,
 };
-const appD: App = { app: 'app-d', empresa: 'dac', ferramenta: 'bnexo', projetos_na_ferramenta: [], pasta: join(raiz, 'repos', 'app-d'), sessao_resume_id: null };
-const cat: Catalogo = { apps: [appX, appD], nao_mapeados: { 'funifier-pm': [], bnexo: [] }, nomes_projetos: { bnexo: {} } };
+const appD: App = { app: 'app-d', espaco: 'dac', gamificacao: false, regras: 'dac', ferramenta: 'bnexo', projetos_na_ferramenta: [], pasta: join(raiz, 'repos', 'app-d'), sessao_resume_id: null };
+const cat: Catalogo = { espacos, apps: [appX, appD], nao_mapeados: { 'funifier-pm': [], bnexo: [] }, nomes_projetos: { bnexo: {} } };
 const adicionados: string[] = [];
 const catalogo: CatalogoApps = {
   atual: () => cat,
   adicionarApp: (a) => {
     adicionados.push(a.app);
-    cat.apps.push({ app: a.app, empresa: a.empresa, ferramenta: a.ferramenta, projetos_na_ferramenta: a.projeto ? [a.projeto] : [], pasta: a.pasta, sessao_resume_id: null });
+    const e = espacos.find((x) => x.id === a.espaco)!;
+    cat.apps.push({ app: a.app, espaco: a.espaco, gamificacao: e.gamificacao, regras: e.id, ferramenta: a.ferramenta, projetos_na_ferramenta: a.projeto ? [a.projeto] : [], pasta: join(e.pasta, a.pasta), sessao_resume_id: null });
   },
   ligarProjeto: () => {},
 };
 
 const task = (id: string, titulo: string, projetoId: string): Task => ({
   ferramenta: 'funifier-pm',
-  empresa: 'funifier',
   id,
   titulo,
   projetoId,
@@ -176,17 +182,18 @@ describe('resumo e conversa até o despacho', () => {
 });
 
 describe('atividade avulsa (/nova)', () => {
-  it('instruções → info → empresa → app → confirmar; recomeçar volta para a info', async () => {
+  it('instruções → info → espaço → app → confirmar; recomeçar volta para a info', async () => {
     await configurar.criarAvulsa('');
     const s = ultimaSelecao();
     expect(chat.ultima().html).toMatch(/O que o Claude deve fazer\?/);
     await configurar.onTexto('Gerar relatório de uso\ncom os números de outubro');
     expect(chat.ultima().html).toMatch(/Gerar relatório de uso/);
     expect(await configurar.onAcao(s, 'pular', undefined)).toBe('Ok');
-    expect(chat.dados()).toContain(`s:${s}:emp:dac`);
-    await configurar.onAcao(s, 'emp', 'dac');
+    expect(chat.dados()).toContain(`s:${s}:esp:dac`);
+    expect(await configurar.onAcao(s, 'esp', 'outro')).toBe('Espaço inválido.');
+    await configurar.onAcao(s, 'esp', 'dac');
     expect(chat.dados()).toEqual([`s:${s}:app:app-d`, `s:${s}:cancel`]);
-    expect(await configurar.onAcao(s, 'app', 'app-x')).toBe('App inválido.'); // empresa errada
+    expect(await configurar.onAcao(s, 'app', 'app-x')).toBe('App inválido.'); // outro espaço
     await configurar.onAcao(s, 'app', 'app-d');
     expect(chat.ultima().html).toMatch(/Confirma o despacho\?[\s\S]*com os números de outubro/);
     await configurar.onAcao(s, 'reset', undefined);
@@ -206,7 +213,8 @@ describe('ambiente novo (B15)', () => {
     await configurar.onAcao(s, 'pular', undefined);
     expect(chat.ultima().html).toMatch(/ainda não tem ambiente/);
     await configurar.onAcao(s, 'amb', 'novo');
-    await configurar.onAcao(s, 'aemp', 'funifier');
+    expect(chat.ultima().html).toMatch(/Em qual espaço criar a pasta\?/);
+    await configurar.onAcao(s, 'aesp', 'funifier');
     expect(chat.ultima().html).toMatch(/Nome do diretório\?/);
     await configurar.onTexto('Nome Inválido!');
     expect(chat.ultima().html).toMatch(/Nome inválido/);

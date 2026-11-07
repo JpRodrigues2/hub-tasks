@@ -1,7 +1,7 @@
 // Leitura e validação do .env e do apps.yaml.
 import 'dotenv/config';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { parse, parseDocument, type Document } from 'yaml';
 import { z } from 'zod';
 import { CAMINHOS, resolverPasta } from './caminhos.js';
@@ -9,9 +9,10 @@ import { CAMINHOS, resolverPasta } from './caminhos.js';
 const EnvSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(20),
   TELEGRAM_CHAT_ID: z.string().regex(/^-?\d+$/, 'TELEGRAM_CHAT_ID precisa ser numérico'),
-  BNEXO_MCP_URL: z.url(),
-  BNEXO_MCP_TOKEN: z.string().min(10),
-  FUNIFIER_PM_MCP_URL: z.url(),
+  // Ferramentas de gestão: cada uma liga só se configurada (I3); o hub init grava as escolhidas.
+  BNEXO_MCP_URL: z.url().optional(),
+  BNEXO_MCP_TOKEN: z.string().min(10).optional(),
+  FUNIFIER_PM_MCP_URL: z.url().optional(),
   RESUMO_HORARIO: z.string().regex(/^\d{2}:\d{2}$/).default('09:00'),
   TZ_HUB: z.string().default('America/Sao_Paulo'),
   ORCA_BIN: z.string().default('/Applications/Orca.app/Contents/Resources/bin/orca'),
@@ -54,26 +55,44 @@ const GamificacaoSchema = z.object({
   ambiente: z.enum(['dev', 'producao']).optional(),
 });
 
+// Espaço (O4): uma pasta-mãe por conta do GitHub. As ferramentas de gestão não definem espaço.
+const EspacoSchema = z.object({
+  id: z.string().regex(/^[a-z0-9._-]+$/),
+  nome: z.string().optional(),
+  pasta: z.string().min(1).transform((p) => resolverPasta(p)), // relativa: dentro de HUB_REPOS_DIR
+  github: z.string().optional(), // conta do GitHub do espaço (login configurado pelo hub init)
+  regras: z.string().optional(), // O14: arquivo em regras/ (sem .md) ou "nenhuma"; padrão: o id do espaço
+  gamificacao: z.boolean().default(false), // projetos usam gamificações da Funifier (a task escolhe o alvo)
+});
+
 const AppSchema = z.object({
   app: z.string().regex(/^[a-z0-9._-]+$/),
-  empresa: z.enum(['funifier', 'dac']),
+  espaco: z.string(),
   ferramenta: z.enum(['funifier-pm', 'bnexo', 'teste']), // teste = tasks fictícias (sandbox)
   projetos_na_ferramenta: z.array(z.string()).default([]),
-  pasta: z.string().min(1).transform((p) => resolverPasta(p)), // relativa: dentro de HUB_REPOS_DIR
+  pasta: z.string().min(1), // relativa: dentro da pasta do espaço
   sessao_resume_id: z.string().nullable().default(null),
   gamificacoes: z.array(GamificacaoSchema).optional(),
+  gamificacao: z.boolean().optional(), // sem o campo, vale o do espaço
+  regras: z.string().optional(), // O14: regra própria (arquivo) ou "nenhuma"; sem o campo, a do espaço
 });
-export type App = z.infer<typeof AppSchema>;
+export type Espaco = z.infer<typeof EspacoSchema>;
 export type Gamificacao = z.infer<typeof GamificacaoSchema>;
+// App como o resto do hub usa: pasta absoluta e o que herda do espaço já resolvido.
+export type App = Omit<z.infer<typeof AppSchema>, 'gamificacao' | 'regras'> & {
+  gamificacao: boolean;
+  regras: string | null; // arquivo das regras (sem .md); null = nenhuma
+};
 
 const CatalogoSchema = z.object({
+  espacos: z.array(EspacoSchema).default([]),
   apps: z.array(AppSchema),
   nao_mapeados: z
     .object({ 'funifier-pm': z.array(z.string()).default([]), bnexo: z.array(z.string()).default([]) })
     .default({ 'funifier-pm': [], bnexo: [] }),
   nomes_projetos: z.object({ bnexo: z.record(z.string(), z.string()).default({}) }).default({ bnexo: {} }),
 });
-export type Catalogo = z.infer<typeof CatalogoSchema>;
+export type Catalogo = Omit<z.infer<typeof CatalogoSchema>, 'apps'> & { apps: App[] };
 
 function formatIssues(e: z.ZodError) {
   return e.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
@@ -95,14 +114,79 @@ function lerArquivoCatalogo() {
 // Relido a cada uso (antes de cada resumo / /status), para pegar edições sem reiniciar o bot.
 // Sem apps.yaml (servidor novo), o catálogo começa vazio e o arquivo nasce na primeira edição.
 export function loadCatalogo(): Catalogo {
-  const r = CatalogoSchema.safeParse(parse(lerArquivoCatalogo()));
+  const bruto = parse(lerArquivoCatalogo());
+  if (ehCatalogoAntigo(bruto)) throw new Error('apps.yaml no formato antigo (com "empresa"): o hub migra ao iniciar (migrarCatalogo)');
+  const r = CatalogoSchema.safeParse(bruto);
   if (!r.success) throw new Error(`apps.yaml inválido — ${formatIssues(r.error)}`);
+  return resolverCatalogo(r.data);
+}
+
+// Valida as referências e resolve o que o app herda do espaço (pasta, gamificação, regras).
+function resolverCatalogo(c: z.infer<typeof CatalogoSchema>): Catalogo {
+  const espacos = new Map<string, Espaco>();
+  for (const e of c.espacos) {
+    if (espacos.has(e.id)) throw new Error(`apps.yaml: espaço duplicado "${e.id}"`);
+    espacos.set(e.id, e);
+  }
   const nomes = new Set<string>();
-  for (const a of r.data.apps) {
+  const apps = c.apps.map((a): App => {
     if (nomes.has(a.app)) throw new Error(`apps.yaml: app duplicado "${a.app}"`);
     nomes.add(a.app);
-  }
-  return r.data;
+    const e = espacos.get(a.espaco);
+    if (!e) throw new Error(`apps.yaml: o app "${a.app}" usa o espaço "${a.espaco}", que não existe`);
+    const regras = a.regras ?? e.regras ?? e.id;
+    return {
+      ...a,
+      pasta: isAbsolute(a.pasta) ? resolve(a.pasta) : resolve(e.pasta, a.pasta),
+      gamificacao: a.gamificacao ?? e.gamificacao,
+      regras: regras === 'nenhuma' ? null : regras,
+    };
+  });
+  return { ...c, apps };
+}
+
+export function espacoDe(cat: Catalogo, id: string): Espaco | undefined {
+  return cat.espacos.find((e) => e.id === id);
+}
+
+export const nomeEspaco = (e: Pick<Espaco, 'id' | 'nome'>) => e.nome ?? e.id;
+
+// ─────────────── migração do formato antigo (empresa funifier/dac) para espaços (B34) ───────────────
+
+const ESPACOS_ANTIGOS = [
+  { id: 'funifier', nome: 'Funifier', pasta: 'FUNIFIER', gamificacao: true },
+  { id: 'dac', nome: 'DAC', pasta: 'DAC' },
+];
+
+function ehCatalogoAntigo(bruto: unknown) {
+  const c = bruto as { espacos?: unknown; apps?: { empresa?: unknown }[] } | null;
+  return !!c && !c.espacos && !!c.apps?.some((a) => a.empresa !== undefined);
+}
+
+// Cada empresa vira um espaço com o mesmo id (os dados do banco continuam valendo) e a pasta de cada app passa a ser
+// relativa à pasta do espaço (fora dela, fica absoluta). Guarda a versão anterior no histórico. true = migrou.
+export function migrarCatalogo(): boolean {
+  if (!ehCatalogoAntigo(parse(lerArquivoCatalogo()))) return false;
+  editarCatalogo((doc) => {
+    const usados = new Set((doc.toJS().apps as { empresa: string }[]).map((a) => a.empresa));
+    const espacos = ESPACOS_ANTIGOS.filter((e) => usados.has(e.id));
+    doc.set('espacos', doc.createNode(espacos, { flow: false }));
+    const apps = doc.toJS().apps as { empresa: string; pasta: string }[];
+    apps.forEach((a, i) => {
+      const base = resolverPasta(espacos.find((e) => e.id === a.empresa)!.pasta);
+      const antiga = resolverPasta(a.pasta);
+      const rel = relative(base, antiga);
+      // Renomeia a chave no lugar: mantém a posição e o comentário da linha.
+      const par = (doc.getIn(['apps', i]) as { items: { key: { value: string } }[] }).items.find((x) => x.key.value === 'empresa')!;
+      par.key.value = 'espaco';
+      doc.setIn(['apps', i, 'pasta'], rel && !rel.startsWith('..') && !isAbsolute(rel) ? rel : antiga);
+    });
+    // "espacos" antes de "apps", para ler de cima para baixo.
+    const itens = (doc.contents as { items: { key: { value: string } }[] }).items;
+    const i = itens.findIndex((x) => x.key.value === 'espacos');
+    itens.unshift(...itens.splice(i, 1));
+  });
+  return true;
 }
 
 export function appsDoProjeto(cat: Catalogo, ferramenta: App['ferramenta'], projetoId: string): App[] {
@@ -123,6 +207,7 @@ function editarCatalogo(fn: (doc: Document.Parsed) => void) {
   const novo = doc.toString();
   const r = CatalogoSchema.safeParse(parse(novo));
   if (!r.success) throw new Error(`apps.yaml ficaria inválido — ${formatIssues(r.error)}`);
+  resolverCatalogo(r.data); // referências (espaço do app) também
   if (existsSync(APPS_FILE)) {
     const hist = join(CAMINHOS.dados, 'apps-historico');
     mkdirSync(hist, { recursive: true });
@@ -138,12 +223,12 @@ function indiceApp(doc: Document.Parsed, nome: string) {
   return i;
 }
 
-export function adicionarApp(a: { app: string; empresa: App['empresa']; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }) {
+export function adicionarApp(a: { app: string; espaco: string; ferramenta: App['ferramenta']; pasta: string; projeto: string | null }) {
   editarCatalogo((doc) => {
     if ((doc.toJS().apps as { app: string }[]).some((x) => x.app === a.app)) throw new Error(`já existe um app "${a.app}"`);
     doc.addIn(['apps'], {
       app: a.app,
-      empresa: a.empresa,
+      espaco: a.espaco,
       ferramenta: a.ferramenta,
       projetos_na_ferramenta: a.projeto ? [a.projeto] : [],
       pasta: a.pasta,
