@@ -25,7 +25,7 @@ outros colaboradores). ✅ decidida · 🟡 em aberto · ❌ descartada.
 | D-A4 🟡 | Acesso ao Funifier PM | OAuth pessoal (como hoje); confirmar se o papel `member` basta |
 | D-A5 🟡 | Cofre no Mac | Keychain (já implementado); ampliada pela D-A14 e D-A15 |
 | D-A6 ❌ | Distribuição | Substituída pela D-A19 |
-| D-A7 🟡 | Nome do produto | — |
+| D-A7 ✅ | Nome do produto | **Muxor** (de *mux*, multiplexador): comando `muxor`, dados em `~/.muxor`. Repositório público `github.com/JpRodrigues2/muxor`, licença MIT; domínio `muxor.com.br` (07/11) |
 | D-A8 🟡 | Aprovação da Funifier e suporte | Só necessária quando formos distribuir |
 | D-A9 ✅ | Passagem da v1 para a v2 | Em passos: primeiro o mínimo para hospedar, depois o resto |
 | D-A10 ✅ | Chat além do Telegram | Telegram agora; Teams depois (porta `Notificador`) |
@@ -37,7 +37,7 @@ outros colaboradores). ✅ decidida · 🟡 em aberto · ❌ descartada.
 | D-A16 ✅ | Terceira ferramenta de gestão | Jira (junto com Funifier PM e Bnexo, escolhidas no onboarding) |
 | D-A17 🟡 | Modelo futuro | Self-hosted agora; SaaS (nuvem + runner local) registrado para depois |
 | D-A18 ✅ | Onde o hub roda | Dois modos, escolhidos na instalação: local ou servidor do usuário |
-| D-A19 🟡 | Distribuição | Proposta: Homebrew no Mac, script para Ubuntu no servidor |
+| D-A19 ✅ | Distribuição | Script pelo site (`curl -fsSL https://muxor.com.br/install \| bash`), no Mac e no Linux, com desinstalar; Homebrew depois. Dois repositórios: o `hub-tasks` (desenvolvimento, público pelo portfólio) e o `muxor` (público, gerado pelo `scripts/publicar.sh`, histórico próprio) (07/11) |
 | D-A20 🟡 | Site de suporte | Proposta: site estático com downloads, docs, vídeos e aviso de versão nova |
 | D-A21 🟡 | Sistemas operacionais | Proposta: macOS (local) e Linux (servidor); Windows depois |
 | D-A22 ✅ | CI/CD | GitHub Actions: CI em todo push ✔️. Deploy: o servidor busca no GitHub o commit com CI verde (timer de 5 min), em vez de o Actions entrar no servidor; sem porta nem chave nova (06/11) ✔️ |

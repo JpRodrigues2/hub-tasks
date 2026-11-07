@@ -120,7 +120,7 @@ QR code e, no Mac, abrem no navegador.
 | # | Pergunta | Recomendação |
 |---|---|---|
 | Q1 ✅ | No modo servidor, onde roda o `hub init`? | No próprio servidor, por SSH, depois do `preparar-vm.sh`. Com documentação clara para o usuário fazer com ajuda da IA dele: muitos vão ter dificuldade com o SSH |
-| Q2 🟡 | Como o colega instala o comando `hub`? | Em aberto (João): repositório, npm ou Homebrew |
+| Q2 ✅ | Como o colega instala? | Script pelo site (D-A19); até o instalador existir, `git clone` do repositório público `muxor` e `./muxor init` |
 | Q3 | Dá para o `hub init` gravar os argumentos do Claude no Orca e parear o celular sozinho? | Claude verifica. A CLI do Orca 1.4.246 não tem comando para isso; se não houver outro caminho, o passo mostra onde clicar e confere depois |
 | Q4 | Como funciona o relay do Orca? | Claude verifica (o app tem o relay do celular: `mobile:relayStatusChanged`). **Requisito do João:** no modo local o celular acessa de qualquer rede, mesmo cedendo um pouco de segurança; o Orca não pode ficar limitado à mesma rede. O `hub init` explica o que passa pelo relay |
 
