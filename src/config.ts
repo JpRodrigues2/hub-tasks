@@ -65,6 +65,8 @@ const EspacoSchema = z.object({
   nome: z.string().optional(),
   pasta: z.string().min(1).transform((p) => resolverPasta(p)), // relativa: dentro de HUB_REPOS_DIR
   github: z.string().optional(), // conta do GitHub do espaço (login configurado pelo hub init)
+  // Pasta do login do gh deste espaço (GH_CONFIG_DIR): as sessões abrem com ela, e push e PR saem pela conta certa.
+  gh_config: z.string().regex(/^\/[A-Za-z0-9/._-]+$/).optional(),
   regras: z.string().optional(), // O14: arquivo em regras/ (sem .md) ou "nenhuma"; padrão: o id do espaço
   gamificacao: z.boolean().default(false), // projetos usam gamificações da Funifier (a task escolhe o alvo)
 });
@@ -86,6 +88,7 @@ export type Gamificacao = z.infer<typeof GamificacaoSchema>;
 export type App = Omit<z.infer<typeof AppSchema>, 'gamificacao' | 'regras'> & {
   gamificacao: boolean;
   regras: string | null; // arquivo das regras (sem .md); null = nenhuma
+  gh_config?: string; // do espaço
 };
 
 const CatalogoSchema = z.object({
@@ -144,6 +147,7 @@ function resolverCatalogo(c: z.infer<typeof CatalogoSchema>): Catalogo {
       pasta: isAbsolute(a.pasta) ? resolve(a.pasta) : resolve(e.pasta, a.pasta),
       gamificacao: a.gamificacao ?? e.gamificacao,
       regras: regras === 'nenhuma' ? null : regras,
+      ...(e.gh_config ? { gh_config: e.gh_config } : {}),
     };
   });
   return { ...c, apps };
@@ -239,6 +243,22 @@ export function adicionarApp(a: { app: string; espaco: string; ferramenta: App['
       sessao_resume_id: null,
       gamificacoes: [],
     });
+  });
+}
+
+// Espaço novo (hub init, hub adicionar github-workspace); se o id já existe, atualiza os campos.
+export function salvarEspaco(e: { id: string; nome?: string; pasta: string; github?: string; gh_config?: string; regras?: string; gamificacao?: boolean }) {
+  editarCatalogo((doc) => {
+    if (!doc.has('espacos')) {
+      doc.set('espacos', doc.createNode([], { flow: false }));
+      const itens = (doc.contents as { items: { key: { value: string } }[] }).items;
+      itens.unshift(...itens.splice(itens.findIndex((x) => x.key.value === 'espacos'), 1));
+    }
+    const lista = (doc.toJS().espacos ?? []) as { id: string }[];
+    const limpo = Object.fromEntries(Object.entries(e).filter(([, v]) => v !== undefined));
+    const i = lista.findIndex((x) => x.id === e.id);
+    if (i < 0) doc.addIn(['espacos'], limpo);
+    else for (const [k, v] of Object.entries(limpo)) doc.setIn(['espacos', i, k], v);
   });
 }
 
