@@ -1,19 +1,19 @@
-# Hub de Tasks
+# Muxor
 
 (Este arquivo é igual ao CLAUDE.md, para agentes que leem AGENTS.md.)
 
-## Se você está ajudando alguém a instalar, configurar ou usar o hub
+## Se você está ajudando alguém a instalar, configurar ou usar o Muxor
 
-Consulte **só** a pasta `instalacao/` e a saída de `./hub diagnostico --json`. Comece por `instalacao/README.md`.
+Consulte **só** a pasta `instalacao/` e a saída de `./muxor diagnostico --json`. Comece por `instalacao/README.md`.
 Ela responde sozinha as dúvidas de instalação e uso.
 
-- **Não leia** `src/`, `tests/`, `deploy/` nem `scripts/` para responder dúvidas de uso: são o código do hub e vão
+- **Não leia** `src/`, `tests/`, `deploy/` nem `scripts/` para responder dúvidas de uso: são o código do Muxor e vão
   confundir a resposta.
-- **Segredos** (tokens, senhas, API keys) a pessoa digita no `./hub init`, em campos que não aparecem na tela. Nunca
-  peça que ela cole um segredo no chat, nunca leia nem mostre `~/.hub/dados/.env`.
+- **Segredos** (tokens, senhas, API keys) a pessoa digita no `./muxor init`, em campos que não aparecem na tela. Nunca
+  peça que ela cole um segredo no chat, nunca leia nem mostre `~/.muxor/dados/.env`.
 - **Não altere** a configuração global da pessoa (`~/.gitconfig`, `~/.claude`, Keychain) à mão: quem configura é o
-  `./hub init`, e o `./hub desinstalar` desfaz o que ele fez.
-- Algo não funcionou: rode `./hub diagnostico --json`, leia o campo `proximo` de cada item e siga `instalacao/dicas.md`.
+  `./muxor init`, e o `./muxor desinstalar` desfaz o que ele fez.
+- Algo não funcionou: rode `./muxor diagnostico --json`, leia o campo `proximo` de cada item e siga `instalacao/dicas.md`.
 
 ## Se pediram para mexer no código
 

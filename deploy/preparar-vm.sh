@@ -235,7 +235,7 @@ passo "Serviço do hub (sobe quando o código estiver em $APP)"
 # Unidade mudou com o hub rodando: reinicia para valer (try-restart não liga se estiver parado).
 unidade hub.service <<EOF && systemctl try-restart hub.service || true
 [Unit]
-Description=Hub de Tasks
+Description=Muxor (hub de tasks)
 After=network-online.target orca.service
 Wants=network-online.target orca.service
 ConditionPathExists=$APP/package.json

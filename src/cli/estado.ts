@@ -1,5 +1,5 @@
-// Progresso do hub init (retoma do passo que falta) e o registro de tudo o que ele mudou FORA de ~/.hub,
-// para o hub desinstalar desfazer exatamente isso e deixar o computador como estava.
+// Progresso do muxor init (retoma do passo que falta) e o registro de tudo o que ele mudou FORA de ~/.muxor,
+// para o muxor desinstalar desfazer exatamente isso e deixar o computador como estava.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -7,7 +7,7 @@ export type Alteracao =
   | { tipo: 'gitconfig'; chave: string; valor: string } // linha includeIf no ~/.gitconfig
   | { tipo: 'launchagent'; plist: string; rotulo: string }
   | { tipo: 'keychain'; servico: string }
-  | { tipo: 'pasta'; caminho: string } // pasta criada pelo hub init (espaço, projeto sem repositório)
+  | { tipo: 'pasta'; caminho: string } // pasta criada pelo muxor init (espaço, projeto sem repositório)
   | { tipo: 'orca-repo'; pasta: string }
   | { tipo: 'telegram-bot'; usuario: string };
 

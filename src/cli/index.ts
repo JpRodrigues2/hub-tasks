@@ -1,21 +1,21 @@
-// Comando `hub` (terminal): a instalação e a manutenção do hub, fora do Telegram (O6).
-// Antes de carregar o hub, aponta para os dados certos: no Mac, ~/.hub (I5); no servidor, as variáveis do hub.service.
+// Comando `muxor` (terminal): a instalação e a manutenção do Muxor, fora do Telegram (O6).
+// Antes de carregar o Muxor, aponta para os dados certos: no Mac, ~/.muxor (I5); no servidor, as variáveis do hub.service.
 import { existsSync } from 'node:fs';
 import { userInfo } from 'node:os';
 import { join } from 'node:path';
 import { casaDoHub } from './casa.js';
 import { rodar, variaveisDoServico, type Modo } from './diagnostico.js';
 
-const AJUDA = `Uso: ./hub <comando>   (de dentro da pasta do hub)
+const AJUDA = `Uso: ./muxor <comando>   (de dentro da pasta do Muxor)
 
-  init                            Configura o hub neste computador, passo a passo (retoma de onde parou)
+  init                            Configura o Muxor neste computador, passo a passo (retoma de onde parou)
   init --refazer <passo>          Refaz a partir de um passo (pre, modo, ferramentas, espacos, repositorios,
                                   existentes, depara, telegram, orca, servico, teste)
   diagnostico [--json]            Confere a instalação e diz o próximo passo de cada problema
   adicionar github-workspace      Um espaço novo (outra conta do GitHub)
-  adicionar projeto               Traz para o hub projetos que já estão no Orca ou nas pastas dos espaços
-  adicionar heartbeat             Aviso externo se o hub cair (Healthchecks.io)
-  desinstalar                     Desfaz tudo o que o hub init fez neste usuário
+  adicionar projeto               Traz para o Muxor projetos que já estão no Orca ou nas pastas dos espaços
+  adicionar heartbeat             Aviso externo se o Muxor cair (Healthchecks.io)
+  desinstalar                     Desfaz tudo o que o muxor init fez neste usuário
 
 Guia completo: a pasta instalacao/ do repositório.`;
 
@@ -26,12 +26,12 @@ async function prepararServidor() {
   const r = await rodar('systemctl', ['show', 'hub.service', '-p', 'Environment', '--value']);
   if (r.ok && r.saida) for (const [k, v] of Object.entries(variaveisDoServico(r.saida))) process.env[k] ??= v;
   if (userInfo().username !== 'hub') {
-    console.error('No servidor, rode como o usuário hub (é ele quem lê a configuração):\n  sudo -u hub -i /home/hub/app/bin/hub.mjs <comando>');
+    console.error('No servidor, rode como o usuário hub (é ele quem lê a configuração):\n  sudo -u hub -i /home/hub/app/bin/muxor.mjs <comando>');
     process.exit(2);
   }
 }
 
-// No Mac: ~/.hub quando existe (ou quando o hub init vai criá-la); senão, a pasta do código, como na v1.
+// No Mac: ~/.muxor quando existe (ou quando o muxor init vai criá-la); senão, a pasta do código, como na v1.
 function prepararMac(criar: boolean) {
   if (process.env.HUB_DADOS_DIR || !(criar || existsSync(casa.dados))) return;
   process.env.HUB_DADOS_DIR = casa.dados;
@@ -100,10 +100,10 @@ async function adicionar(o: string | undefined) {
       if (modo !== 'local') return (console.error('No servidor, os projetos entram pelo Telegram, ao iniciar uma task.'), 2);
       const p = await import('./init/passos.js');
       const ctx = await contexto();
-      tela.abertura('Trazer projetos para o hub');
+      tela.abertura('Trazer projetos para o Muxor');
       await p.existentes(ctx);
       await p.dePara(ctx);
-      tela.fim('Pronto. Os projetos que entraram já recebem tasks; os que ficaram de fora o hub não toca.');
+      tela.fim('Pronto. Os projetos que entraram já recebem tasks; os que ficaram de fora o Muxor não toca.');
       return 0;
     }
     if (o === 'heartbeat') {
@@ -133,7 +133,7 @@ if (comando === 'diagnostico') {
   codigo = await diagnostico(resto.includes('--json'));
 } else if (comando === 'init') {
   if (modo !== 'local') {
-    console.error('No servidor, o hub init ainda não está pronto: siga instalacao/modo-servidor.md.');
+    console.error('No servidor, o muxor init ainda não está pronto: siga instalacao/modo-servidor.md.');
     codigo = 2;
   } else {
     prepararMac(true);

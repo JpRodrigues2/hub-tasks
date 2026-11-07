@@ -1,7 +1,7 @@
-# Heartbeat: aviso se o hub cair (opcional)
+# Heartbeat: aviso se o Muxor cair (opcional)
 
-A cada 5 minutos o hub avisa um serviço externo, o [Healthchecks.io](https://healthchecks.io), que está vivo. Se os
-avisos param (o Mac desligou, o hub travou), o Healthchecks avisa você por e-mail ou Telegram. Se o Orca cair com o
+A cada 5 minutos o Muxor avisa um serviço externo, o [Healthchecks.io](https://healthchecks.io), que está vivo. Se os
+avisos param (o Mac desligou, o Muxor travou), o Healthchecks avisa você por e-mail ou Telegram. Se o Orca cair com o
 hub de pé, o aviso também chega.
 
 1. Crie uma conta grátis em healthchecks.io.
@@ -9,7 +9,7 @@ hub de pé, o aviso também chega.
 3. Em **Integrations**, ligue o Telegram (Add Integration → Telegram) e/ou o e-mail.
 4. Copie o **Ping URL** do check: aparece na lista de checks e na página do check, em "How To Ping"
    (`https://hc-ping.com/<código>`). Não mande esse endereço por chat: quem tem o endereço manda avisos falsos.
-5. No Terminal, na pasta do hub: `./hub adicionar heartbeat` e cole o endereço.
+5. No Terminal, na pasta do Muxor: `./muxor adicionar heartbeat` e cole o endereço.
 
 Pronto: o "Hub online" no Telegram passa a dizer "heartbeat ligado", e o check fica verde em segundos.
 

@@ -1,11 +1,11 @@
 # Prompt: clonar os repositórios de cada espaço
 
-O `hub init` copia este pedido para a área de transferência, já com os seus espaços. Você cola no Claude Code
+O `muxor init` copia este pedido para a área de transferência, já com os seus espaços. Você cola no Claude Code
 (rodando `claude` numa janela nova do Terminal) e diz quais repositórios quer. Também dá para usar depois, para
 trazer mais repositórios.
 
 <!-- prompt -->
-Quero clonar repositórios do GitHub para usar com o Hub de Tasks. Cada pasta abaixo é um "espaço" ligado a uma conta
+Quero clonar repositórios do GitHub para usar com o Muxor. Cada pasta abaixo é um "espaço" ligado a uma conta
 do GitHub, e o git dentro dela já está configurado com a conta certa (nome, e-mail e credencial):
 
 {{ESPACOS}}

@@ -1,6 +1,6 @@
 # Pré-requisitos
 
-O que instalar antes do `hub init`. O próprio `hub init` confere cada item e diz o que falta.
+O que instalar antes do `muxor init`. O próprio `muxor init` confere cada item e diz o que falta.
 Para cada um: como instalar e como conferir que deu certo (o comando de conferir roda no app **Terminal**).
 
 | Programa | Como instalar | Como conferir |
@@ -15,8 +15,8 @@ Para cada um: como instalar e como conferir que deu certo (o comando de conferir
 | **Orca no celular** (opcional) | App Store ou Google Play: "Orca" | — |
 
 Notas:
-- **Não precisa de chave SSH.** O hub usa o login do GitHub pelo navegador, uma conta para cada espaço.
-- **O `gh` e o Claude Code que você já usa não mudam:** o hub guarda os logins dele à parte, em `~/.hub`.
+- **Não precisa de chave SSH.** O Muxor usa o login do GitHub pelo navegador, uma conta para cada espaço.
+- **O `gh` e o Claude Code que você já usa não mudam:** o Muxor guarda os logins dele à parte, em `~/.muxor`.
 - Se o Mac pedir permissão para o Terminal ou o Orca acessar pastas, aceite.
 
 Com tudo instalado, siga para o [modo local](modo-local.md).

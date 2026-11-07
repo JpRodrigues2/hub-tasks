@@ -32,7 +32,7 @@ export class CofreKeychain implements Cofre {
   }
 
   async salvar(id: string, c: Credencial) {
-    await security(['add-generic-password', '-U', '-s', this.servico, '-a', id, '-l', `Hub de Tasks: ${id}`, '-w', JSON.stringify(c)]);
+    await security(['add-generic-password', '-U', '-s', this.servico, '-a', id, '-l', `Muxor: ${id}`, '-w', JSON.stringify(c)]);
   }
 
   async remover(id: string) {

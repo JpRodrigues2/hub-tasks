@@ -1,4 +1,4 @@
-// Peças do hub init que mexem no computador: .env, registro de alterações, conta git por espaço, serviço do Mac
+// Peças do muxor init que mexem no computador: .env, registro de alterações, conta git por espaço, serviço do Mac
 // e o /start do Telegram. O git roda de verdade, num ~/.gitconfig temporário (GIT_CONFIG_GLOBAL).
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { esperarDono } from '../../src/cli/init/telegram.js';
 
 const raiz = mkdtempSync(join(tmpdir(), 'hub-init-'));
 
-describe('hub init: peças', () => {
+describe('muxor init: peças', () => {
   it('.env: troca, acrescenta e remove chaves mantendo comentários; modo 600', () => {
     const f = join(raiz, 'dados', '.env');
     gravarEnv(f, { A: '1', B: '2' });
@@ -34,7 +34,7 @@ describe('hub init: peças', () => {
     expect(lerEstado(f).alteracoes).toEqual([{ tipo: 'pasta', caminho: '/x' }]);
   });
 
-  it('conta git do espaço: vale só dentro da pasta, e o desinstalar tira só a linha do hub', async () => {
+  it('conta git do espaço: vale só dentro da pasta, e o desinstalar tira só a linha do Muxor', async () => {
     const global = join(raiz, 'gitconfig-global');
     writeFileSync(global, '[user]\n\tname = Dono do Mac\n');
     process.env.GIT_CONFIG_GLOBAL = global;
@@ -68,7 +68,7 @@ describe('hub init: peças', () => {
     expect(conteudoGitconfig({ nome: 'Ana "A"', email: 'a@b.c', gh: '/gh', ghConfig: '/c' })).toMatch(/name = "Ana \\"A\\""/);
   });
 
-  it('serviço do Mac: roda o código desta pasta com os dados em ~/.hub', () => {
+  it('serviço do Mac: roda o código desta pasta com os dados em ~/.muxor', () => {
     const plist = conteudoPlist({ node: '/usr/local/bin/node', repo: '/Users/x/hub', log: '/Users/x/.hub/dados/logs/servico.log', ambiente: { HUB_DADOS_DIR: '/Users/x/.hub/dados', PATH: '/a&b' } });
     expect(plist).toMatch(/<string>\/Users\/x\/hub\/src\/main\.ts<\/string>/);
     expect(plist).toMatch(/<key>HUB_DADOS_DIR<\/key><string>\/Users\/x\/\.hub\/dados<\/string>/);
@@ -92,6 +92,6 @@ describe('hub init: peças', () => {
     };
     expect(await esperarDono('123:abc', 10_000, buscar)).toEqual({ chatId: 42, nome: 'Ana' });
     expect(chamadas[1]).toMatch(/offset=6/);
-    expect(chamadas.at(-1)).toMatch(/offset=7/); // confirma a leitura: o hub não processa esse /start de novo
+    expect(chamadas.at(-1)).toMatch(/offset=7/); // confirma a leitura: o Muxor não processa esse /start de novo
   });
 });

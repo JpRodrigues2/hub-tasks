@@ -1,8 +1,8 @@
-// Onde o hub mora no Mac (modo local, I5): tudo em ~/.hub, fora da pasta do código. HUB_HOME troca a raiz (testes).
+// Onde o Muxor mora no Mac (modo local, I5): tudo em ~/.muxor, fora da pasta do código. HUB_HOME troca a raiz (testes).
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-export function casaDoHub(raiz = process.env.HUB_HOME ?? join(homedir(), '.hub')) {
+export function casaDoHub(raiz = process.env.HUB_HOME ?? join(homedir(), '.muxor')) {
   const dados = join(raiz, 'dados');
   return {
     raiz,

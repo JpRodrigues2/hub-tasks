@@ -1,4 +1,4 @@
-// Edita o .env do hub linha a linha: troca o valor da chave ou acrescenta no fim, mantendo comentários e a ordem.
+// Edita o .env do Muxor linha a linha: troca o valor da chave ou acrescenta no fim, mantendo comentários e a ordem.
 // O arquivo tem segredos: sempre modo 600, e nada daqui vai para log ou tela.
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -14,7 +14,7 @@ export function lerEnvArquivo(arquivo: string): Record<string, string> {
 }
 
 export function gravarEnv(arquivo: string, valores: Record<string, string | null>) {
-  const linhas = existsSync(arquivo) ? readFileSync(arquivo, 'utf8').replace(/\n$/, '').split('\n') : ['# .env do hub (gerado pelo hub init). Tem segredos: não compartilhe.'];
+  const linhas = existsSync(arquivo) ? readFileSync(arquivo, 'utf8').replace(/\n$/, '').split('\n') : ['# .env do Muxor (gerado pelo muxor init). Tem segredos: não compartilhe.'];
   for (const [k, v] of Object.entries(valores)) {
     if (/[\n\r]/.test(v ?? '')) throw new Error(`valor de ${k} com quebra de linha`);
     const i = linhas.findIndex((l) => l.startsWith(`${k}=`));

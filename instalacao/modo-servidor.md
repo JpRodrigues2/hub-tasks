@@ -1,12 +1,12 @@
-# Modo servidor: o hub num servidor seu (VPS)
+# Modo servidor: o Muxor num servidor seu (VPS)
 
-No modo servidor o hub e as sessões do Claude rodam 24 h num servidor seu; o Mac e o celular só acompanham. **O
-`hub init` para servidor ainda está em construção.** Hoje a instalação no servidor é guiada por scripts, e funciona
-(é como roda o hub do mantenedor).
+No modo servidor o Muxor e as sessões do Claude rodam 24 h num servidor seu; o Mac e o celular só acompanham. **O
+`muxor init` para servidor ainda está em construção.** Hoje a instalação no servidor é guiada por scripts, e funciona
+(é como roda o Muxor do mantenedor).
 
 ## O servidor
 
-O hub não cria o servidor: você cria, sozinho ou com o seu Claude Code. Requisitos:
+O Muxor não cria o servidor: você cria, sozinho ou com o seu Claude Code. Requisitos:
 
 | | Mínimo |
 |---|---|
@@ -24,10 +24,10 @@ ao seu Claude Code: "siga instalacao/modo-servidor.md e me ajude a entrar no meu
 ## Passos (hoje)
 
 1. Crie o servidor e entre nele por SSH.
-2. Baixe o hub: `git clone -b v2 https://github.com/JpRodrigues2/hub-tasks.git` e rode `sudo bash hub-tasks/deploy/preparar-vm.sh`.
+2. Baixe o Muxor: `git clone https://github.com/JpRodrigues2/muxor.git` e rode `sudo bash muxor/deploy/preparar-vm.sh`.
    Ele instala tudo (usuários, Node, Orca, Tailscale, firewall, serviços, cofre) e, no fim, lista o que só você faz:
    `tailscale up`, login do Claude, o `.env` e o pareamento do Mac e do celular.
-3. Confira com `sudo -u hub -i /home/hub/app/bin/hub.mjs diagnostico`.
+3. Confira com `sudo -u hub -i /home/hub/app/bin/muxor.mjs diagnostico`.
 
 ## Remover
 

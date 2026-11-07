@@ -1,5 +1,5 @@
-// O que todo passo do hub init recebe: onde o hub mora, o progresso, e como gravar o .env.
-// Carregado só depois de HUB_DADOS_DIR e DOTENV_CONFIG_PATH apontarem para ~/.hub (os módulos do hub leem ao carregar).
+// O que todo passo do muxor init recebe: onde o Muxor mora, o progresso, e como gravar o .env.
+// Carregado só depois de HUB_DADOS_DIR e DOTENV_CONFIG_PATH apontarem para ~/.muxor (os módulos do Muxor leem ao carregar).
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from '../../caminhos.js';
@@ -11,7 +11,7 @@ import { registrar, salvarEstado, type Alteracao, type Estado } from '../estado.
 export interface Ctx {
   casa: Casa;
   estado: Estado;
-  repo: string; // pasta do código do hub
+  repo: string; // pasta do código do Muxor
   salvar(): void;
   registrar(a: Alteracao): void;
   // Grava no .env e no processo (os adaptadores leem do processo).

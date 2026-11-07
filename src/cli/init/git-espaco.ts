@@ -1,7 +1,7 @@
 // Conta do GitHub por espaço (O4, O5, O8), sem chave SSH e sem mexer na configuração global do git do usuário além
-// de UMA linha includeIf por espaço (registrada para o hub desinstalar):
-//   ~/.gitconfig:          [includeIf "gitdir:<pasta do espaço>/"] path = ~/.hub/git/<id>.gitconfig
-//   ~/.hub/git/<id>.gitconfig: nome, e-mail e o gh daquele espaço como credencial do HTTPS do GitHub
+// de UMA linha includeIf por espaço (registrada para o muxor desinstalar):
+//   ~/.gitconfig:          [includeIf "gitdir:<pasta do espaço>/"] path = ~/.muxor/git/<id>.gitconfig
+//   ~/.muxor/git/<id>.gitconfig: nome, e-mail e o gh daquele espaço como credencial do HTTPS do GitHub
 // Assim, dentro da pasta do espaço, commit, push e clone usam a conta certa; fora dela, nada muda.
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -18,7 +18,7 @@ const aspas = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"
 
 export function conteudoGitconfig(c: ContaGit) {
   return [
-    '# Gerado pelo hub init: conta do GitHub deste espaço. O hub desinstalar apaga.',
+    '# Gerado pelo muxor init: conta do GitHub deste espaço. O muxor desinstalar apaga.',
     '[user]',
     `\tname = ${aspas(c.nome)}`,
     `\temail = ${aspas(c.email)}`,
@@ -46,6 +46,6 @@ export async function aplicarContaGit(arquivo: string, pastaEspaco: string, c: C
 }
 
 export async function removerContaGit(chave: string, valor: string) {
-  // --fixed-value: só a linha que o hub pôs, mesmo que haja outras com a mesma chave.
+  // --fixed-value: só a linha que o Muxor pôs, mesmo que haja outras com a mesma chave.
   await rodar('git', ['config', '--global', '--fixed-value', '--unset-all', chave, valor]);
 }

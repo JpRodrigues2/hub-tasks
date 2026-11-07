@@ -1,4 +1,4 @@
-// hub init (modo local): os passos em ordem, retomando do primeiro que falta. O progresso fica em ~/.hub/instalacao.json.
+// muxor init (modo local): os passos em ordem, retomando do primeiro que falta. O progresso fica em ~/.muxor/instalacao.json.
 import { lerEstado, type Estado } from '../estado.js';
 import type { Casa } from '../casa.js';
 import { Parou, tela } from '../tela.js';
@@ -14,7 +14,7 @@ interface Passo {
 
 const PASSOS: Passo[] = [
   { id: 'pre', titulo: 'Pré-requisitos', rodar: () => passos.preRequisitos(), sempre: true },
-  { id: 'modo', titulo: 'Onde o hub roda', rodar: (c) => passos.escolherModo(c) },
+  { id: 'modo', titulo: 'Onde o Muxor roda', rodar: (c) => passos.escolherModo(c) },
   { id: 'ferramentas', titulo: 'Ferramentas de gestão', rodar: async (c) => (c.estado.passos.ferramentasOk = JSON.stringify(await passos.ferramentas(c))) },
   { id: 'espacos', titulo: 'Espaços e contas do GitHub', rodar: (c) => passos.espacos(c) },
   { id: 'existentes', titulo: 'Projetos que você já tem no Orca', rodar: (c) => passos.existentes(c) },
@@ -36,9 +36,9 @@ export async function init(casa: Casa, refazer?: string) {
     for (const p of PASSOS.slice(PASSOS.findIndex((p) => p.id === refazer))) delete estado.passos[p.id];
   }
   const ctx = criarCtx(casa, estado);
-  tela.abertura('Hub de Tasks · configuração');
+  tela.abertura('Muxor · configuração');
   const feitos = PASSOS.filter((p) => estado.passos[p.id] && !p.sempre).length;
-  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Para refazer um passo: ./hub init --refazer <passo>)`);
+  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Para refazer um passo: ./muxor init --refazer <passo>)`);
   try {
     for (const [i, p] of PASSOS.entries()) {
       if (estado.passos[p.id] && !p.sempre) {
@@ -52,15 +52,15 @@ export async function init(casa: Casa, refazer?: string) {
     }
   } catch (e) {
     if (e instanceof Parou) {
-      tela.fim('Parei aqui. Rode `./hub init` de novo para continuar de onde parou.');
+      tela.fim('Parei aqui. Rode `./muxor init` de novo para continuar de onde parou.');
       return 1;
     }
     if (e instanceof passos.Interrompido) {
-      tela.fim('Rode `./hub init` de novo quando resolver: eu continuo deste passo.');
+      tela.fim('Rode `./muxor init` de novo quando resolver: eu continuo deste passo.');
       return 1;
     }
     tela.erro(`Erro inesperado: ${(e as Error).message}`);
-    tela.fim('Rode `./hub diagnostico` para ver o que falta, e `./hub init` de novo para continuar.');
+    tela.fim('Rode `./muxor diagnostico` para ver o que falta, e `./muxor init` de novo para continuar.');
     return 1;
   }
   passos.resumoFinal(JSON.parse(estado.passos.ferramentasOk ?? '[]'));

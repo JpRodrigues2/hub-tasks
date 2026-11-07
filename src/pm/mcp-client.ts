@@ -50,7 +50,7 @@ class FileOAuthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: 'Hub de Tasks',
+      client_name: 'Muxor',
       redirect_uris: [REDIRECT_URL],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
@@ -88,7 +88,7 @@ class FileOAuthProvider implements OAuthClientProvider {
   redirectToAuthorization(url: URL) {
     this.aoPedirLogin?.(url);
     if (!this.interactive) return;
-    console.log(`\nAbra no navegador para autorizar o hub:\n${url.toString()}\n`);
+    console.log(`\nAbra no navegador para autorizar o Muxor:\n${url.toString()}\n`);
     execFile('open', [url.toString()], () => {});
   }
 }
@@ -122,7 +122,7 @@ export type PmName = 'funifier-pm' | 'bnexo' | 'jira';
 
 export class PmLoginRequiredError extends Error {
   constructor(name: PmName) {
-    super(`${name}: login OAuth necessário — mande /pm_login no Telegram (ou rode \`npm run pm:login\` no computador do hub)`);
+    super(`${name}: login OAuth necessário — mande /pm_login no Telegram (ou rode \`npm run pm:login\` no computador do Muxor)`);
   }
 }
 
@@ -156,7 +156,7 @@ export async function connect(name: PmName, { interactive = true } = {}): Promis
 }
 
 // ─────────────── Login pelo celular (/pm_login no Telegram) ───────────────
-// No servidor não há navegador nem quem receba o retorno em localhost:53682. O hub devolve o link de login;
+// No servidor não há navegador nem quem receba o retorno em localhost:53682. O Muxor devolve o link de login;
 // o usuário entra no celular e cola o endereço de retorno (que dá erro na tela, mas traz o "code").
 // O PKCE protege o code: a troca exige o verifier, que nunca sai de <dados>/oauth.
 

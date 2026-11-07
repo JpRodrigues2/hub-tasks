@@ -38,7 +38,7 @@ function deps(o: Partial<DepsDiagnostico> = {}): DepsDiagnostico {
   };
 }
 
-describe('hub diagnostico', () => {
+describe('muxor diagnostico', () => {
   it('instalação completa: nada falha e o resumo diz "Tudo certo"', async () => {
     const itens = await diagnosticar(deps());
     expect(itens.filter((i) => i.estado === 'falha' || i.estado === 'aviso')).toEqual([]);
@@ -57,7 +57,7 @@ describe('hub diagnostico', () => {
     );
     const env = itens.find((i) => i.nome === '.env')!;
     expect(env).toMatchObject({ estado: 'falha', detalhe: '/hub/.env: TELEGRAM_BOT_TOKEN: falta' });
-    expect(env.proximo).toMatch(/\.\/hub init/);
+    expect(env.proximo).toMatch(/\.\/muxor init/);
     expect(itens.find((i) => i.nome === 'Claude Code')).toMatchObject({ estado: 'falha', proximo: expect.stringMatching(/pre-requisitos/) });
     // Sem .env, não tenta Telegram nem ferramentas, mas confere o catálogo.
     expect(itens.some((i) => i.grupo === 'Telegram')).toBe(false);

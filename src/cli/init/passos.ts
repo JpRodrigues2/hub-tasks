@@ -1,5 +1,5 @@
-// Os passos do hub init no modo local (docs/onboarding.md §4). Cada um confere de verdade antes de seguir e, se
-// falhar, diz o próximo passo. Tudo o que muda fora de ~/.hub fica registrado para o hub desinstalar.
+// Os passos do muxor init no modo local (docs/onboarding.md §4). Cada um confere de verdade antes de seguir e, se
+// falhar, diz o próximo passo. Tudo o que muda fora de ~/.muxor fica registrado para o muxor desinstalar.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
@@ -49,7 +49,7 @@ export async function preRequisitos() {
   if (!existsSync(ORCA_BIN)) faltando.push('Orca (app para Mac)');
   if (faltando.length) {
     tela.nota(faltando.map((f) => `• ${f}`).join('\n'), 'Falta instalar');
-    tela.info(`Como instalar cada um: ${GUIA}. Depois rode \`./hub init\` de novo: eu continuo daqui.`);
+    tela.info(`Como instalar cada um: ${GUIA}. Depois rode \`./muxor init\` de novo: eu continuo daqui.`);
     throw new Interrompido();
   }
   tela.ok('Node, git, gh, Claude Code (com login) e Orca instalados.');
@@ -67,7 +67,7 @@ export async function preRequisitos() {
 
 export async function escolherModo(ctx: Ctx): Promise<'local' | 'servidor'> {
   const modo = await tela.escolher(
-    'Onde o hub vai rodar?',
+    'Onde o Muxor vai rodar?',
     [
       { valor: 'local', rotulo: 'Neste Mac', dica: 'o Mac precisa ficar ligado para as tasks rodarem' },
       { valor: 'servidor', rotulo: 'Num servidor meu (VPS)', dica: 'roda 24 h; o Mac e o celular só acompanham' },
@@ -78,7 +78,7 @@ export async function escolherModo(ctx: Ctx): Promise<'local' | 'servidor'> {
   ctx.salvar();
   if (modo === 'servidor') {
     tela.nota(
-      'No modo servidor, o hub init roda no próprio servidor, depois de prepará-lo.\nSiga instalacao/modo-servidor.md: ele explica como criar o servidor, entrar por SSH e rodar o hub init lá.',
+      'No modo servidor, o muxor init roda no próprio servidor, depois de prepará-lo.\nSiga instalacao/modo-servidor.md: ele explica como criar o servidor, entrar por SSH e rodar o muxor init lá.',
       'Modo servidor',
     );
     throw new Interrompido();
@@ -101,7 +101,7 @@ async function tentar(nome: string, fn: () => Promise<string>): Promise<boolean>
 }
 
 export async function ferramentas(ctx: Ctx): Promise<Ferramenta[]> {
-  tela.info('O hub lê as suas tasks nas ferramentas de gestão. Marque as que você usa (espaço marca, Enter confirma). Dá para mudar depois pelo Telegram.');
+  tela.info('O Muxor lê as suas tasks nas ferramentas de gestão. Marque as que você usa (espaço marca, Enter confirma). Dá para mudar depois pelo Telegram.');
   const escolhidas = await tela.varios<Ferramenta>('Quais ferramentas de gestão você usa?', [
     { valor: 'funifier-pm', rotulo: 'Funifier PM' },
     { valor: 'bnexo', rotulo: 'Bnexo' },
@@ -114,12 +114,12 @@ export async function ferramentas(ctx: Ctx): Promise<Ferramenta[]> {
     HUB_COMENTARIOS_PM: 'false', // nunca comenta sem pedido (B02)
     ORCA_BIN,
   });
-  if (!escolhidas.length) tela.aviso('Sem ferramenta de gestão: o hub vai servir só para atividades avulsas (/nova no Telegram).');
+  if (!escolhidas.length) tela.aviso('Sem ferramenta de gestão: o Muxor vai servir só para atividades avulsas (/nova no Telegram).');
 
   const ok: Ferramenta[] = [];
   if (escolhidas.includes('funifier-pm')) {
     ctx.definirEnv({ FUNIFIER_PM_MCP_URL: 'https://pm-mcp.funifier.com/mcp' });
-    tela.info('Funifier PM: vou abrir o login no navegador. Entre com a sua conta, autorize o "Hub de Tasks" e volte aqui.');
+    tela.info('Funifier PM: vou abrir o login no navegador. Entre com a sua conta, autorize o "Muxor" e volte aqui.');
     const { connect } = await import('../../pm/mcp-client.js');
     const conectou = await tentar('Funifier PM', async () => {
       const c = await connect('funifier-pm', { interactive: true });
@@ -206,7 +206,7 @@ export async function novoEspaco(ctx: Ctx, usaFunifier: boolean) {
     ctx.registrar({ tipo: 'pasta', caminho: pasta });
   }
 
-  // Login do GitHub só deste espaço, guardado em ~/.hub (não mexe no gh nem no Keychain de quem já usa o Mac).
+  // Login do GitHub só deste espaço, guardado em ~/.muxor (não mexe no gh nem no Keychain de quem já usa o Mac).
   const ghConfig = ghDoEspaco(ctx.casa, id);
   mkdirSync(ghConfig, { recursive: true, mode: 0o700 });
   const ghEnv = { ...process.env, GH_CONFIG_DIR: ghConfig };
@@ -215,7 +215,7 @@ export async function novoEspaco(ctx: Ctx, usaFunifier: boolean) {
       `Login do GitHub do espaço "${nome}":`,
       '1. Vai aparecer um código de 8 letras (já copiado). Aperte Enter e o navegador abre no GitHub.',
       '2. Cole o código e autorize. Se o navegador estiver logado em OUTRA conta, troque de conta lá antes.',
-      '3. Se perguntar "Authenticate Git with your GitHub credentials?", responda N: o hub já faz isso só para esta pasta.',
+      '3. Se perguntar "Authenticate Git with your GitHub credentials?", responda N: o Muxor já faz isso só para esta pasta.',
     ].join('\n'),
     'GitHub',
   );
@@ -266,7 +266,7 @@ export async function novoEspaco(ctx: Ctx, usaFunifier: boolean) {
   tela.ok(`Espaço "${nome}" pronto.`);
 }
 
-// O `gh auth login` pode oferecer configurar o git do usuário inteiro (credential helper global). O hub configura só a
+// O `gh auth login` pode oferecer configurar o git do usuário inteiro (credential helper global). O Muxor configura só a
 // pasta do espaço; se algo novo apareceu na configuração global, tira (só o que entrou agora).
 const CHAVES_CREDENCIAL = ['credential.https://github.com.helper', 'credential.https://gist.github.com.helper'];
 
@@ -287,7 +287,7 @@ async function desfazerCredenciaisNovas(antes: Record<string, string[]>) {
     // Tira tudo da chave e devolve o que existia antes, na mesma ordem.
     await rodar('git', ['config', '--global', '--unset-all', k]);
     for (const v of antes[k]) await rodar('git', ['config', '--global', '--add', k, v]);
-    tela.info('O gh tinha mudado o ~/.gitconfig global: desfiz (o hub configura só a pasta do espaço).');
+    tela.info('O gh tinha mudado o ~/.gitconfig global: desfiz (o Muxor configura só a pasta do espaço).');
   }
 }
 
@@ -302,16 +302,16 @@ export async function existentes(ctx: Ctx) {
   tela.nota(
     [
       `Você já tem ${repos.length} projeto(s) no Orca. Para cada um, você decide:`,
-      '  • Trazer para o hub: ele entra no fluxo completo. O hub manda tasks para ele, abre sessões do Claude e',
+      '  • Trazer para o Muxor: ele entra no fluxo completo. O Muxor manda tasks para ele, abre sessões do Claude e',
       '    escreve nas sessões que já existem nessa pasta, e marca o status da área de trabalho no Orca.',
-      '  • Deixar de fora: o hub nunca toca nesse projeto nem nas sessões dele.',
-      'Dá para trazer mais depois: ./hub adicionar projeto',
+      '  • Deixar de fora: o Muxor nunca toca nesse projeto nem nas sessões dele.',
+      'Dá para trazer mais depois: ./muxor adicionar projeto',
     ].join('\n'),
     'Projetos que você já tem no Orca',
   );
   const espacoDaPasta = (p: string) => cat.espacos.find((e) => p.startsWith(e.pasta.replace(/\/+$/, '') + '/'));
   const escolhidos = await tela.varios(
-    'Quais trazer para o hub?',
+    'Quais trazer para o Muxor?',
     repos.map((r) => ({
       valor: r.path,
       rotulo: r.displayName || basename(r.path),
@@ -329,7 +329,7 @@ export async function existentes(ctx: Ctx) {
     const base = slug(basename(pasta)) || 'projeto';
     const nome = atuais.some((a) => a.app === base) ? `${base}-${slug(e.id)}` : base;
     adicionarApp({ app: nome, espaco: e.id, ferramenta: 'nenhuma', pasta, projeto: null });
-    tela.ok(`${nome} entrou no hub (espaço ${nomeEspaco(e)}).`);
+    tela.ok(`${nome} entrou no Muxor (espaço ${nomeEspaco(e)}).`);
   }
 }
 
@@ -347,7 +347,7 @@ export async function repositorios(ctx: Ctx) {
   await rodar('sh', ['-c', `printf %s "$1" | pbcopy`, 'sh', prompt]);
   tela.nota(
     [
-      'Agora traga os repositórios que você quer trabalhar com o hub. Quem clona é o seu Claude Code:',
+      'Agora traga os repositórios que você quer trabalhar com o Muxor. Quem clona é o seu Claude Code:',
       '1. Abra uma janela nova do Terminal (Cmd+N) e rode: claude',
       '2. Cole (Cmd+V): o pedido já está copiado. Diga quais repositórios de cada conta você quer.',
       '3. Quando ele terminar, volte para esta janela.',
@@ -382,11 +382,11 @@ export async function dePara(ctx: Ctx) {
     for (const [projetoId, p] of projetos) {
       const cat = loadCatalogo();
       if (cat.apps.some((a) => a.ferramenta === pm.nome && a.projetos_na_ferramenta.includes(projetoId))) continue;
-      // Os projetos que já estão no hub (trazidos do Orca ou de antes) e as pastas dos espaços que ainda não estão.
+      // Os projetos que já estão no Muxor (trazidos do Orca ou de antes) e as pastas dos espaços que ainda não estão.
       const jaNoHub = cat.apps.filter((a) => a.ferramenta === pm.nome || a.ferramenta === 'nenhuma');
       const pastasHub = new Set(cat.apps.map((a) => a.pasta));
       const opcoes = [
-        ...jaNoHub.map((a) => ({ valor: `app|${a.app}`, rotulo: `${a.app} (já no hub)`, dica: a.pasta })),
+        ...jaNoHub.map((a) => ({ valor: `app|${a.app}`, rotulo: `${a.app} (já no Muxor)`, dica: a.pasta })),
         ...cat.espacos.flatMap((e) => subpastas(e.pasta).filter((n) => !pastasHub.has(join(e.pasta, n))).map((n) => ({ valor: `${e.id}|${n}`, rotulo: `${nomeEspaco(e)} / ${n}` }))),
       ];
       const escolha = await tela.escolher(`${nomeFer} · "${p.nome}" (${p.n} task(s), ex.: ${p.exemplo.slice(0, 50)}): em qual pasta roda?`, [
@@ -431,10 +431,10 @@ function ligar(apps: App[], o: { espaco: string; pasta: string; ferramenta: Ferr
 // ───────────────────────── 8. Telegram ─────────────────────────
 
 export async function telegram(ctx: Ctx) {
-  await pararServico(); // com o hub rodando, o Telegram não deixa outro programa ler as mensagens do bot
+  await pararServico(); // com o Muxor rodando, o Telegram não deixa outro programa ler as mensagens do bot
   tela.nota(
     [
-      'O hub fala com você por um bot do Telegram só seu. Para criar:',
+      'O Muxor fala com você por um bot do Telegram só seu. Para criar:',
       '1. Abra o BotFather (link e QR abaixo) e mande /newbot',
       '2. Escolha um nome (ex.: Meu Hub) e um usuário terminado em "bot" (ex.: meuhub_tasks_bot)',
       '3. Ele responde com um token (123456789:ABC…). Copie o token inteiro.',
@@ -458,7 +458,7 @@ export async function telegram(ctx: Ctx) {
     const dono = await tela.esperando('Esperando o seu /start no bot…', () => esperarDono(token), (d) => `Mensagem recebida de ${d.nome}`);
     if (await tela.sim(`É você (${dono.nome})? Só esta conversa vai poder usar o hub.`)) {
       ctx.definirEnv({ TELEGRAM_CHAT_ID: String(dono.chatId) });
-      await mandar(token, dono.chatId, '✅ Hub conectado. Volte ao terminal para terminar a configuração.');
+      await mandar(token, dono.chatId, '✅ Muxor conectado. Volte ao terminal para terminar a configuração.');
       ctx.registrar({ tipo: 'telegram-bot', usuario: bot.usuario });
       tela.ok('Telegram pronto: chegou uma mensagem de confirmação no bot.');
       return;
@@ -480,7 +480,7 @@ const aparelhosMoveis = () => {
 export async function orca() {
   tela.nota(
     [
-      'O hub abre as sessões do Claude com --permission-mode auto (o Claude pede aprovação só para o arriscado).',
+      'O Muxor abre as sessões do Claude com --permission-mode auto (o Claude pede aprovação só para o arriscado).',
       'Recomendado também para as sessões que você abrir à mão no Orca:',
       '  Orca → Settings → Agents → Claude → Launch arguments: --permission-mode auto',
     ].join('\n'),
@@ -499,7 +499,7 @@ export async function orca() {
   );
   await tela.enter('Quando o celular aparecer conectado no Orca, aperte Enter');
   if (aparelhosMoveis() > antes) tela.ok('Celular pareado com o Orca.');
-  else tela.aviso('Não vi um celular novo no Orca. Dá para parear depois, pelo mesmo caminho; o resto do hub não depende disso.');
+  else tela.aviso('Não vi um celular novo no Orca. Dá para parear depois, pelo mesmo caminho; o resto do Muxor não depende disso.');
 }
 
 // ───────────────────────── 10. Serviço ─────────────────────────
@@ -516,7 +516,7 @@ export async function servico(ctx: Ctx) {
   mkdirSync(ctx.casa.logs, { recursive: true });
   const caminho = [dirname(process.execPath), join(homedir(), '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
   const plist = await tela.esperando(
-    'Instalando o hub como serviço do Mac…',
+    'Instalando o Muxor como serviço do Mac…',
     () =>
       instalarServico(
         conteudoPlist({
@@ -526,15 +526,15 @@ export async function servico(ctx: Ctx) {
           ambiente: { HUB_DADOS_DIR: ctx.casa.dados, DOTENV_CONFIG_PATH: ctx.casa.env, PATH: [...new Set(caminho)].join(':'), HOME: homedir(), LANG: 'pt_BR.UTF-8' },
         }),
       ),
-    () => 'Serviço instalado: o hub sobe sozinho quando você entra no Mac',
+    () => 'Serviço instalado: o Muxor sobe sozinho quando você entra no Mac',
   );
   ctx.registrar({ tipo: 'launchagent', plist, rotulo: ROTULO });
   ctx.registrar({ tipo: 'keychain', servico: process.env.HUB_KEYCHAIN_SERVICO ?? 'hub-tasks' });
-  const subiu = await tela.esperando('Esperando o hub ficar online…', () => esperarOnline(ctx), (ok) => (ok ? 'Hub online (chegou o aviso no Telegram)' : 'O hub não ficou online'));
+  const subiu = await tela.esperando('Esperando o Muxor ficar online…', () => esperarOnline(ctx), (ok) => (ok ? 'Muxor online (chegou o aviso no Telegram)' : 'O Muxor não ficou online'));
   if (!subiu) {
     const fim = existsSync(log) ? readFileSync(log, 'utf8').split('\n').slice(-12).join('\n') : '(sem log)';
     tela.nota(fim, `Últimas linhas de ${log}`);
-    tela.info('Rode `./hub diagnostico` para ver o que falta. Depois, `./hub init` continua daqui.');
+    tela.info('Rode `./muxor diagnostico` para ver o que falta. Depois, `./muxor init` continua daqui.');
     throw new Interrompido();
   }
 }
@@ -552,12 +552,12 @@ async function esperarOnline(ctx: Ctx, limiteMs = 90_000) {
 // ───────────────────────── 11. Teste de ponta a ponta ─────────────────────────
 
 export async function teste() {
-  tela.info('Último passo: uma task de teste no sandbox, de ponta a ponta. O Claude abre no Orca, responde e o hub avisa no Telegram.');
+  tela.info('Último passo: uma task de teste no sandbox, de ponta a ponta. O Claude abre no Orca, responde e o Muxor avisa no Telegram.');
   const { openDb } = await import('../../db.js');
   const db = openDb();
   const agora = new Date().toISOString();
   const taskId = `teste-init-${Date.now()}`;
-  const titulo = 'Teste do hub init: responda só com o bloco de resultado, sem alterar nada';
+  const titulo = 'Teste do muxor init: responda só com o bloco de resultado, sem alterar nada';
   const id = db.transaction(() => {
     db.prepare(
       `INSERT INTO tasks_vistas (ferramenta, task_id, espaco, titulo, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
@@ -571,7 +571,7 @@ export async function teste() {
     db.prepare("INSERT INTO fila (app, selecao_id, criado_em) VALUES ('sandbox', ?, ?)").run(sel, agora);
     return sel;
   })();
-  tela.info('Na primeira vez numa pasta, o Claude pergunta se confia nela: o hub avisa no Telegram, e você responde "Yes" no Orca.');
+  tela.info('Na primeira vez numa pasta, o Claude pergunta se confia nela: o Muxor avisa no Telegram, e você responde "Yes" no Orca.');
   const estado = await tela.esperando(
     'Rodando a task de teste (até 5 min)…',
     async () => {
@@ -588,7 +588,7 @@ export async function teste() {
   );
   db.close();
   if (estado !== 'concluido') {
-    tela.aviso('A task de teste não terminou. Veja o que o hub disse no Telegram e rode `./hub diagnostico`. Rodar `./hub init` de novo refaz este teste.');
+    tela.aviso('A task de teste não terminou. Veja o que o Muxor disse no Telegram e rode `./muxor diagnostico`. Rodar `./muxor init` de novo refaz este teste.');
     throw new Interrompido();
   }
 }
@@ -602,11 +602,11 @@ export function resumoFinal(ferramentasOk: string[]) {
     ...(ferramentasOk.includes('funifier-pm') ? ['  /gamificacoes  cadastre as credenciais das gamificações da Funifier'] : []),
     '',
     'No terminal:',
-    '  ./hub diagnostico              confere tudo e diz o próximo passo',
-    '  ./hub adicionar github-workspace   outro espaço (outra conta do GitHub)',
-    '  ./hub adicionar projeto        traz mais projetos (do Orca ou das pastas) para o hub',
-    '  ./hub adicionar heartbeat      aviso se o hub cair (opcional)',
-    '  ./hub desinstalar              desfaz tudo o que o hub init fez',
+    '  ./muxor diagnostico              confere tudo e diz o próximo passo',
+    '  ./muxor adicionar github-workspace   outro espaço (outra conta do GitHub)',
+    '  ./muxor adicionar projeto        traz mais projetos (do Orca ou das pastas) para o Muxor',
+    '  ./muxor adicionar heartbeat      aviso se o Muxor cair (opcional)',
+    '  ./muxor desinstalar              desfaz tudo o que o muxor init fez',
     '',
     'Na primeira task de cada projeto o Claude pergunta se confia na pasta: responda "Yes" no Orca.',
   ];

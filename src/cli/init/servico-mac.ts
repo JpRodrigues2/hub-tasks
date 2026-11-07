@@ -1,11 +1,11 @@
-// O hub como serviço no Mac (LaunchAgent): sobe sozinho quando a pessoa entra no Mac e volta se cair.
-// Roda o código desta pasta (sem build) com os dados em ~/.hub.
+// O Muxor como serviço no Mac (LaunchAgent): sobe sozinho quando a pessoa entra no Mac e volta se cair.
+// Roda o código desta pasta (sem build) com os dados em ~/.muxor.
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import { rodar } from '../diagnostico.js';
 
-export const ROTULO = 'dev.hub-tasks.hub';
+export const ROTULO = 'br.com.muxor';
 export const plistDoServico = () => join(homedir(), 'Library', 'LaunchAgents', `${ROTULO}.plist`);
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

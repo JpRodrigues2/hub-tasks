@@ -1,4 +1,4 @@
-// A conversa do hub init no terminal (O17): mensagens objetivas, sem omitir detalhes. Cada passo diz o que vai
+// A conversa do muxor init no terminal (O17): mensagens objetivas, sem omitir detalhes. Cada passo diz o que vai
 // acontecer, o que a pessoa faz, como saber que deu certo e, no erro, o próximo passo.
 // Links aparecem como texto, com QR code (para o celular) e, no Mac, abrem no navegador quando a pessoa quer.
 import * as p from '@clack/prompts';

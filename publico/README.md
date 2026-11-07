@@ -1,4 +1,4 @@
-# Hub de Tasks
+# Muxor
 
 Lê as suas tasks nas ferramentas de gestão (Funifier PM, Bnexo, Jira), manda a lista no Telegram e despacha as que
 você escolher para sessões do Claude Code no Orca. Avisa quando a sessão termina ou precisa de você, e dá para

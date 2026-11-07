@@ -1,6 +1,6 @@
-// `./hub diagnostico`: confere cada peça da instalação e diz o próximo passo (O17). É a base do `./hub init`, que
+// `./muxor diagnostico`: confere cada peça da instalação e diz o próximo passo (O17). É a base do `./muxor init`, que
 // usa as mesmas conferências para marcar cada passo, e o que o agente de IA do usuário lê para ajudar (`--json`).
-// Só lê: não muda nada e não renova logins (uma renovação aqui invalidaria a do hub rodando).
+// Só lê: não muda nada e não renova logins (uma renovação aqui invalidaria a do Muxor rodando).
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -70,7 +70,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
   add(PRE, 'Modo', 'info', d.modo === 'local' ? 'local (este computador)' : 'servidor');
   const node = process.version;
   if (versaoNode(node) >= 22) add(PRE, 'Node', 'ok', node);
-  else add(PRE, 'Node', 'falha', `${node}; o hub precisa do 22 ou mais novo`, `Instale o Node 22 (${guia})`);
+  else add(PRE, 'Node', 'falha', `${node}; o Muxor precisa do 22 ou mais novo`, `Instale o Node 22 (${guia})`);
 
   const git = await d.rodar('git', ['--version']);
   if (git.ok) add(PRE, 'git', 'ok', git.saida.replace('git version ', ''));
@@ -94,7 +94,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
     add(CONF, '.env', 'ok', `válido (${d.arquivoEnv})`);
   } catch (e) {
     const msg = (e as Error).message.replace(/^\.env inválido — /, '');
-    add(CONF, '.env', 'falha', `${d.arquivoEnv}: ${msg}`, 'Rode `./hub init` (ou corrija o .env indicado)');
+    add(CONF, '.env', 'falha', `${d.arquivoEnv}: ${msg}`, 'Rode `./muxor init` (ou corrija o .env indicado)');
   }
 
   // ── Telegram
@@ -110,7 +110,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
   const FER = 'Ferramentas de gestão';
   if (env) {
     const nenhuma = !env.FUNIFIER_PM_MCP_URL && !env.BNEXO_MCP_URL && !env.JIRA_URL;
-    if (nenhuma) add(FER, 'Nenhuma', 'aviso', 'nenhuma ferramenta configurada: só atividades avulsas (/nova)', 'Rode `./hub init` para escolher as ferramentas');
+    if (nenhuma) add(FER, 'Nenhuma', 'aviso', 'nenhuma ferramenta configurada: só atividades avulsas (/nova)', 'Rode `./muxor init` para escolher as ferramentas');
     if (env.FUNIFIER_PM_MCP_URL) {
       const login = existsSync(join(d.caminhos.dados, 'oauth', 'funifier-pm.json'));
       add(FER, 'Funifier PM', login ? 'ok' : 'falha', login ? 'login salvo' : 'sem login', login ? undefined : 'Mande /pm_login no Telegram');
@@ -153,11 +153,11 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
     cat = await d.carregarCatalogo();
   } catch (e) {
     const msg = (e as Error).message;
-    if (/formato antigo/.test(msg)) add(CAT, 'apps.yaml', 'aviso', 'formato antigo (com "empresa"); o hub converte para espaços sozinho ao iniciar', 'Inicie o hub uma vez (npm start) e rode o diagnóstico de novo');
-    else add(CAT, 'apps.yaml', 'falha', msg, 'Corrija o apps.yaml indicado, ou rode `./hub init`');
+    if (/formato antigo/.test(msg)) add(CAT, 'apps.yaml', 'aviso', 'formato antigo (com "empresa"); o Muxor converte para espaços sozinho ao iniciar', 'Inicie o Muxor uma vez (npm start) e rode o diagnóstico de novo');
+    else add(CAT, 'apps.yaml', 'falha', msg, 'Corrija o apps.yaml indicado, ou rode `./muxor init`');
   }
   if (cat) {
-    if (!cat.espacos.length) add(CAT, 'Espaços', 'falha', 'nenhum espaço', 'Rode `./hub adicionar github-workspace`');
+    if (!cat.espacos.length) add(CAT, 'Espaços', 'falha', 'nenhum espaço', 'Rode `./muxor adicionar github-workspace`');
     for (const e of cat.espacos) {
       const projetos = cat.apps.filter((a) => a.espaco === e.id).length;
       const pasta = existsSync(e.pasta);
@@ -166,7 +166,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
         `Espaço ${e.nome ?? e.id}`,
         pasta ? (e.github ? 'ok' : 'aviso') : 'falha',
         `${e.pasta} · ${projetos} projeto(s)${e.github ? ` · GitHub ${e.github}` : ' · sem conta do GitHub'}`,
-        !pasta ? `A pasta não existe: crie-a ou corrija o apps.yaml` : e.github ? undefined : 'Rode `./hub adicionar github-workspace` para ligar a conta',
+        !pasta ? `A pasta não existe: crie-a ou corrija o apps.yaml` : e.github ? undefined : 'Rode `./muxor adicionar github-workspace` para ligar a conta',
       );
     }
     const semPasta = cat.apps.filter((a) => !existsSync(a.pasta));
@@ -176,7 +176,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
       try {
         const noOrca = new Set(await d.reposNoOrca(env));
         const fora = cat.apps.filter((a) => existsSync(a.pasta) && !noOrca.has(a.pasta));
-        if (fora.length) add(CAT, 'Projetos no Orca', 'info', `ainda não abertos no Orca: ${fora.map((a) => a.app).join(', ')} (o hub adiciona no primeiro despacho)`);
+        if (fora.length) add(CAT, 'Projetos no Orca', 'info', `ainda não abertos no Orca: ${fora.map((a) => a.app).join(', ')} (o Muxor adiciona no primeiro despacho)`);
         else add(CAT, 'Projetos no Orca', 'ok', 'todos abertos no Orca');
       } catch {
         // Orca fora do ar já aparece acima.
@@ -204,7 +204,7 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
     const cofre = existsSync(join(d.caminhos.dados, 'cofre.enc'));
     add(SRV, 'Cofre', cofre ? 'ok' : 'info', cofre ? 'cofre.enc existe (só o hub.service abre)' : 'vazio: as credenciais entram pelo /gamificacoes');
   } else {
-    add(SRV, 'Serviço', 'info', 'no Mac o hub ainda sobe com `npm start`; o `./hub init` vai instalá-lo como serviço');
+    add(SRV, 'Serviço', 'info', 'no Mac o Muxor ainda sobe com `npm start`; o `./muxor init` vai instalá-lo como serviço');
   }
   if (env) {
     add(
@@ -221,7 +221,7 @@ const ICONE: Record<Estado, string> = { ok: '✅', aviso: '⚠️ ', falha: '❌
 
 // Saída para pessoas: por grupo, uma linha por item e o próximo passo embaixo; no fim, o resumo.
 export function formatarTexto(itens: Item[]): string {
-  const L: string[] = ['Diagnóstico do hub', ''];
+  const L: string[] = ['Diagnóstico do Muxor', ''];
   let grupo = '';
   for (const i of itens) {
     if (i.grupo !== grupo) {

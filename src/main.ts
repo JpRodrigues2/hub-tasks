@@ -148,7 +148,7 @@ await bot.start({
     void notificador.enviar(
       cartao({
         icone: ICONE.status,
-        titulo: 'Hub online',
+        titulo: 'Muxor online',
         contexto: [esc(hostname()), ...(VERSAO ? [`versão ${VERSAO}`] : []), `broker ${env.HUB_BROKER}`, `heartbeat ${env.HUB_HEARTBEAT_URL ? 'ligado' : 'desligado'}`, ativos ? `retomando ${ativos} task(s)` : 'nada rodando'],
       }),
     );

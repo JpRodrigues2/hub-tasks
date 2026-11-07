@@ -1,5 +1,5 @@
-// Telegram no hub init: confere o token do bot e descobre o chat do dono pelo /start, antes do serviço subir
-// (com o hub rodando, o getUpdates daria conflito). O token nunca vai para a tela nem para log.
+// Telegram no muxor init: confere o token do bot e descobre o chat do dono pelo /start, antes do serviço subir
+// (com o Muxor rodando, o getUpdates daria conflito). O token nunca vai para a tela nem para log.
 export type BuscarTg = (url: string, init?: RequestInit) => Promise<Response>;
 
 const api = (token: string, metodo: string) => `https://api.telegram.org/bot${token}/${metodo}`;
@@ -29,7 +29,7 @@ export async function esperarDono(token: string, limiteMs = 5 * 60_000, buscar: 
       offset = u.update_id + 1;
       const c = u.message?.chat;
       if (c?.type === 'private') {
-        // Confirma a leitura, para o hub não processar este /start de novo quando subir.
+        // Confirma a leitura, para o Muxor não processar este /start de novo quando subir.
         await buscar(`${api(token, 'getUpdates')}?offset=${offset}&timeout=0`).catch(() => {});
         return { chatId: c.id, nome: c.first_name ?? 'você' };
       }

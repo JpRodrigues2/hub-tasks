@@ -10,9 +10,9 @@ ORIG="$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)"
 
 # O que entra (caminhos do repositório de desenvolvimento).
 ENTRA=(
-  src bin hub deploy tests scripts instalacao
+  src bin muxor deploy tests scripts instalacao
   regras/modelo.md
-  .claude/skills/instalar-hub
+  .claude/skills/instalar-muxor
   package.json package-lock.json tsconfig.json vitest.config.ts
   .github/workflows/ci.yml
   .env.example .gitignore

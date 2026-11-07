@@ -1,5 +1,5 @@
 {
-  "name": "hub",
+  "name": "muxor",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "despacho:teste": "tsx scripts/despacho-teste.ts",
     "test": "vitest run",
     "check": "tsc --noEmit -p . && vitest run",
-    "hub": "node bin/hub.mjs"
+    "muxor": "node bin/muxor.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
@@ -34,6 +34,6 @@
     "vitest": "^3.2.7"
   },
   "bin": {
-    "hub": "bin/hub.mjs"
+    "muxor": "bin/muxor.mjs"
   }
 }
