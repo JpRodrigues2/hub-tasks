@@ -604,6 +604,7 @@ export function resumoFinal(ferramentasOk: string[]) {
     'No terminal:',
     '  ./hub diagnostico              confere tudo e diz o próximo passo',
     '  ./hub adicionar github-workspace   outro espaço (outra conta do GitHub)',
+    '  ./hub adicionar projeto        traz mais projetos (do Orca ou das pastas) para o hub',
     '  ./hub adicionar heartbeat      aviso se o hub cair (opcional)',
     '  ./hub desinstalar              desfaz tudo o que o hub init fez',
     '',
