@@ -207,13 +207,23 @@ export async function novoEspaco(ctx: Ctx, usaFunifier: boolean) {
   const ghConfig = ghDoEspaco(ctx.casa, id);
   mkdirSync(ghConfig, { recursive: true, mode: 0o700 });
   const ghEnv = { ...process.env, GH_CONFIG_DIR: ghConfig };
-  tela.info(
-    `Login do GitHub do espaço "${nome}". Vai aparecer um código de 8 letras; o navegador abre na página do GitHub: cole o código e autorize.\nSe o navegador já estiver logado em OUTRA conta, troque de conta lá antes de autorizar.`,
+  tela.nota(
+    [
+      `Login do GitHub do espaço "${nome}":`,
+      '1. Vai aparecer um código de 8 letras (já copiado). Aperte Enter e o navegador abre no GitHub.',
+      '2. Cole o código e autorize. Se o navegador estiver logado em OUTRA conta, troque de conta lá antes.',
+      '3. Se perguntar "Authenticate Git with your GitHub credentials?", responda N: o hub já faz isso só para esta pasta.',
+    ].join('\n'),
+    'GitHub',
   );
   for (;;) {
+    const antes = await credenciaisGlobais();
     const code = await new Promise<number>((ok) =>
-      spawn('gh', ['auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web', '--insecure-storage'], { stdio: 'inherit', env: ghEnv }).on('exit', (c) => ok(c ?? 1)),
+      spawn('gh', ['auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web', '--clipboard', '--insecure-storage'], { stdio: 'inherit', env: ghEnv }).on('exit', (c) =>
+        ok(c ?? 1),
+      ),
     );
+    await desfazerCredenciaisNovas(antes); // se o gh mexeu no ~/.gitconfig global, volta como estava
     if (code === 0) break;
     tela.erro('O login do GitHub não terminou.');
     if (!(await tela.sim('Tentar de novo?'))) throw new Interrompido();
@@ -251,6 +261,31 @@ export async function novoEspaco(ctx: Ctx, usaFunifier: boolean) {
   }
   salvarEspaco({ id, nome, pasta, github: u.login, gh_config: ghConfig, ...(regras === 'nenhuma' ? { regras: 'nenhuma' } : {}), gamificacao });
   tela.ok(`Espaço "${nome}" pronto.`);
+}
+
+// O `gh auth login` pode oferecer configurar o git do usuário inteiro (credential helper global). O hub configura só a
+// pasta do espaço; se algo novo apareceu na configuração global, tira (só o que entrou agora).
+const CHAVES_CREDENCIAL = ['credential.https://github.com.helper', 'credential.https://gist.github.com.helper'];
+
+async function credenciaisGlobais() {
+  const out: Record<string, string[]> = {};
+  for (const k of CHAVES_CREDENCIAL) {
+    const r = await rodar('git', ['config', '--global', '--get-all', k]);
+    out[k] = r.ok ? r.saida.split('\n') : [];
+  }
+  return out;
+}
+
+async function desfazerCredenciaisNovas(antes: Record<string, string[]>) {
+  const depois = await credenciaisGlobais();
+  for (const k of CHAVES_CREDENCIAL) {
+    const novas = depois[k].filter((v) => !antes[k].includes(v));
+    if (!novas.length) continue;
+    // Tira tudo da chave e devolve o que existia antes, na mesma ordem.
+    await rodar('git', ['config', '--global', '--unset-all', k]);
+    for (const v of antes[k]) await rodar('git', ['config', '--global', '--add', k, v]);
+    tela.info('O gh tinha mudado o ~/.gitconfig global: desfiz (o hub configura só a pasta do espaço).');
+  }
 }
 
 // ───────────────────────── 5. Repositórios (pelo Claude Code do usuário) ─────────────────────────

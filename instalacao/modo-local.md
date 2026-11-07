@@ -29,7 +29,7 @@ novo: ele continua do passo que falta.
 | 1 | Pré-requisitos | Nada, se estiver tudo instalado; o Orca é aberto sozinho | — |
 | 2 | Onde roda | Escolhe "Neste Mac" | — |
 | 3 | Ferramentas de gestão | Marca as que usa e faz o login de cada uma | Funifier PM: login no navegador. Bnexo: endereço e token do MCP. Jira: endereço do site, e-mail e API token (a página de criar abre sozinha) |
-| 4 | Espaços | Para cada conta do GitHub: nome, pasta, login no navegador (com um código de 8 letras), nome e e-mail dos commits, regras de trabalho | As senhas do GitHub |
+| 4 | Espaços | Para cada conta do GitHub: nome, pasta, login no navegador (com um código de 8 letras), nome e e-mail dos commits, regras de trabalho. Se o GitHub perguntar "Authenticate Git with your GitHub credentials?", responda **N**: o hub já faz isso só para a pasta do espaço | As senhas do GitHub |
 | 5 | Repositórios | Cola no seu Claude Code o pedido que o hub copiou e diz quais repositórios quer | — |
 | 6 | Projetos → pastas | Para cada projeto das ferramentas, escolhe a pasta (ou cria uma sem repositório, ou deixa para depois) | — |
 | 7 | Telegram | Cria um bot no BotFather, cola o token e manda /start para ele | O celular com o Telegram |
