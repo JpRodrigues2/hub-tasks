@@ -5,7 +5,7 @@ Code, peça para ele seguir esta pasta (`instalacao/`): ela responde sozinha as 
 
 ## O que é o Muxor
 
-O Muxor lê as suas tasks nas ferramentas de gestão (Funifier PM, Bnexo, Jira) e manda a lista no Telegram. Você escolhe
+O Muxor lê as suas tasks nas suas ferramentas de gestão (como o Jira) e manda a lista no Telegram. Você escolhe
 as tasks, ele escreve as instruções e abre uma sessão do Claude Code no Orca, na pasta do projeto. Quando a sessão
 termina ou precisa de você, ele avisa no Telegram. Dá para acompanhar e responder pelo celular.
 

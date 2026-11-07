@@ -1,6 +1,6 @@
 // Página principal do Muxor: mesma estrutura do onorca.dev (cabeçalho fixo, hero com dois botões e o comando,
 // faixa "funciona com", abas de recursos, seções, perguntas e chamada final), com o conteúdo e as cores do Muxor.
-import { ArrowRight, BellRing, Boxes, FolderGit2, Laptop, ListTree, Lock, Server, ShieldCheck, Smartphone, Stethoscope, Terminal } from 'lucide-react';
+import { ArrowRight, BellRing, Boxes, Eye, FolderGit2, Layers, Laptop, MapPin, Lock, Server, ShieldCheck, Smartphone, Stethoscope, Terminal } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Abas } from '@/components/abas';
@@ -60,10 +60,10 @@ function Hero() {
       <div aria-hidden className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-poeira/10 blur-[120px]" />
       <div className="site-container grid items-center gap-12 md:grid-cols-[1.25fr_1fr]">
         <Revelar>
-          <h1 className="text-display text-balance">Suas tasks, despachadas para o Claude Code.</h1>
+          <h1 className="text-display text-balance">Levante da cadeira. Suas tasks continuam andando.</h1>
           <p className="text-lede mt-6 max-w-[40rem] text-balance text-suave">
-            O Muxor lê suas tasks no Funifier PM, no Bnexo e no Jira, manda a lista no Telegram e coloca o Claude Code para
-            trabalhar no Orca. Você escolhe, ele despacha e avisa quando termina, e você responde até pelo celular.
+            Escolha as tasks do dia pelo celular e o Claude Code começa a trabalhar nelas. Você vê o código sendo escrito ao
+            vivo, responde quando ele precisar e abre o PR de onde estiver. Mais entregas, sem ficar preso ao computador.
           </p>
           <div id="instalar" className="mt-8 flex max-w-lg flex-col gap-2.5">
             <a
@@ -94,7 +94,7 @@ function Hero() {
   );
 }
 
-const NOMES = ['Claude Code', 'Orca', 'Telegram', 'GitHub', 'Jira', 'Funifier PM', 'Bnexo', 'macOS', 'Linux'];
+const NOMES = ['Claude Code', 'Orca', 'Telegram', 'GitHub', 'Jira', 'MCP', 'macOS', 'Linux'];
 
 function FuncionaCom() {
   return (
@@ -140,23 +140,23 @@ function Tela({ linhas }: { linhas: ReactNode[] }) {
 const ABAS = [
   {
     nome: 'Listagem',
-    titulo: 'A sua lista, igual à do PM',
-    texto: 'Um projeto por mensagem, na mesma ordem e hierarquia da ferramenta: a sprint, a task pai e as subtarefas. Toque no número para marcar.',
+    titulo: 'Planeje o dia em 30 segundos',
+    texto: 'Suas tasks chegam no Telegram na mesma ordem da sprint, com as subtarefas. Toque nas que quer entregar hoje. Nada de abrir o board, copiar a descrição e colar no terminal.',
     quadro: (
       <Chat
         linhas={[
           <Msg key="1">
-            <b>📋 App de Gamificação</b>
+            <b>📋 App de Pedidos</b>
             <br />
-            <span className="text-suave">Funifier PM · 3 tasks</span>
+            <span className="text-suave">Sprint 14 · 3 tasks</span>
             <br />
             <br />
             🗓 <b>Novembro</b>
-            <br />✅ /t1 Ranking semanal
+            <br />✅ /t1 Checkout com Pix
             <br />
-            {'   '}↳ ⬜ /t2 Ajustar pontuação
+            {'   '}↳ ⬜ /t2 Validar CPF no cadastro
             <br />
-            {'   '}↳ ⬜ /t3 Testes do ranking
+            {'   '}↳ ⬜ /t3 Testes do checkout
           </Msg>,
           <div key="2" className="flex gap-2 text-[12px]">
             <span className="rounded-md bg-botao px-2.5 py-1.5 font-semibold text-botao-texto">▶️ Iniciar</span>
@@ -168,39 +168,39 @@ const ABAS = [
   },
   {
     nome: 'Despacho',
-    titulo: 'Escolheu, despachou',
-    texto: 'O Muxor escreve as instruções, abre uma sessão do Claude Code na pasta certa e muda o status da task para "em progresso". Tasks que se complementam vão em lote, numa sessão só.',
+    titulo: 'Um toque e o trabalho começa',
+    texto: 'O Muxor monta o contexto da task, abre o Claude Code no projeto certo e já atualiza o status no board. Enquanto uma task roda, você despacha a próxima: várias frentes andando ao mesmo tempo.',
     quadro: (
       <Tela
         linhas={[
           <span key="1" className="text-suave">
-            {'# Orca · app-gamificacao\n'}
+            {'# Orca · app-pedidos\n'}
           </span>,
           '> Leia e execute a task descrita em runs/42.md\n\n',
           <span key="2" className="text-dourado">
-            {'⏺ Vou ajustar o cálculo do ranking semanal…\n'}
+            {'⏺ Vou criar o fluxo de pagamento com Pix…\n'}
           </span>,
-          '  ✔ src/ranking.ts\n  ✔ testes passando\n',
+          '  ✔ src/checkout/pix.ts\n  ✔ testes passando\n',
         ]}
       />
     ),
   },
   {
     nome: 'Avisos',
-    titulo: 'Ele avisa quando precisa de você',
-    texto: 'Quando a sessão termina, trava ou pergunta algo, chega no Telegram com o contexto. Você responde, pede um ajuste ou abre o PR com um toque.',
+    titulo: 'Você só é chamado quando importa',
+    texto: 'Chega de olhar o terminal esperando terminar. Quando o Claude tem uma dúvida ou conclui, você recebe no Telegram com o contexto e resolve ali: responde, pede ajuste ou abre o PR.',
     quadro: (
       <Chat
         linhas={[
           <Msg key="1">
-            🙋 <b>Ranking semanal</b> precisa de você
+            🙋 <b>Checkout com Pix</b> precisa de você
             <br />
-            <span className="text-suave">“Uso a tabela nova ou a antiga?”</span>
+            <span className="text-suave">“Guardo o QR Code ou gero a cada pedido?”</span>
           </Msg>,
           <Msg key="2">
-            ✅ <b>Ranking semanal</b> concluída
+            ✅ <b>Checkout com Pix</b> concluída
             <br />
-            <span className="text-suave">branch feat/ranking · 3 arquivos</span>
+            <span className="text-suave">branch feat/checkout-pix · 4 arquivos</span>
           </Msg>,
           <div key="3" className="flex flex-wrap gap-2 text-[12px]">
             <span className="rounded-md border border-borda px-2.5 py-1.5">💬 Instrução</span>
@@ -213,14 +213,14 @@ const ABAS = [
   },
   {
     nome: 'Espaços',
-    titulo: 'Cada conta do GitHub no seu espaço',
-    texto: 'Trabalho e pessoal sem misturar: cada espaço é uma pasta ligada a uma conta do GitHub. Commit, push e PR saem sempre pela conta certa, sem chave SSH.',
+    titulo: 'Trabalho e pessoal, sem acidente',
+    texto: 'Cada espaço tem a sua conta do GitHub. Commit, push e PR saem sempre pela conta certa, sem chave SSH e sem nunca mais subir código pessoal no repositório da empresa.',
     quadro: (
       <Tela
         linhas={[
           <span key="1" className="text-suave">{'~/Documents\n'}</span>,
           '├── EMPRESA/   ', <span key="2" className="text-dourado">{'→ conta do trabalho\n'}</span>,
-          '│   ├── app-gamificacao\n│   └── painel\n',
+          '│   ├── app-pedidos\n│   └── painel\n',
           '└── PESSOAL/   ', <span key="3" className="text-dourado">{'→ conta pessoal\n'}</span>,
           '    └── laboratorio\n',
         ]}
@@ -229,8 +229,8 @@ const ABAS = [
   },
   {
     nome: 'Celular',
-    titulo: 'Acompanhe de qualquer lugar',
-    texto: 'Pelo app do Orca no celular, pareado pelo Relay, você vê a sessão rodando e responde de qualquer rede. No modo servidor, tudo continua com o Mac desligado.',
+    titulo: 'O terminal no seu bolso',
+    texto: 'Não é só um aviso de pronto. Pelo app do Orca você assiste à sessão ao vivo, arquivo por arquivo, de qualquer rede. No modo servidor, o trabalho continua até com o Mac desligado.',
     quadro: (
       <Chat
         linhas={[
@@ -246,14 +246,14 @@ const ABAS = [
   },
   {
     nome: 'Diagnóstico',
-    titulo: 'Configuração guiada, diagnóstico de um comando',
+    titulo: 'Pronto em minutos, sem adivinhação',
     texto: 'O muxor init configura tudo no terminal, passo a passo, e retoma de onde parou. O muxor diagnostico confere cada peça e diz o próximo passo.',
     quadro: (
       <Tela
         linhas={[
           <span key="1" className="text-suave">{'$ muxor diagnostico\n\n'}</span>,
           <span key="2" className="text-ok">{'  ✅ '}</span>, 'Bot: @meu_muxor_bot\n',
-          <span key="3" className="text-ok">{'  ✅ '}</span>, 'Funifier PM: login salvo\n',
+          <span key="3" className="text-ok">{'  ✅ '}</span>, 'Jira: conectado\n',
           <span key="4" className="text-ok">{'  ✅ '}</span>, 'Orca: versão 1.4\n',
           <span key="5" className="text-dourado">{'  ⚠️  '}</span>, 'Espaço Pessoal: sem conta do GitHub\n',
           '       → muxor adicionar github-workspace\n',
@@ -267,8 +267,8 @@ function Recursos() {
   return (
     <section id="como-funciona" className="site-container mt-20 scroll-mt-24 md:mt-28">
       <Revelar>
-        <h2 className="text-heading text-balance text-center">Do PM ao pull request.</h2>
-        <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">O caminho inteiro de uma task, sem você abrir cada ferramenta.</p>
+        <h2 className="text-heading text-balance text-center">Do board ao pull request.</h2>
+        <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">Você decide o que fazer. O Muxor cuida do resto e só chama você quando faz diferença.</p>
       </Revelar>
       <Revelar className="mt-12" atraso={100}>
         <Abas abas={ABAS} />
@@ -277,11 +277,42 @@ function Recursos() {
   );
 }
 
+// Por que instalar: o ganho, antes de como funciona.
+function Ganhos() {
+  const itens = [
+    { icone: Layers, titulo: 'Mais entregas por dia', texto: 'Várias tasks rodando em paralelo enquanto você revisa outra. Você para de esperar o Claude e passa a coordenar.' },
+    { icone: MapPin, titulo: 'Trabalhe de onde estiver', texto: 'Do café, da fila, do sofá. Escolher, responder e aprovar cabe no celular; o computador faz o trabalho pesado.' },
+    { icone: Eye, titulo: 'Sem perder o controle', texto: 'Você vê cada mudança no código enquanto ela acontece. Nada vira concluído ou PR sem o seu sim.' },
+  ];
+  return (
+    <section className="site-container mt-20 md:mt-28">
+      <Revelar>
+        <h2 className="text-heading text-balance">O seu tempo vale mais do que vigiar um terminal.</h2>
+        <p className="text-lede mt-5 max-w-2xl text-suave">
+          O Claude Code já escreve o código. O que trava o seu dia é ficar na frente da tela abrindo task, colando contexto e
+          esperando ele terminar. O Muxor tira você dessa fila.
+        </p>
+      </Revelar>
+      <div className="mt-10 grid gap-4 md:grid-cols-3">
+        {itens.map((x, i) => (
+          <Revelar key={x.titulo} atraso={i * 120}>
+            <div className="h-full rounded-xl border border-borda bg-superficie p-6">
+              <x.icone className="h-6 w-6 text-dourado" />
+              <h3 className="mt-4 text-lg font-medium tracking-[-0.01em]">{x.titulo}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-suave">{x.texto}</p>
+            </div>
+          </Revelar>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Passos() {
   const passos = [
-    { icone: ListTree, titulo: 'As suas ferramentas', texto: 'Funifier PM, Bnexo e Jira. O Muxor lê só as tasks atribuídas a você.' },
-    { icone: IconeTelegram, titulo: 'A lista no Telegram', texto: 'Um bot só seu. Você escolhe as tasks e dá o contexto que faltar, com texto, foto ou arquivo.' },
-    { icone: Terminal, titulo: 'O Claude trabalhando', texto: 'Uma sessão do Claude Code no Orca, na pasta do projeto, com as regras de trabalho do espaço.' },
+    { icone: IconeTelegram, titulo: 'Escolha pelo celular', texto: 'A lista das suas tasks chega num bot só seu. Escolha as do dia e mande o contexto que faltar: texto, foto ou arquivo.' },
+    { icone: Terminal, titulo: 'O Claude trabalha', texto: 'Cada task vira uma sessão do Claude Code no projeto certo, seguindo as suas regras de trabalho.' },
+    { icone: FolderGit2, titulo: 'Você revisa e entrega', texto: 'Ele avisa quando termina. Você confere, pede ajuste ou abre o PR, de onde estiver.' },
   ];
   return (
     <section className="site-container mt-20 md:mt-32">
@@ -366,9 +397,9 @@ function Seguranca() {
 }
 
 const PERGUNTAS = [
-  ['O que é o Muxor?', 'Um "estagiário" que liga as suas ferramentas de gestão ao Claude Code: lê suas tasks, manda a lista no Telegram, despacha as escolhidas para sessões do Claude no Orca e avisa você do andamento.'],
+  ['O que é o Muxor?', 'Um estagiário para o seu Claude Code: pega as tasks do seu board, coloca o Claude para trabalhar nelas e mantém você no controle pelo celular. Você decide e revisa; ele cuida do resto.'],
   ['Preciso do Orca?', 'Sim. O Orca é quem roda as sessões do Claude Code e deixa você acompanhar pelo celular. Ele é gratuito.'],
-  ['Quais ferramentas de gestão funcionam?', 'Funifier PM, Bnexo e Jira (Cloud). Você escolhe na instalação e pode mudar depois. Sem nenhuma, dá para usar só as atividades avulsas (/nova).'],
+  ['Quais ferramentas de gestão funcionam?', 'Jira (Cloud) e ferramentas com integração por MCP; a lista completa está na documentação. Você escolhe na instalação e pode mudar depois. Sem nenhuma, dá para usar só as atividades avulsas (/nova).'],
   ['Funciona com mais de uma conta do GitHub?', 'Sim. Cada espaço é uma pasta ligada a uma conta: o trabalho sai pela conta do trabalho, o pessoal pela pessoal.'],
   ['Preciso deixar o Mac ligado?', 'No modo local, sim. No modo servidor, o Muxor roda 24 h numa VPS sua e o Mac vira só uma janela.'],
   ['Ele mexe nas minhas tasks?', 'Só no status: "em progresso" ao despachar e "concluída" com o seu Sim. Nunca comenta nem põe em revisão sem você pedir.'],
@@ -405,7 +436,7 @@ function ChamadaFinal() {
           <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[640px] -translate-x-1/2 rounded-full bg-nebulosa/10 blur-[100px]" />
           <Image src="/muxor.png" alt="O estagiário do Muxor" width={653} height={1100} className="mx-auto h-auto w-[120px] md:w-[140px]" />
           <h2 className="text-heading mt-6 text-balance">Contrate o seu estagiário.</h2>
-          <p className="text-lede mx-auto mt-4 max-w-xl text-suave">Um comando no terminal e o muxor init cuida do resto.</p>
+          <p className="text-lede mx-auto mt-4 max-w-xl text-suave">Instale em minutos e deixe a próxima task começar sem você na cadeira.</p>
           <div className="mx-auto mt-8 max-w-md">
             <ComandoInstalar comando={INSTALAR} />
           </div>
@@ -469,6 +500,7 @@ export default function Pagina() {
       <main>
         <Hero />
         <FuncionaCom />
+        <Ganhos />
         <Recursos />
         <Passos />
         <Modos />
