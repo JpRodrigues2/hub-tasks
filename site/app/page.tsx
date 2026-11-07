@@ -4,6 +4,7 @@ import { ArrowRight, BellRing, Boxes, Eye, FolderGit2, Layers, Laptop, MapPin, L
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Abas } from '@/components/abas';
+import { Fluxo } from '@/components/fluxo';
 import { ComandoInstalar } from '@/components/copiar';
 import { IconeGitHub, IconeTelegram } from '@/components/icones';
 import { Revelar } from '@/components/revelar';
@@ -271,6 +272,9 @@ function Recursos() {
         <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">Você decide o que fazer. O Muxor cuida do resto e só chama você quando faz diferença.</p>
       </Revelar>
       <Revelar className="mt-12" atraso={100}>
+        <Fluxo />
+      </Revelar>
+      <Revelar className="mt-16" atraso={100}>
         <Abas abas={ABAS} />
       </Revelar>
     </section>

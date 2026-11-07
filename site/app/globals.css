@@ -141,3 +141,11 @@ summary {
     animation: none;
   }
 }
+
+/* Diagrama de "Como funciona": a luz da sessão pisca; sem animação para quem pediu menos movimento. */
+.fluxo-pisca { animation: fluxo-pisca 1.6s ease-in-out infinite; }
+@keyframes fluxo-pisca { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .fluxo-ponto { display: none; }
+  .fluxo-pisca { animation: none; }
+}
