@@ -20,7 +20,8 @@ Detalhes e pendências em [plano](plano.md).
 | 5 | [decisões](decisoes.md) | Tudo o que foi decidido (D-S, D-A) e o que está em aberto |
 | 6 | [segurança](seguranca.md) | Credenciais: o risco, o cofre e o broker |
 | 7 | [servidor](servidor.md) | A VM da Oracle: o que existe, como operar, testes e atritos |
-| 8 | [app universal](app-universal.md) | O produto para outros colaboradores e o onboarding (`hub init`) |
+| 8 | [app universal](app-universal.md) | O produto para outros colaboradores e as decisões do onboarding (O1–O15) |
+| 9 | [onboarding](onboarding.md) | O desenho do `hub init`: pasta `instalacao/`, comandos, espaços, passos e o teste do zero |
 | — | [referência dos MCPs](referencia/mcp-ferramentas-de-gestao.md) | Tools e status do Funifier PM e do Bnexo (para mexer em `src/pm/`) |
 | — | [estudo/](estudo/) | Material de estudo do João: [fundamentos](estudo/fundamentos.md) (comece por aqui), [etapa 1](estudo/etapa-1.md), [arquitetura](estudo/arquitetura.md), [broker](estudo/broker.md), [infra em nuvem](estudo/infra-nuvem.md) |
 
