@@ -57,7 +57,7 @@ export interface DadosPrompt {
 }
 
 // Prompt da task (ou do lote). Sem nome de branch (a sessão escolhe) e sem apontar para repositório de contexto:
-// o contexto é o da própria sessão. As regras de trabalho vêm de regras/<empresa>.md.
+// o contexto é o da própria sessão. As regras de trabalho vêm de regras/<nome>.md (do espaço ou do projeto).
 export function escreverPrompt(d: DadosPrompt): string {
   const { app } = d;
   const lote = d.tasks.length > 1;
@@ -108,7 +108,7 @@ export function escreverPrompt(d: DadosPrompt): string {
     L.push('');
   }
 
-  if (app.empresa === 'funifier') {
+  if (app.gamificacao) {
     if (d.gamificacoes.length) {
       L.push('## Gamificações autorizadas', '');
       for (const g of d.gamificacoes)
@@ -126,7 +126,7 @@ export function escreverPrompt(d: DadosPrompt): string {
     }
   }
 
-  L.push(...blocoRegras(app.empresa));
+  L.push(...blocoRegras(app.regras));
   if (lote) L.push('No bloco de encerramento, use um único bloco para o lote e diga no `resumo` o que foi feito em cada task.', '');
   L.push(...blocoEncerramento(String(d.selecaoId)));
 
@@ -152,8 +152,8 @@ function blocoBroker() {
   ];
 }
 
-function blocoRegras(empresa: App['empresa']) {
-  const regras = regrasParaPrompt(empresa);
+function blocoRegras(nome: App['regras']) {
+  const regras = regrasParaPrompt(nome);
   return regras ? ['## Regras de trabalho', '', regras, ''] : [];
 }
 
@@ -230,7 +230,7 @@ export function escreverSeguimento(d: DadosSeguimento): string {
 
   if (d.broker && d.app.gamificacoes?.length) L.push(...blocoBroker());
   else if (d.credenciais) L.push(...blocoCredenciais(d.credenciais));
-  L.push(...blocoRegras(d.app.empresa));
+  L.push(...blocoRegras(d.app.regras));
   L.push(...blocoEncerramento(tag));
   mkdirSync(RUNS_DIR, { recursive: true });
   const arquivo = join(RUNS_DIR, `${d.selecaoId}-${d.rodada}.md`);

@@ -38,7 +38,7 @@ celular com o Mac desligado e continua a mesma sessão pelo Mac; nenhuma credenc
 1. **Hexagonal, o resto:** `gamificacoes`, `regras`, `projetos`, `login-pm` e `confirmacao` no Notificador; botões
    com formato tipado; Presenter e eventos de domínio quando houver um segundo chat.
 2. **Prisma + SQLite** (D-A13), com o teste P1.
-3. **Empresas e ferramentas fora do código** (I3, I4); dados fora do repositório também no Mac (I5).
+3. ✔️ **Empresas e ferramentas fora do código** (I3, I4, B34); dados fora do repositório no Mac (I5) vão com o `hub init`.
 4. **Pacote do onboarding** ([app universal](app-universal.md#3-onboarding-hub-init)): `hub init`, escolha das
    ferramentas de gestão, identidade do Git, documento de requisitos da VPS e a listagem igual ao PM (B20).
 5. **Jira** (D-A16).
@@ -57,8 +57,8 @@ O que impede entregar o hub a outras pessoas, levantado em 30/10/2026.
 |---|---|---|
 | I1 | Sem testes automatizados | ✔️ 96 testes |
 | I2 | Depende do texto da tela do Claude Code | ✔️ estado e resultado pelo Orca; a tela só para o limite de uso (06/11) |
-| I3 | Bnexo obrigatório para o hub iniciar | ⬜ (etapa 2) |
-| I4 | Empresas `funifier`/`dac` fixas no código | ⬜ (etapa 2) |
+| I3 | Bnexo obrigatório para o hub iniciar | ✔️ cada ferramenta liga só se configurada (B34) |
+| I4 | Empresas `funifier`/`dac` fixas no código | ✔️ espaços no `apps.yaml` (B34) |
 | I5 | Código e dados na mesma pasta | 🔄 separados no servidor; no Mac ainda juntos |
 | I6 | Sem instalação nem serviço | 🔄 systemd no servidor; falta o `hub init` |
 | I7 | Sem versões nem distribuição | 🔄 repositório no GitHub; falta distribuição |

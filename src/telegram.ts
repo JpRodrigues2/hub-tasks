@@ -17,6 +17,7 @@ import { instalarRegistro, limparMensagens } from './mensagens.js';
 import { Projetos } from './projetos.js';
 import { ConfirmadorTelegram } from './confirmacao.js';
 import { Regras } from './regras.js';
+import { NOME_FERRAMENTA } from './dominio/selecao.js';
 import { ICONE, cartao } from './msg.js';
 import { escapeHtml } from './resumo.js';
 
@@ -34,7 +35,7 @@ const DA_FUNIFIER = [
 export const DO_MENU = [
   { command: 'status', description: 'Orca, ferramentas, fila e despachos' },
   { command: 'projetos', description: 'Projetos que entram na listagem' },
-  { command: 'regras', description: 'Regras de trabalho por empresa' },
+  { command: 'regras', description: 'Regras de trabalho por espaço' },
   { command: 'limpar', description: 'Limpa a conversa' },
   { command: 'limpar_runs', description: 'Apaga os arquivos de instruções (runs/)' },
 ];
@@ -44,8 +45,8 @@ export function comandosDaLista(o: { funifier: boolean }) {
   return [...PRINCIPAIS, ...(o.funifier ? DA_FUNIFIER : []), MENU];
 }
 
-// A Funifier entra quando algum app do catálogo é dela (empresa ou ferramenta).
-export const temFunifier = () => loadCatalogo().apps.some((a) => a.empresa === 'funifier' || a.ferramenta === 'funifier-pm');
+// A Funifier entra quando algum app usa as gamificações dela ou o Funifier PM.
+export const temFunifier = () => loadCatalogo().apps.some((a) => a.gamificacao || a.ferramenta === 'funifier-pm');
 
 const linhaComando = (c: { command: string; description: string }) => `/${c.command} — ${escapeHtml(c.description)}`;
 const LEGENDA = [
@@ -122,7 +123,9 @@ export function instalarBot(bot: Bot, deps: Deps) {
   selecao.configurar.onDespachar = (id) => despacho.despachar.enfileirar(id);
 
   bot.command('tarefas', async (ctx) => {
-    await ctx.reply('🔎 Buscando suas tasks no Funifier PM e no Bnexo…');
+    const nomes = deps.adapters.map((a) => NOME_FERRAMENTA[a.nome] ?? a.nome);
+    await ctx.reply(nomes.length ? `🔎 Buscando suas tasks no ${nomes.join(' e no ')}…` : '⚠️ Nenhuma ferramenta de gestão configurada. Use /nova para atividades avulsas.');
+    if (!nomes.length) return;
     await selecao.resumo.enviar('manual');
   });
 
@@ -250,7 +253,7 @@ async function montarStatus({ env, db, orca, adapters }: Deps): Promise<string> 
       const foraOrca = comProjeto.filter((a) => !reposOrca!.has(a.pasta)).map((a) => a.app);
       if (foraOrca.length) catalogo.push(`${ICONE.aviso} fora do Orca: ${escapeHtml(foraOrca.join(', '))}`);
     }
-    const semGamif = comProjeto.filter((a) => a.empresa === 'funifier' && !a.gamificacoes?.length).length;
+    const semGamif = comProjeto.filter((a) => a.gamificacao && !a.gamificacoes?.length).length;
     if (semGamif) catalogo.push(`${semGamif} apps da Funifier sem gamificação vinculada (despacham com aviso)`);
   } catch (e) {
     catalogo.push(`🔴 ${escapeHtml((e as Error).message)}`);

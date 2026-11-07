@@ -1,15 +1,16 @@
 // Caso de uso: configurar a task pela conversa até "aguardando_despacho". Uma task por vez.
 //
-// callback_data  s:<selecao>:<acao>[:arg]  pular, ok, outro, emp:<empresa>, app:<nome>, g:<i>, gok, gnova, gsem,
-//                                          amb:existente|novo, aemp:<empresa>, agit:url|pasta, desp, reset, cancel
+// callback_data  s:<selecao>:<acao>[:arg]  pular, ok, outro, esp:<espaço>, app:<nome>, g:<i>, gok, gnova, gsem,
+//                                          amb:existente|novo, aesp:<espaço>, agit:url|pasta, desp, reset, cancel
 //
 // Task de ferramenta: info → destino → (alvo) → confirmar
-// Atividade avulsa (/nova, B13): instrucoes → info → empresa → escolher_app → (alvo) → confirmar
+// Atividade avulsa (/nova, B13): instrucoes → info → espaco → escolher_app → (alvo) → confirmar
+// (alvo) só quando o app usa gamificações da Funifier.
 // Lote: a líder passa pela conversa uma vez pelo lote todo; as outras têm lote_de = líder e acompanham o estado dela.
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { CAMINHOS } from '../../caminhos.js';
-import type { App, Catalogo, Gamificacao } from '../../config.js';
+import { espacoDe, nomeEspaco, type App, type Catalogo, type Gamificacao } from '../../config.js';
 import { acaoValida, type Selecao } from '../../dominio/selecao.js';
 import { log } from '../../logger.js';
 import { vincular } from '../../mensagens.js';
@@ -26,10 +27,13 @@ function tituloDe(instrucoes: string) {
   return l.length > 80 ? l.slice(0, 79) + '…' : l;
 }
 
-// Avulsa escolhe empresa e app; task de ferramenta já tem app sugerido.
+// Avulsa escolhe espaço e app; task de ferramenta já tem app sugerido.
 function depoisDaInfo(s: { ferramenta: string }) {
-  return s.ferramenta === 'avulsa' ? 'empresa' : 'destino';
+  return s.ferramenta === 'avulsa' ? 'espaco' : 'destino';
 }
+
+// Depois de escolher o app: o alvo (gamificações) só se o app usa a Funifier.
+const depoisDoApp = (app: App | undefined) => (app?.gamificacao ? 'alvo' : 'confirmar');
 
 // Durante a etapa "alvo", selecoes.gamificacoes guarda os NOMES marcados; na confirmação, os objetos completos.
 function gamifsMarcadas(s: Selecao, gamifs: Gamificacao[]): Set<string> {
@@ -84,8 +88,15 @@ export class ConfigurarSelecao {
       case 'instrucoes':
         return perguntar('O que o Claude deve fazer?', { rodape: 'Mande as instruções em texto. A primeira linha vira o título.', teclado: [cancelarTask(s.id)] });
 
-      case 'empresa':
-        return perguntar('Em qual empresa?', { teclado: [[b('Funifier', 'emp:funifier'), b('DAC', 'emp:dac')], cancelarTask(s.id)] });
+      case 'espaco': {
+        if (cat.espacos.length === 1) {
+          this.d.selecoes.definirEspaco(s.ferramenta, s.task_id, cat.espacos[0].id);
+          this.atualizar(s.id, { etapa: 'escolher_app', app: null });
+          return this.proximaPergunta();
+        }
+        if (!cat.espacos.length) return perguntar('Nenhum espaço configurado', { rodape: 'Rode o hub init no terminal para criar um.', teclado: [cancelarTask(s.id)] });
+        return perguntar('Em qual espaço?', { teclado: [...this.botoesEspacos(cat, b, 'esp'), cancelarTask(s.id)] });
+      }
 
       case 'info':
         return perguntar('Algo a acrescentar?', {
@@ -123,11 +134,17 @@ export class ConfigurarSelecao {
           teclado: [[b('📁 Usar app existente', 'amb:existente')], [b('🆕 Criar ambiente novo', 'amb:novo')], cancelarTask(s.id)],
         });
 
-      case 'amb_empresa':
-        return perguntar('Em qual empresa criar a pasta?', {
-          corpo: [`<code>${esc(join(CAMINHOS.repos, 'FUNIFIER'))}</code> ou <code>${esc(join(CAMINHOS.repos, 'DAC'))}</code>`],
-          teclado: [[b('Funifier', 'aemp:funifier'), b('DAC', 'aemp:dac')], cancelarTask(s.id)],
+      case 'amb_espaco': {
+        if (cat.espacos.length === 1) {
+          this.atualizar(s.id, { etapa: 'amb_nome', ambiente: JSON.stringify({ espaco: cat.espacos[0].id }) });
+          return this.proximaPergunta();
+        }
+        if (!cat.espacos.length) return perguntar('Nenhum espaço configurado', { rodape: 'Rode o hub init no terminal para criar um.', teclado: [cancelarTask(s.id)] });
+        return perguntar('Em qual espaço criar a pasta?', {
+          corpo: cat.espacos.map((e) => `${esc(nomeEspaco(e))}: <code>${esc(e.pasta)}</code>`),
+          teclado: [...this.botoesEspacos(cat, b, 'aesp'), cancelarTask(s.id)],
         });
+      }
 
       case 'amb_nome':
         return perguntar('Nome do diretório?', {
@@ -136,9 +153,9 @@ export class ConfigurarSelecao {
         });
 
       case 'amb_git': {
-        const amb = JSON.parse(s.ambiente ?? '{}') as { empresa: string; nome: string };
+        const amb = JSON.parse(s.ambiente ?? '{}') as { espaco: string; nome: string };
         return perguntar('Tem URL do Git para clonar?', {
-          corpo: [campo('Pasta', `<code>${esc(pastaAmbiente(amb))}</code>`)],
+          corpo: [campo('Pasta', `<code>${esc(pastaAmbiente(cat, amb))}</code>`)],
           rodape: 'Sem URL eu crio a pasta com um git só local (sem remoto), que o Orca exige.',
           teclado: [[b('🔗 Tenho a URL', 'agit:url'), b('📁 Só criar a pasta', 'agit:pasta')], cancelarTask(s.id)],
         });
@@ -148,16 +165,14 @@ export class ConfigurarSelecao {
         return perguntar('Qual a URL do Git?', { rodape: 'HTTPS ou SSH. Uso o acesso ao Git que já existe no computador.', teclado: [cancelarTask(s.id)] });
 
       case 'escolher_app': {
-        const empresa = this.conversa.task(s).empresa;
-        const apps = cat.apps.filter((a) =>
-          s.ferramenta === 'avulsa' ? a.empresa === empresa : s.ferramenta === 'teste' ? a.ferramenta === 'teste' : a.empresa === empresa && a.ferramenta !== 'teste',
-        );
+        const apps = cat.apps.filter((a) => this.appServe(s, a));
         const linhas: Teclado = [];
         apps.forEach((a, i) => {
           if (i % 2 === 0) linhas.push([]);
           linhas.at(-1)!.push(b(a.app === s.app ? `• ${a.app}` : a.app, `app:${a.app}`));
         });
-        return perguntar(`Em qual app da ${empresa === 'dac' ? 'DAC' : 'Funifier'}?`, { teclado: [...linhas, cancelarTask(s.id)] });
+        const espaco = s.ferramenta === 'avulsa' ? espacoDe(cat, this.conversa.task(s).espaco) : undefined;
+        return perguntar(espaco ? `Em qual app de ${esc(nomeEspaco(espaco))}?` : 'Em qual app?', { teclado: [...linhas, cancelarTask(s.id)] });
       }
 
       case 'alvo': {
@@ -183,6 +198,23 @@ export class ConfigurarSelecao {
     }
   }
 
+  // Apps que servem para a task: avulsa, os do espaço escolhido; task de teste, o sandbox; task de ferramenta,
+  // os ligados à mesma ferramenta.
+  private appServe(s: Selecao, a: App) {
+    if (s.ferramenta === 'avulsa') return a.espaco === this.conversa.task(s).espaco;
+    if (s.ferramenta === 'teste') return a.ferramenta === 'teste';
+    return a.ferramenta === s.ferramenta;
+  }
+
+  private botoesEspacos(cat: Catalogo, b: (texto: string, acao: string) => Teclado[number][number], acao: string): Teclado {
+    const linhas: Teclado = [];
+    cat.espacos.forEach((e, i) => {
+      if (i % 2 === 0) linhas.push([]);
+      linhas.at(-1)!.push(b(nomeEspaco(e), `${acao}:${e.id}`));
+    });
+    return linhas;
+  }
+
   private async avisosApp(app: App): Promise<string[]> {
     const avisos: string[] = [];
     if (!existsSync(app.pasta)) avisos.push(`${ICONE.aviso} pasta não existe`);
@@ -206,7 +238,7 @@ export class ConfigurarSelecao {
     if (s.ferramenta === 'avulsa' && t.descricao) linhas.push(campo('Instruções', `\n<blockquote>${esc(t.descricao)}</blockquote>`));
     linhas.push(campo('Info extra', s.info_extra ? `\n<blockquote>${esc(s.info_extra)}</blockquote>` : 'nenhuma'));
     if (anexos.length) linhas.push(campo('Anexos', String(anexos.length)));
-    if (t.empresa === 'funifier') {
+    if (app?.gamificacao) {
       const gs = JSON.parse(s.gamificacoes ?? '[]') as Gamificacao[];
       linhas.push(
         gs.length
@@ -265,8 +297,6 @@ export class ConfigurarSelecao {
     if (!s || s.estado !== 'coletando' || this.d.selecoes.ativa()?.id !== s.id) return 'Essa pergunta já foi respondida.';
     if (!acaoValida(s.etapa, acao)) return 'Essa pergunta já foi respondida.';
     const cat = this.d.catalogo.atual();
-    const empresa = this.conversa.task(s).empresa;
-    const depoisDoDestino = empresa === 'funifier' ? 'alvo' : 'confirmar';
     const tirarBotoes = () => (s.msg_pergunta ? this.d.notificador.botoes(s.msg_pergunta) : Promise.resolve());
 
     switch (acao) {
@@ -278,31 +308,31 @@ export class ConfigurarSelecao {
       case 'pular':
         this.atualizar(s.id, { etapa: depoisDaInfo(s) });
         break;
-      case 'emp':
-        if (arg !== 'funifier' && arg !== 'dac') return 'Empresa inválida.';
-        this.d.selecoes.definirEmpresa(s.ferramenta, s.task_id, arg);
+      case 'esp':
+        if (!arg || !espacoDe(cat, arg)) return 'Espaço inválido.';
+        this.d.selecoes.definirEspaco(s.ferramenta, s.task_id, arg);
         this.atualizar(s.id, { etapa: 'escolher_app', app: null });
         break;
       case 'ok':
-        this.atualizar(s.id, { etapa: depoisDoDestino, gamificacoes: null });
+        this.atualizar(s.id, { etapa: depoisDoApp(cat.apps.find((a) => a.app === s.app)), gamificacoes: null });
         break;
       case 'outro':
         this.atualizar(s.id, { etapa: 'escolher_app' });
         break;
       case 'app': {
         const app = cat.apps.find((a) => a.app === arg);
-        if (!app || app.empresa !== empresa) return 'App inválido.';
+        if (!app || !this.appServe(s, app)) return 'App inválido.';
         if (s.ferramenta !== 'avulsa' && (s.ferramenta === 'teste') !== (app.ferramenta === 'teste')) return 'Task de teste só roda no sandbox (e vice-versa).';
-        this.atualizar(s.id, { app: app.app, etapa: depoisDoDestino, gamificacoes: null });
+        this.atualizar(s.id, { app: app.app, etapa: depoisDoApp(app), gamificacoes: null });
         await this.ambientes.ligarSeSemApp(s, app);
         break;
       }
       case 'amb':
-        this.atualizar(s.id, { etapa: arg === 'novo' ? 'amb_empresa' : 'escolher_app' });
+        this.atualizar(s.id, { etapa: arg === 'novo' ? 'amb_espaco' : 'escolher_app' });
         break;
-      case 'aemp':
-        if (arg !== 'funifier' && arg !== 'dac') return 'Empresa inválida.';
-        this.atualizar(s.id, { etapa: 'amb_nome', ambiente: JSON.stringify({ empresa: arg }) });
+      case 'aesp':
+        if (!arg || !espacoDe(cat, arg)) return 'Espaço inválido.';
+        this.atualizar(s.id, { etapa: 'amb_nome', ambiente: JSON.stringify({ espaco: arg }) });
         break;
       case 'agit':
         if (arg === 'url') this.atualizar(s.id, { etapa: 'amb_url' });

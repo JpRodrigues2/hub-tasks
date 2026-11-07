@@ -57,7 +57,7 @@ export class Gamificacoes {
   }
 
   async comando() {
-    const apps = loadCatalogo().apps.filter((a) => a.empresa === 'funifier');
+    const apps = loadCatalogo().apps.filter((a) => a.gamificacao);
     const kb = new InlineKeyboard();
     apps.forEach((a, i) => {
       kb.text(`${a.app} (${a.gamificacoes?.length ?? 0})`, `m:ver:${a.app}`);

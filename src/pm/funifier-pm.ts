@@ -46,7 +46,6 @@ export class FunifierPmAdapter implements PmAdapter {
     const projetoId = t.project?.id ?? null;
     return {
       ferramenta: this.nome,
-      empresa: 'funifier',
       id: t.id,
       titulo: t.title,
       projetoId,

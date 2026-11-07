@@ -181,7 +181,7 @@ export class RepositorioSelecoesSqlite implements RepositorioSelecoes {
 
   task(ferramenta: string, taskId: string) {
     return this.db
-      .prepare('SELECT titulo, descricao, projeto_nome, projeto_id, link, empresa, prazo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
+      .prepare('SELECT titulo, descricao, projeto_nome, projeto_id, link, espaco, prazo FROM tasks_vistas WHERE ferramenta = ? AND task_id = ?')
       .get(ferramenta, taskId) as TaskVista | undefined;
   }
 
@@ -229,8 +229,8 @@ export class RepositorioSelecoesSqlite implements RepositorioSelecoes {
     const quando = agora();
     this.db
       .prepare(
-        `INSERT INTO tasks_vistas (ferramenta, task_id, empresa, titulo, descricao, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
-         VALUES ('avulsa', ?, 'dac', ?, ?, NULL, 'atividade avulsa', 'avulsa', NULL, NULL, ?, ?)`,
+        `INSERT INTO tasks_vistas (ferramenta, task_id, espaco, titulo, descricao, projeto_id, projeto_nome, status, prazo, link, primeira_vez, ultima_vez)
+         VALUES ('avulsa', ?, '', ?, ?, NULL, 'atividade avulsa', 'avulsa', NULL, NULL, ?, ?)`,
       )
       .run(taskId, titulo, descricao, quando, quando);
   }
@@ -239,8 +239,8 @@ export class RepositorioSelecoesSqlite implements RepositorioSelecoes {
     this.db.prepare('UPDATE tasks_vistas SET titulo = ?, descricao = ? WHERE ferramenta = ? AND task_id = ?').run(titulo, descricao, ferramenta, taskId);
   }
 
-  definirEmpresa(ferramenta: string, taskId: string, empresa: 'funifier' | 'dac') {
-    this.db.prepare('UPDATE tasks_vistas SET empresa = ? WHERE ferramenta = ? AND task_id = ?').run(empresa, ferramenta, taskId);
+  definirEspaco(ferramenta: string, taskId: string, espaco: string) {
+    this.db.prepare('UPDATE tasks_vistas SET espaco = ? WHERE ferramenta = ? AND task_id = ?').run(espaco, ferramenta, taskId);
   }
 }
 
@@ -254,8 +254,8 @@ export class RepositorioResumosSqlite implements RepositorioResumos {
 
   adicionarItem(resumoId: number, i: ItemResumo, msgId: number | null) {
     this.db
-      .prepare('INSERT INTO resumo_itens (resumo_id, idx, ferramenta, task_id, empresa, app_sugerido, msg_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(resumoId, i.idx, i.ferramenta, i.task_id, i.empresa, i.app_sugerido, msgId);
+      .prepare('INSERT INTO resumo_itens (resumo_id, idx, ferramenta, task_id, espaco, app_sugerido, msg_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(resumoId, i.idx, i.ferramenta, i.task_id, i.espaco, i.app_sugerido, msgId);
   }
 
   definirMsgBotoes(resumoId: number, msgId: number | null) {
@@ -292,7 +292,7 @@ export class RepositorioResumosSqlite implements RepositorioResumos {
 
   marcados(resumoId: number) {
     return this.db
-      .prepare('SELECT idx, ferramenta, task_id, empresa, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
+      .prepare('SELECT idx, ferramenta, task_id, espaco, app_sugerido FROM resumo_itens WHERE resumo_id = ? AND selecionada = 1 ORDER BY idx')
       .all(resumoId) as ItemResumo[];
   }
 

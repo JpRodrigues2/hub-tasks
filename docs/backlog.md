@@ -15,7 +15,7 @@ Status: ⬜ a fazer · ✔️ feito · ❌ fora.
 | B05 ✔️ | O prompt não define nome de branch; a sessão escolhe e devolve no `RESULTADO HUB` |
 | B06 ✔️ | Commits e PRs sem coautor nem menção a IA |
 | B07 ✔️ | O prompt não aponta para o repositório de contexto nem para `CONTEXT.md` |
-| B08 ✔️ | Regras de trabalho por empresa em `regras/<empresa>.md`, vistas e trocadas inteiras pelo `/regras` |
+| B08 ✔️ | Regras de trabalho em `regras/<nome>.md`: por espaço, própria do projeto ou nenhuma (O14), vistas e trocadas inteiras pelo `/regras` |
 | B09 ✔️ | Depois da conclusão: 💬 instrução, 🔀 PR (base escolhida na hora), ✅ encerrar; `/continuar` traz de volta |
 | B10 ✔️ | `/limpar` apaga a conversa (o Telegram só deixa apagar mensagens com menos de 48 h) |
 | B11 ✔️ | `runs/` de tasks encerradas há mais de 30 dias é apagado (04:00); `/limpar_runs` apaga na hora; credenciais e tasks em andamento ficam |
@@ -26,7 +26,7 @@ Status: ⬜ a fazer · ✔️ feito · ❌ fora.
 | B16 ✔️ | App da Funifier sem gamificação: aviso com ➕ Cadastrar ou ⚠️ Seguir sem, em vez de bloquear |
 | B17 ✔️ | `/gamificacoes`: cadastro de credenciais pelo Telegram, mensagem apagada ao ler; vão para o cofre ([segurança](seguranca.md)) |
 | B18 ✔️ | Correções: continuações presas na fila; falso "ocupado" por shell em segundo plano; task presa com o resultado já na tela |
-| B19 ✔️ | 📦 Em lote: tasks da mesma empresa num só prompt e numa só sessão, configuradas uma vez; Encerrar pergunta pelas N tasks |
+| B19 ✔️ | 📦 Em lote: tasks da mesma ferramenta num só prompt e numa só sessão, configuradas uma vez; Encerrar pergunta pelas N tasks |
 
 ## A fazer
 
@@ -76,7 +76,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 |---|---|
 | B32 ⬜ | **Hexagonal, o resto:** `gamificacoes`, `regras`, `projetos`, `login-pm`, `confirmacao` no Notificador; botões tipados; Presenter e eventos de domínio com um segundo chat |
 | B33 ⬜ | **Prisma + SQLite** (D-A13), com o teste P1 |
-| B34 ⬜ | **Empresas e ferramentas fora do código** (I3, I4) e dados fora do repositório também no Mac (I5) |
+| B34 ✔️ | **Empresas fora do código** (07/11): o `apps.yaml` ganha `espacos` (pasta, conta do GitHub, regras, gamificação) e cada app aponta para um; o formato antigo migra sozinho ao iniciar. Ferramentas de gestão opcionais (I3). Os dados fora da pasta do código no Mac (I5) ficam para o `hub init` |
 | B35 ⬜ | **Onboarding (`hub init`)** ([app universal](app-universal.md#3-onboarding-hub-init)): escolha das ferramentas, identidade do Git, documento de requisitos da VPS; junto com o B20 |
 | B36 ⬜ | **Jira** (D-A16) |
 | B37 ⬜ | **Suporte:** `/diagnostico` e logs estruturados com pino (I11) |

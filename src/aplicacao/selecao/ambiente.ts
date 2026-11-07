@@ -1,17 +1,19 @@
 // Caso de uso: ambiente para task de projeto sem app (B15).
 //   destino → ambiente → existente (escolher_app, liga o projeto ao app)
-//   ou novo: amb_empresa → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
+//   ou novo: amb_espaco → amb_nome → amb_git → (amb_url) → cria a pasta/clona, adiciona ao Orca e ao apps.yaml.
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { CAMINHOS } from '../../caminhos.js';
-import type { App } from '../../config.js';
+import { espacoDe, type App, type Catalogo } from '../../config.js';
 import type { Selecao } from '../../dominio/selecao.js';
 import { errInfo, log } from '../../logger.js';
 import { ICONE, cartao, esc } from '../../msg.js';
 import type { Conversa, DepsSelecao } from './contexto.js';
 
-export function pastaAmbiente(a: { empresa?: string; nome?: string }) {
-  return join(CAMINHOS.repos, a.empresa === 'dac' ? 'DAC' : 'FUNIFIER', a.nome ?? '');
+// A pasta nova fica dentro da pasta do espaço escolhido.
+export function pastaAmbiente(cat: Catalogo, a: { espaco?: string; nome?: string }) {
+  const e = a.espaco ? espacoDe(cat, a.espaco) : undefined;
+  if (!e) throw new Error(`espaço "${a.espaco ?? ''}" não existe no apps.yaml`);
+  return join(e.pasta, a.nome ?? '');
 }
 
 export class Ambientes {
@@ -45,8 +47,8 @@ export class Ambientes {
   // Cria a pasta (ou clona), adiciona ao Orca e grava o app no apps.yaml ligado ao projeto da task.
   async criar(s: Selecao, url: string | null): Promise<boolean> {
     const { notificador, git, executor, catalogo, selecoes } = this.d;
-    const amb = JSON.parse(s.ambiente ?? '{}') as { empresa: 'funifier' | 'dac'; nome: string };
-    const pasta = pastaAmbiente(amb);
+    const amb = JSON.parse(s.ambiente ?? '{}') as { espaco: string; nome: string };
+    const pasta = pastaAmbiente(catalogo.atual(), amb);
     const t = this.conversa.task(s);
     await notificador.enviar(
       cartao({ icone: ICONE.fila, titulo: url ? `Clonando ${esc(amb.nome)}` : `Criando ${esc(amb.nome)}`, contexto: [`<code>${esc(pasta)}</code>`] }),
@@ -58,7 +60,7 @@ export class Ambientes {
         await git.clonar(url, pasta);
       } else await git.prepararPasta(pasta);
       await executor.addRepo(pasta);
-      catalogo.adicionarApp({ app: amb.nome, empresa: amb.empresa, ferramenta: s.ferramenta as App['ferramenta'], pasta, projeto: t.projeto_id });
+      catalogo.adicionarApp({ app: amb.nome, espaco: amb.espaco, ferramenta: s.ferramenta as App['ferramenta'], pasta: amb.nome, projeto: t.projeto_id });
     } catch (e) {
       log.warn('ambiente: falha', { selecao: s.id, pasta, ...errInfo(e) });
       await notificador.enviar(
@@ -69,7 +71,8 @@ export class Ambientes {
       return false;
     }
     log.info('ambiente: criado', { selecao: s.id, app: amb.nome, pasta, clonado: !!url });
-    selecoes.atualizar(s.id, { app: amb.nome, ambiente: null, etapa: amb.empresa === 'funifier' ? 'alvo' : 'confirmar', gamificacoes: null });
+    const novo = catalogo.atual().apps.find((a) => a.app === amb.nome);
+    selecoes.atualizar(s.id, { app: amb.nome, ambiente: null, etapa: novo?.gamificacao ? 'alvo' : 'confirmar', gamificacoes: null });
     await notificador.enviar(
       cartao({
         icone: ICONE.ok,

@@ -16,7 +16,7 @@ import { criarDespacho } from './aplicacao/despacho/index.js';
 import { criarSelecao } from './aplicacao/selecao/index.js';
 import { Broker, autorizadasDoBanco } from './broker/broker.js';
 import { CAMINHOS, ROOT } from './caminhos.js';
-import { adicionarApp, ligarProjeto, loadCatalogo, loadEnv, type Env } from './config.js';
+import { adicionarApp, ligarProjeto, loadCatalogo, loadEnv, migrarCatalogo, type Env } from './config.js';
 import { openDb } from './db.js';
 import { gitProjetos } from './git.js';
 import { INTERVALO_HEARTBEAT_MS, baterCoracao } from './heartbeat.js';
@@ -24,6 +24,7 @@ import { limparRuns } from './limpeza.js';
 import { errInfo, log } from './logger.js';
 import { BnexoAdapter } from './pm/bnexo.js';
 import { FunifierPmAdapter } from './pm/funifier-pm.js';
+import type { PmAdapter } from './pm/types.js';
 import { filtrarPorProjeto } from './projetos.js';
 import { buscarTasks } from './resumo.js';
 import { migrarCofreAntigo } from './segredos.js';
@@ -45,12 +46,17 @@ const VERSAO = (() => {
     return '';
   }
 })();
+if (migrarCatalogo()) log.info('catálogo: migrado de empresas para espaços (B34); versão anterior no histórico');
 loadCatalogo(); // falha cedo se o apps.yaml estiver inválido
 const db = openDb();
 const orca = new Orca(env.ORCA_BIN, env.ORCA_ENVIRONMENT);
 const cofre = criarCofre(env);
 await migrarCofreAntigo(cofre);
-const adapters = [new FunifierPmAdapter(env), new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)];
+// Só as ferramentas de gestão configuradas (I3): nenhuma é obrigatória.
+const adapters: PmAdapter[] = [
+  ...(env.FUNIFIER_PM_MCP_URL ? [new FunifierPmAdapter(env)] : []),
+  ...(env.BNEXO_MCP_URL && env.BNEXO_MCP_TOKEN ? [new BnexoAdapter(env, () => loadCatalogo().nomes_projetos.bnexo)] : []),
+];
 
 const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
 const notificador = new NotificadorTelegram(bot.api, Number(env.TELEGRAM_CHAT_ID));

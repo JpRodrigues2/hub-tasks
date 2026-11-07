@@ -3,13 +3,13 @@
 
 export const ACOES_POR_ETAPA = {
   instrucoes: ['cancel'],
-  empresa: ['emp', 'cancel'],
+  espaco: ['esp', 'cancel'],
   info: ['pular', 'cancel'],
   destino: ['ok', 'outro', 'cancel'],
   escolher_app: ['app', 'cancel'],
   alvo: ['g', 'gok', 'gnova', 'gsem', 'cancel'],
   ambiente: ['amb', 'cancel'],
-  amb_empresa: ['aemp', 'cancel'],
+  amb_espaco: ['aesp', 'cancel'],
   amb_nome: ['cancel'],
   amb_git: ['agit', 'cancel'],
   amb_url: ['cancel'],
@@ -38,7 +38,7 @@ export interface Selecao {
   anexos: string | null; // JSON: arquivos mandados pelo Telegram
   aviso_em: string | null;
   aviso_motivo: string | null;
-  ambiente: string | null; // JSON { empresa, nome } enquanto monta um ambiente novo
+  ambiente: string | null; // JSON { espaco, nome } enquanto monta um ambiente novo
   lote_de: number | null; // id da líder do lote
 }
 
@@ -49,7 +49,7 @@ export interface TaskVista {
   projeto_nome: string | null;
   projeto_id: string | null;
   link: string | null;
-  empresa: 'funifier' | 'dac';
+  espaco: string; // id do espaço escolhido (avulsa); '' = ainda não definido
   prazo: string | null;
 }
 

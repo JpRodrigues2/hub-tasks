@@ -61,7 +61,7 @@ describe('Telegram', () => {
 describe('regras de trabalho', () => {
   it('formatar e desformatar são inversos no conteúdo', () => {
     const texto = 'Rode os testes antes do commit\nNunca altere o apps.yaml';
-    const md = formatar('funifier', texto);
+    const md = formatar('Funifier', texto);
     expect(md).toContain('# Regras de trabalho — Funifier');
     expect(md).toContain('`apps.yaml`');
     expect(desformatar(md)).toBe(texto);
