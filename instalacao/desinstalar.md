@@ -12,7 +12,7 @@ Ele mostra exatamente o que vai desfazer e pede confirmação. Desfaz só o que 
 |---|---|
 | O serviço do Muxor | Para e apaga o LaunchAgent |
 | As linhas do Muxor no `~/.gitconfig` | Tira só as linhas `includeIf` que o Muxor pôs (as suas ficam) |
-| As credenciais das gamificações | Apaga os itens do Muxor no Keychain |
+| As credenciais que você cadastrou pelo Telegram | Apaga os itens do Muxor no Keychain |
 | `~/.muxor` | O Muxor, a configuração, o banco, os logs e os logins do GitHub que eram só do Muxor |
 | O comando `muxor` | Apaga `~/.local/bin/muxor` e as linhas que o instalador pôs no `~/.zprofile` |
 | Os programas que o Muxor instalou | Pergunta um por um (GitHub CLI, Claude Code, Orca, Tailscale, ngrok, Node). Diga não para o que você passou a usar. O Homebrew fica: outros programas podem depender dele |

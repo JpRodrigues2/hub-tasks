@@ -30,9 +30,9 @@ Orca. Os outros ele nunca toca. As configurações do Orca não mudam.
 **Quero mais uma conta do GitHub.**
 `muxor adicionar github-workspace`. Depois traga os repositórios com o [prompt de clonar](prompts/clonar-repositorios.md).
 
-**Gamificações da Funifier.**
-Cadastre as credenciais pelo `/gamificacoes` no Telegram: a mensagem com a credencial é apagada na hora e a credencial
-vai para o Keychain.
+**Credenciais que as tasks precisam (Funifier PM).**
+Cadastre pelo Telegram: o comando aparece no `/menu` quando o Funifier PM está ligado. A mensagem com a credencial é
+apagada na hora e a credencial vai para o Keychain.
 
 **O celular não conecta ao Orca fora de casa.**
 Pareie de novo escolhendo **Relay** (qualquer rede) em vez de LAN (só a mesma Wi-Fi).

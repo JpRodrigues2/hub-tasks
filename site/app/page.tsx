@@ -94,7 +94,7 @@ function Hero() {
   );
 }
 
-const NOMES = ['Claude Code', 'Orca', 'Telegram', 'GitHub', 'Jira', 'MCP', 'macOS', 'Linux'];
+const NOMES = ['Claude Code', 'Orca', 'Telegram', 'GitHub', 'Jira', 'Funifier PM', 'Bnexo', 'macOS', 'Linux'];
 
 function FuncionaCom() {
   return (
@@ -399,7 +399,7 @@ function Seguranca() {
 const PERGUNTAS = [
   ['O que é o Muxor?', 'Um estagiário para o seu Claude Code: pega as tasks do seu board, coloca o Claude para trabalhar nelas e mantém você no controle pelo celular. Você decide e revisa; ele cuida do resto.'],
   ['Preciso do Orca?', 'Sim. O Orca é quem roda as sessões do Claude Code e deixa você acompanhar pelo celular. Ele é gratuito.'],
-  ['Quais ferramentas de gestão funcionam?', 'Jira (Cloud) e ferramentas com integração por MCP; a lista completa está na documentação. Você escolhe na instalação e pode mudar depois. Sem nenhuma, dá para usar só as atividades avulsas (/nova).'],
+  ['Quais ferramentas de gestão funcionam?', 'Jira (Cloud), Funifier PM e Bnexo. Você escolhe na instalação e pode mudar depois. Sem nenhuma, dá para usar só as atividades avulsas (/nova).'],
   ['Funciona com mais de uma conta do GitHub?', 'Sim. Cada espaço é uma pasta ligada a uma conta: o trabalho sai pela conta do trabalho, o pessoal pela pessoal.'],
   ['Preciso deixar o Mac ligado?', 'No modo local, sim. No modo servidor, o Muxor roda 24 h numa VPS sua e o Mac vira só uma janela.'],
   ['Ele mexe nas minhas tasks?', 'Só no status: "em progresso" ao despachar e "concluída" com o seu Sim. Nunca comenta nem põe em revisão sem você pedir.'],
