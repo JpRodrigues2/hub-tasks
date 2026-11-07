@@ -54,6 +54,7 @@ export interface DepsDiagnostico {
   reposNoOrca: (env: import('../config.js').Env) => Promise<string[]>;
   telegram: (token: string) => Promise<{ ok: boolean; usuario?: string; erro?: string }>;
   bnexo: () => Promise<string>;
+  jira: () => Promise<string>;
 }
 
 const versaoNode = (v: string) => Number(v.replace(/^v/, '').split('.')[0]);
@@ -108,11 +109,18 @@ export async function diagnosticar(d: DepsDiagnostico): Promise<Item[]> {
   // ── Ferramentas de gestão
   const FER = 'Ferramentas de gestão';
   if (env) {
-    const nenhuma = !env.FUNIFIER_PM_MCP_URL && !env.BNEXO_MCP_URL;
+    const nenhuma = !env.FUNIFIER_PM_MCP_URL && !env.BNEXO_MCP_URL && !env.JIRA_URL;
     if (nenhuma) add(FER, 'Nenhuma', 'aviso', 'nenhuma ferramenta configurada: só atividades avulsas (/nova)', 'Rode `hub init` para escolher as ferramentas');
     if (env.FUNIFIER_PM_MCP_URL) {
       const login = existsSync(join(d.caminhos.dados, 'oauth', 'funifier-pm.json'));
       add(FER, 'Funifier PM', login ? 'ok' : 'falha', login ? 'login salvo' : 'sem login', login ? undefined : 'Mande /pm_login no Telegram');
+    }
+    if (env.JIRA_URL) {
+      try {
+        add(FER, 'Jira', 'ok', await d.jira());
+      } catch (e) {
+        add(FER, 'Jira', 'falha', (e as Error).message, 'Confira JIRA_URL, JIRA_EMAIL e JIRA_API_TOKEN no .env');
+      }
     }
     if (env.BNEXO_MCP_URL) {
       try {

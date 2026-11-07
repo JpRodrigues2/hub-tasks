@@ -33,6 +33,7 @@ function deps(o: Partial<DepsDiagnostico> = {}): DepsDiagnostico {
     reposNoOrca: async () => [join(pastaEspaco, 'app-a')],
     telegram: async () => ({ ok: true, usuario: 'MeuBot' }),
     bnexo: async () => 'ok',
+    jira: async () => 'ok',
     ...o,
   };
 }

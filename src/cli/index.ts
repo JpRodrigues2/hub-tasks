@@ -68,6 +68,7 @@ async function diagnostico(json: boolean) {
       }
     },
     bnexo: () => new BnexoAdapter(config.loadEnv(), () => ({})).ping(),
+    jira: async () => new (await import('../pm/jira.js')).JiraAdapter(config.loadEnv()).ping(),
   });
   console.log(json ? JSON.stringify({ modo, itens }, null, 2) : formatarTexto(itens));
   process.exitCode = itens.some((i) => i.estado === 'falha') ? 1 : 0;

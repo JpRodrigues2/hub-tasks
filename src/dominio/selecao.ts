@@ -54,5 +54,5 @@ export interface TaskVista {
 }
 
 // Ferramentas de gestão reais (avulsa e teste não têm task para atualizar).
-export const FERRAMENTA_REAL = new Set(['funifier-pm', 'bnexo']);
-export const NOME_FERRAMENTA: Record<string, string> = { 'funifier-pm': 'Funifier PM', bnexo: 'Bnexo' };
+export const FERRAMENTA_REAL = new Set(['funifier-pm', 'bnexo', 'jira']);
+export const NOME_FERRAMENTA: Record<string, string> = { 'funifier-pm': 'Funifier PM', bnexo: 'Bnexo', jira: 'Jira' };
