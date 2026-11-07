@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "despacho:teste": "tsx scripts/despacho-teste.ts",
     "test": "vitest run",
-    "check": "tsc --noEmit -p . && vitest run"
+    "check": "tsc --noEmit -p . && vitest run",
+    "hub": "node bin/hub.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
@@ -28,5 +29,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^3.2.7"
+  },
+  "bin": {
+    "hub": "bin/hub.mjs"
   }
 }
