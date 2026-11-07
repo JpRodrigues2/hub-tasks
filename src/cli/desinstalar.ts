@@ -71,7 +71,7 @@ export async function desinstalar(casa: Casa) {
   } catch (e) {
     if (e instanceof Parou) {
       salvarEstado(casa.estado, estado);
-      tela.fim('Parei no meio. Rode `hub desinstalar` de novo para terminar.');
+      tela.fim('Parei no meio. Rode `./hub desinstalar` de novo para terminar.');
       return 1;
     }
     throw e;

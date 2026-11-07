@@ -1,0 +1,3 @@
+#!/bin/sh
+# Atalho para rodar o comando do hub de dentro desta pasta: ./hub init, ./hub diagnostico…
+exec node "$(dirname "$0")/bin/hub.mjs" "$@"
