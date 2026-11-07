@@ -37,7 +37,7 @@ export async function init(casa: Casa, refazer?: string) {
   const ctx = criarCtx(casa, estado);
   tela.abertura('Hub de Tasks · configuração');
   const feitos = PASSOS.filter((p) => estado.passos[p.id] && !p.sempre).length;
-  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Refazer um passo: hub init --refazer <passo>)`);
+  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Para refazer um passo: ./hub init --refazer <passo>)`);
   try {
     for (const [i, p] of PASSOS.entries()) {
       if (estado.passos[p.id] && !p.sempre) {

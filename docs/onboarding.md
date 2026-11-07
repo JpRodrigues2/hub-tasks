@@ -53,6 +53,7 @@ onboarding.
 | `hub adicionar github-workspace` | Um espaço novo (outra conta do GitHub) |
 | `hub adicionar heartbeat` | Liga o Healthchecks.io |
 | `hub migrar servidor` | Leva a instalação local para uma VPS |
+| `hub init` ✔️ | (ver acima) |
 | `hub diagnostico` ✔️ | Confere cada peça e diz o próximo passo; é o que o Claude Code do usuário lê para ajudar (`--json`). Mac: `npm run -s hub -- diagnostico` na pasta do hub. Servidor: `sudo -u hub -i /home/hub/app/bin/hub.mjs diagnostico` |
 
 Todos guardam o progresso em `configuracao.json` (✅/⬜ por passo) e podem rodar de novo sem estragar.
@@ -135,10 +136,23 @@ QR code e, no Mac, abrem no navegador.
 
 ## 7. Ordem de construção
 
-1. **B34:** espaços e projetos no lugar das empresas fixas; dados fora do código no Mac (I3, I4, I5).
-2. **Comando `hub`** com `hub diagnostico` primeiro (é a base para conferir cada passo).
-3. **`hub init`** (modo local), passos 1–11.
-4. **B20:** a listagem igual à do PM.
-5. **Pasta `instalacao/`** escrita junto com cada passo.
-6. **Modo servidor e `hub migrar servidor`**.
-7. **Teste do zero** (seção 6) e o piloto com um colega.
+1. ✔️ **B34:** espaços e projetos no lugar das empresas fixas (I3, I4).
+2. ✔️ **Comando `hub`** com `hub diagnostico`.
+3. ✔️ **`hub init`** (modo local), com os dados em `~/.hub` (I5), `hub desinstalar`, `hub adicionar github-workspace` e
+   `heartbeat`. Testado aqui: passos 1–4 e retomada num `HUB_HOME` temporário, o serviço (LaunchAgent) instalado e
+   removido, a conta git por espaço com o git de verdade. Os logins (GitHub, PM, Telegram) só no teste do zero.
+4. ✔️ **B20:** a listagem igual à do PM, em produção.
+5. ✔️ **Jira (B36).**
+6. ✔️ **Pasta `instalacao/`**, `CLAUDE.md`, `AGENTS.md` e a skill `instalar-hub` (O16).
+7. ⬜ **Teste do zero** (seção 6), no Mac emprestado, só com o `instalacao/`.
+8. ⬜ **Modo servidor e `hub migrar servidor`**, depois do teste local.
+
+**Decisões tomadas na construção (07/11):**
+- **O hub não mexe no `~/.claude.json`** no modo local (é o arquivo principal do Claude Code de quem usa o Mac): na
+  primeira task de cada pasta o Claude pergunta se confia nela, o hub avisa e a pessoa responde uma vez.
+- **O login do `gh` de cada espaço fica em `~/.hub/gh/<espaço>`** (`--insecure-storage`, arquivo 600), e não no
+  Keychain: assim o hub não toca no `gh` que a pessoa já usa, e o `hub desinstalar` apaga junto com `~/.hub`.
+- **O `includeIf` usa o caminho real da pasta** (sem atalhos), porque é com ele que o git compara.
+- **No de-para, os projetos vêm das tasks abertas** de cada ferramenta (o Bnexo não lista projetos); os outros entram
+  pelo Telegram quando chegar uma task deles (B15).
+- **Os comandos rodam de dentro da pasta do hub (`./hub …`)** até a distribuição (Q2) ser decidida.

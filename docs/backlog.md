@@ -31,7 +31,7 @@ Status: ⬜ a fazer · ✔️ feito · ❌ fora.
 ## A fazer
 
 <a id="b20"></a>
-### B20 — Listagem igual ao PM: por projeto, pai e filhas, seleção pelo número · ⬜
+### B20 — Listagem igual ao PM: por projeto, pai e filhas, seleção pelo número · ✔️ (07/11)
 
 Pedido em 05/11/2026; entra no pacote do [onboarding](app-universal.md#3-onboarding-hub-init).
 
@@ -64,7 +64,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B24 ✔️ | **Heartbeat** no Healthchecks.io (06/11): ping a cada 5 min, `/fail` se o Orca cair; alarme testado (down e up chegaram) | João |
 | B25 ✔️ | **Testes T6, T11, T12** (06/11): T11, Orca reiniciado: terminais sobrevivem, volta em ~6 s, hub segue despachando; T6, front de dev abre no Mac e no celular pela tailnet, não pela internet; T12, task concluída com o Mac fechado | Claude + João |
 | B26 ✔️ | **T14 na Oracle** (06/11): com o Mac fechado, o celular acompanhou a sessão e mandou mensagem nela; o Mac reconectou na mesma sessão | João |
-| B27 ⬜ | **GitHub do `agente`:** login para as sessões darem push e abrirem PR (🔀). O MCP do PM não precisa: o hub já põe a task no prompt. **Não pode ser um login global:** o usuário tem conta corporativa e pessoal (caso do João), então git, chave SSH e `gh` precisam ser por espaço (pasta-mãe), no Mac e no servidor. Decidir no onboarding (B35) | João + Claude |
+| B27 ✔️ | **Conta do GitHub por espaço** (07/11, modo local): `includeIf` no `~/.gitconfig` + login do `gh` só do hub em `~/.hub/gh/<espaço>`; as sessões abrem com o `GH_CONFIG_DIR` do espaço. No servidor (usuário `agente`), vem com o `hub init` do servidor | Claude |
 | B28 ⬜ | **Identidade do Git no servidor** (A16) para o `agente` e o `hub` | João passa nome e e-mail |
 | B29 ⬜ | **Limpeza no Orca:** remover os projetos `teste-mw13visx*`; opcional: revogar o token do bot de teste e o pareamento | João |
 | B30 ✔️ | **Virada** (06/11): sem trocar de bot. O `@HubTasksCloudBot` do servidor passa a ser o hub; o `@JoaoTaskBot` e o hub do Mac ficam obsoletos (o do Mac já estava parado) | João |
@@ -77,8 +77,8 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B32 ⬜ | **Hexagonal, o resto:** `gamificacoes`, `regras`, `projetos`, `login-pm`, `confirmacao` no Notificador; botões tipados; Presenter e eventos de domínio com um segundo chat |
 | B33 ⬜ | **Prisma + SQLite** (D-A13), com o teste P1 |
 | B34 ✔️ | **Empresas fora do código** (07/11): o `apps.yaml` ganha `espacos` (pasta, conta do GitHub, regras, gamificação) e cada app aponta para um; o formato antigo migra sozinho ao iniciar. Ferramentas de gestão opcionais (I3). Os dados fora da pasta do código no Mac (I5) ficam para o `hub init` |
-| B35 ⬜ | **Onboarding (`hub init`)** ([app universal](app-universal.md#3-onboarding-hub-init)): escolha das ferramentas, identidade do Git, documento de requisitos da VPS; junto com o B20 |
-| B36 ⬜ | **Jira** (D-A16) |
+| B35 🔄 | **Onboarding (`hub init`)**: modo local pronto (07/11): 10 passos, `hub desinstalar`, `hub adicionar github-workspace` e `heartbeat`, pasta `instalacao/`, `CLAUDE.md`/`AGENTS.md` e a skill. Falta: o teste do zero (O15), o modo servidor e o `hub migrar servidor` ([onboarding](onboarding.md)) |
+| B36 ✔️ | **Jira** (D-A16, 07/11): API REST v3 com e-mail + API token; status pela categoria do fluxo; pai pela hierarquia do Jira |
 | B37 ⬜ | **Suporte:** `/diagnostico` e logs estruturados com pino (I11) |
 | B38 ⬜ | **Distribuição**, site de suporte e sistemas operacionais (D-A19 a D-A21) |
 | B39 ⬜ | **Teams** (D-A10) |

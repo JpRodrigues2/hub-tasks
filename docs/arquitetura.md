@@ -99,7 +99,12 @@ Funcionam, mas falam direto com o Telegram ou o banco:
 | `limpeza.ts` | Apaga `runs/` antigos (30 dias, ou `/limpar_runs`) |
 | `mensagens.ts` | Registra cada mensagem para o `/limpar` |
 | `msg.ts` | Padrão visual dos cartões (ícone, título, contexto, corpo, rodapé) |
-| `cli/index.ts`, `cli/diagnostico.ts`, `bin/hub.mjs` | O comando `hub` no terminal: hoje o `hub diagnostico` (confere cada peça e diz o próximo passo; `--json` para a IA). No servidor lê as variáveis do `hub.service` |
+| `cli/index.ts`, `bin/hub.mjs`, `./hub` | O comando `hub` no terminal (O6): aponta para os dados certos (no Mac `~/.hub`, no servidor as variáveis do `hub.service`) e chama o subcomando |
+| `cli/diagnostico.ts` | `hub diagnostico`: confere cada peça e diz o próximo passo (`--json` para a IA) |
+| `cli/init/` | `hub init` modo local: `passos.ts` (os 10 passos), `git-espaco.ts` (conta do GitHub por espaço), `servico-mac.ts` (LaunchAgent), `telegram.ts` (bot e chat do dono), `contexto.ts` |
+| `cli/estado.ts`, `cli/casa.ts`, `cli/envfile.ts`, `cli/tela.ts` | Progresso e registro do que mudou fora de `~/.hub`; onde fica cada coisa; edição do `.env`; as mensagens do terminal |
+| `cli/desinstalar.ts` | `hub desinstalar`: desfaz o registrado e lista o que só a pessoa desfaz |
+| `pm/jira.ts` | Adaptador do Jira Cloud (API REST v3) |
 | `config.ts`, `caminhos.ts` | `.env` e `apps.yaml` validados (zod): espaços e apps (o app herda pasta, regras e gamificação do espaço), migração do formato antigo; onde ficam dados, runs e repositórios |
 | `db.ts` | Abre o SQLite e roda as migrações |
 | `git.ts` | Git do hub (no servidor, como o usuário `agente`) e a porta `GitProjetos` |
