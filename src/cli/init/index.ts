@@ -17,6 +17,7 @@ const PASSOS: Passo[] = [
   { id: 'modo', titulo: 'Onde o hub roda', rodar: (c) => passos.escolherModo(c) },
   { id: 'ferramentas', titulo: 'Ferramentas de gestão', rodar: async (c) => (c.estado.passos.ferramentasOk = JSON.stringify(await passos.ferramentas(c))) },
   { id: 'espacos', titulo: 'Espaços e contas do GitHub', rodar: (c) => passos.espacos(c) },
+  { id: 'existentes', titulo: 'Projetos que você já tem no Orca', rodar: (c) => passos.existentes(c) },
   { id: 'repositorios', titulo: 'Repositórios', rodar: (c) => passos.repositorios(c) },
   { id: 'depara', titulo: 'Projetos → pastas', rodar: (c) => passos.dePara(c) },
   { id: 'telegram', titulo: 'Bot do Telegram', rodar: (c) => passos.telegram(c) },

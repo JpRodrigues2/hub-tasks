@@ -15,6 +15,7 @@ Responda só com o que está em `instalacao/` e na saída de `./hub diagnostico 
 | Saber o que falta ou o que deu errado | Rode `./hub diagnostico --json` e siga o `proximo` de cada item; depois `instalacao/dicas.md` |
 | Trazer repositórios | `instalacao/prompts/clonar-repositorios.md` |
 | Outra conta do GitHub | `./hub adicionar github-workspace` (`instalacao/modo-local.md`) |
+| Trazer projetos que já estão no Orca | `./hub adicionar projeto` (`instalacao/dicas.md`) |
 | Aviso se o hub cair | `instalacao/heartbeat.md` |
 | Remover o hub | `instalacao/desinstalar.md` |
 

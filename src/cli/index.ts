@@ -10,9 +10,10 @@ const AJUDA = `Uso: ./hub <comando>   (de dentro da pasta do hub)
 
   init                            Configura o hub neste computador, passo a passo (retoma de onde parou)
   init --refazer <passo>          Refaz a partir de um passo (pre, modo, ferramentas, espacos, repositorios,
-                                  depara, telegram, orca, servico, teste)
+                                  existentes, depara, telegram, orca, servico, teste)
   diagnostico [--json]            Confere a instalação e diz o próximo passo de cada problema
   adicionar github-workspace      Um espaço novo (outra conta do GitHub)
+  adicionar projeto               Traz para o hub projetos que já estão no Orca ou nas pastas dos espaços
   adicionar heartbeat             Aviso externo se o hub cair (Healthchecks.io)
   desinstalar                     Desfaz tudo o que o hub init fez neste usuário
 
@@ -93,6 +94,16 @@ async function adicionar(o: string | undefined) {
       tela.abertura('Novo espaço (conta do GitHub)');
       await p.novoEspaco(await contexto(), !!process.env.FUNIFIER_PM_MCP_URL);
       tela.fim('Traga os repositórios para a pasta do espaço; os projetos novos eu ligo pelo Telegram quando chegar uma task.');
+      return 0;
+    }
+    if (o === 'projeto') {
+      if (modo !== 'local') return (console.error('No servidor, os projetos entram pelo Telegram, ao iniciar uma task.'), 2);
+      const p = await import('./init/passos.js');
+      const ctx = await contexto();
+      tela.abertura('Trazer projetos para o hub');
+      await p.existentes(ctx);
+      await p.dePara(ctx);
+      tela.fim('Pronto. Os projetos que entraram já recebem tasks; os que ficaram de fora o hub não toca.');
       return 0;
     }
     if (o === 'heartbeat') {

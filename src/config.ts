@@ -74,7 +74,9 @@ const EspacoSchema = z.object({
 const AppSchema = z.object({
   app: z.string().regex(/^[a-z0-9._-]+$/),
   espaco: z.string(),
-  ferramenta: z.enum(['funifier-pm', 'bnexo', 'jira', 'teste']), // teste = tasks fictícias (sandbox)
+  // teste = tasks fictícias (sandbox); nenhuma = projeto trazido para o hub sem ferramenta de gestão (recebe /nova e
+  // adota a ferramenta do primeiro projeto ligado a ele)
+  ferramenta: z.enum(['funifier-pm', 'bnexo', 'jira', 'teste', 'nenhuma']),
   projetos_na_ferramenta: z.array(z.string()).default([]),
   pasta: z.string().min(1), // relativa: dentro da pasta do espaço
   sessao_resume_id: z.string().nullable().default(null),
@@ -262,11 +264,16 @@ export function salvarEspaco(e: { id: string; nome?: string; pasta: string; gith
   });
 }
 
-export function ligarProjeto(app: string, projeto: string) {
+// Liga o projeto da ferramenta ao app. App sem ferramenta ("nenhuma") passa a ser dessa ferramenta.
+export function ligarProjeto(app: string, projeto: string, ferramenta?: App['ferramenta']) {
   editarCatalogo((doc) => {
     const i = indiceApp(doc, app);
+    if (ferramenta && doc.getIn(['apps', i, 'ferramenta']) === 'nenhuma') doc.setIn(['apps', i, 'ferramenta'], ferramenta);
     const atuais = (doc.getIn(['apps', i, 'projetos_na_ferramenta']) as { toJSON(): string[] } | undefined)?.toJSON() ?? [];
-    if (!atuais.includes(projeto)) doc.addIn(['apps', i, 'projetos_na_ferramenta'], projeto);
+    if (atuais.includes(projeto)) return;
+    // Sem a lista (app escrito à mão), cria; senão acrescenta.
+    if (!doc.hasIn(['apps', i, 'projetos_na_ferramenta'])) doc.setIn(['apps', i, 'projetos_na_ferramenta'], doc.createNode([projeto]));
+    else doc.addIn(['apps', i, 'projetos_na_ferramenta'], projeto);
   });
 }
 

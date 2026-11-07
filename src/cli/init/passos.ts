@@ -176,7 +176,10 @@ export async function espacos(ctx: Ctx) {
       '  • "Empresa"  → ~/Documents/EMPRESA   (conta do trabalho)',
       '  • "Pessoal"  → ~/Documents/PESSOAL   (conta pessoal)',
       'Tudo o que o Claude fizer dentro da pasta (commit, push, PR) sai pela conta daquele espaço.',
-      'As ferramentas de gestão não importam aqui: o projeto de cada uma é ligado a uma pasta no próximo passo.',
+      'As ferramentas de gestão não importam aqui: o projeto de cada uma é ligado a uma pasta mais adiante.',
+      '',
+      'Se hoje os seus repositórios estão misturados (de contas diferentes na mesma pasta), vale reorganizar:',
+      'mova cada repositório para a pasta do espaço da conta dele. Dá para fazer depois, com calma.',
     ].join('\n'),
     'Espaços',
   );
@@ -288,7 +291,49 @@ async function desfazerCredenciaisNovas(antes: Record<string, string[]>) {
   }
 }
 
-// ───────────────────────── 5. Repositórios (pelo Claude Code do usuário) ─────────────────────────
+// ───────────────────────── 5. Projetos que a pessoa já tem no Orca ─────────────────────────
+
+export async function existentes(ctx: Ctx) {
+  const { Orca } = await import('../../adaptadores/executor/orca.js');
+  const cat = loadCatalogo();
+  const noHub = new Set(cat.apps.map((a) => a.pasta));
+  const repos = (await new Orca(ORCA_BIN).listRepos().catch(() => [])).filter((r) => !noHub.has(r.path) && r.path !== ctx.casa.sandbox);
+  if (!repos.length) return tela.info('Nenhum projeto no Orca fora do hub.');
+  tela.nota(
+    [
+      `Você já tem ${repos.length} projeto(s) no Orca. Para cada um, você decide:`,
+      '  • Trazer para o hub: ele entra no fluxo completo. O hub manda tasks para ele, abre sessões do Claude e',
+      '    escreve nas sessões que já existem nessa pasta, e marca o status da área de trabalho no Orca.',
+      '  • Deixar de fora: o hub nunca toca nesse projeto nem nas sessões dele.',
+      'Dá para trazer mais depois: ./hub adicionar projeto',
+    ].join('\n'),
+    'Projetos que você já tem no Orca',
+  );
+  const espacoDaPasta = (p: string) => cat.espacos.find((e) => p.startsWith(e.pasta.replace(/\/+$/, '') + '/'));
+  const escolhidos = await tela.varios(
+    'Quais trazer para o hub?',
+    repos.map((r) => ({
+      valor: r.path,
+      rotulo: r.displayName || basename(r.path),
+      dica: espacoDaPasta(r.path) ? `${r.path} · espaço ${nomeEspaco(espacoDaPasta(r.path)!)}` : `${r.path} · fora dos espaços`,
+    })),
+  );
+  for (const pasta of escolhidos) {
+    let e = espacoDaPasta(pasta);
+    if (!e) {
+      tela.aviso(`${pasta} está fora das pastas dos espaços: o git ali continua com a configuração que você já usa (a conta do espaço vale só dentro da pasta dele).`);
+      const id = cat.espacos.length === 1 ? cat.espacos[0].id : await tela.escolher(`A que espaço ${basename(pasta)} pertence (para as regras de trabalho)?`, cat.espacos.map((x) => ({ valor: x.id, rotulo: nomeEspaco(x) })));
+      e = cat.espacos.find((x) => x.id === id)!;
+    }
+    const atuais = loadCatalogo().apps;
+    const base = slug(basename(pasta)) || 'projeto';
+    const nome = atuais.some((a) => a.app === base) ? `${base}-${slug(e.id)}` : base;
+    adicionarApp({ app: nome, espaco: e.id, ferramenta: 'nenhuma', pasta, projeto: null });
+    tela.ok(`${nome} entrou no hub (espaço ${nomeEspaco(e)}).`);
+  }
+}
+
+// ───────────────────────── 6. Repositórios (pelo Claude Code do usuário) ─────────────────────────
 
 export async function repositorios(ctx: Ctx) {
   const cat = loadCatalogo();
@@ -318,7 +363,7 @@ export async function repositorios(ctx: Ctx) {
 
 const subpastas = (p: string) => (existsSync(p) ? readdirSync(p).filter((n) => !n.startsWith('.') && statSync(join(p, n)).isDirectory()) : []);
 
-// ───────────────────────── 6. De-para: projeto da ferramenta → pasta ─────────────────────────
+// ───────────────────────── 7. De-para: projeto da ferramenta → pasta ─────────────────────────
 
 export async function dePara(ctx: Ctx) {
   const pms = adaptadores(ctx);
@@ -337,13 +382,25 @@ export async function dePara(ctx: Ctx) {
     for (const [projetoId, p] of projetos) {
       const cat = loadCatalogo();
       if (cat.apps.some((a) => a.ferramenta === pm.nome && a.projetos_na_ferramenta.includes(projetoId))) continue;
-      const opcoes = cat.espacos.flatMap((e) => subpastas(e.pasta).map((n) => ({ valor: `${e.id}|${n}`, rotulo: `${nomeEspaco(e)} / ${n}` })));
+      // Os projetos que já estão no hub (trazidos do Orca ou de antes) e as pastas dos espaços que ainda não estão.
+      const jaNoHub = cat.apps.filter((a) => a.ferramenta === pm.nome || a.ferramenta === 'nenhuma');
+      const pastasHub = new Set(cat.apps.map((a) => a.pasta));
+      const opcoes = [
+        ...jaNoHub.map((a) => ({ valor: `app|${a.app}`, rotulo: `${a.app} (já no hub)`, dica: a.pasta })),
+        ...cat.espacos.flatMap((e) => subpastas(e.pasta).filter((n) => !pastasHub.has(join(e.pasta, n))).map((n) => ({ valor: `${e.id}|${n}`, rotulo: `${nomeEspaco(e)} / ${n}` }))),
+      ];
       const escolha = await tela.escolher(`${nomeFer} · "${p.nome}" (${p.n} task(s), ex.: ${p.exemplo.slice(0, 50)}): em qual pasta roda?`, [
         ...opcoes,
         { valor: 'nova', rotulo: 'Criar uma pasta nova (sem repositório)' },
         { valor: 'depois', rotulo: 'Depois, pelo Telegram' },
       ]);
       if (escolha === 'depois') continue;
+      if (escolha.startsWith('app|')) {
+        const app = escolha.slice(4);
+        ligarProjeto(app, projetoId, pm.nome as Ferramenta);
+        tela.ok(`"${p.nome}" → ${app}`);
+        continue;
+      }
       let [espaco, pasta] = escolha.split('|');
       if (escolha === 'nova') {
         espaco = cat.espacos.length === 1 ? cat.espacos[0].id : await tela.escolher('Em qual espaço?', cat.espacos.map((e) => ({ valor: e.id, rotulo: nomeEspaco(e) })));
@@ -371,7 +428,7 @@ function ligar(apps: App[], o: { espaco: string; pasta: string; ferramenta: Ferr
   adicionarApp({ app: nome, espaco: o.espaco, ferramenta: o.ferramenta, pasta: o.pasta, projeto: o.projetoId });
 }
 
-// ───────────────────────── 7. Telegram ─────────────────────────
+// ───────────────────────── 8. Telegram ─────────────────────────
 
 export async function telegram(ctx: Ctx) {
   await pararServico(); // com o hub rodando, o Telegram não deixa outro programa ler as mensagens do bot
@@ -410,7 +467,7 @@ export async function telegram(ctx: Ctx) {
   }
 }
 
-// ───────────────────────── 8. Orca e celular ─────────────────────────
+// ───────────────────────── 9. Orca e celular ─────────────────────────
 
 const aparelhosMoveis = () => {
   try {
@@ -445,7 +502,7 @@ export async function orca() {
   else tela.aviso('Não vi um celular novo no Orca. Dá para parear depois, pelo mesmo caminho; o resto do hub não depende disso.');
 }
 
-// ───────────────────────── 9. Serviço ─────────────────────────
+// ───────────────────────── 10. Serviço ─────────────────────────
 
 export async function servico(ctx: Ctx) {
   // Sandbox: o app do teste do passo final (tasks fictícias, sem ferramenta de gestão).
@@ -492,7 +549,7 @@ async function esperarOnline(ctx: Ctx, limiteMs = 90_000) {
   return false;
 }
 
-// ───────────────────────── 10. Teste de ponta a ponta ─────────────────────────
+// ───────────────────────── 11. Teste de ponta a ponta ─────────────────────────
 
 export async function teste() {
   tela.info('Último passo: uma task de teste no sandbox, de ponta a ponta. O Claude abre no Orca, responde e o hub avisa no Telegram.');

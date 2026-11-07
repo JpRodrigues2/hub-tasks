@@ -8,7 +8,7 @@ const raiz = mkdtempSync(join(tmpdir(), 'hub-catalogo-'));
 process.env.HUB_DADOS_DIR = join(raiz, 'dados');
 process.env.HUB_APPS_FILE = join(raiz, 'apps.yaml');
 process.env.HUB_REPOS_DIR = join(raiz, 'repos');
-const { loadCatalogo, migrarCatalogo } = await import('../../src/config.js');
+const { ligarProjeto, loadCatalogo, migrarCatalogo } = await import('../../src/config.js');
 const { fontesDeRegras } = await import('../../src/regras.js');
 
 const APPS = process.env.HUB_APPS_FILE;
@@ -83,6 +83,14 @@ apps:
       { nome: 'funifier', titulo: 'Funifier' },
       { nome: 'laboratorio', titulo: 'lab' },
     ]);
+  });
+
+  it('projeto trazido sem ferramenta adota a do primeiro projeto ligado a ele', () => {
+    writeFileSync(APPS, 'espacos:\n  - { id: pessoal, pasta: /tmp/p }\napps:\n  - { app: lab, espaco: pessoal, ferramenta: nenhuma, pasta: /tmp/lab }\n');
+    ligarProjeto('lab', 'LAB', 'jira');
+    expect(loadCatalogo().apps[0]).toMatchObject({ ferramenta: 'jira', projetos_na_ferramenta: ['LAB'] });
+    ligarProjeto('lab', 'OUTRO', 'bnexo'); // já tem ferramenta: só acrescenta o projeto
+    expect(loadCatalogo().apps[0]).toMatchObject({ ferramenta: 'jira', projetos_na_ferramenta: ['LAB', 'OUTRO'] });
   });
 
   it('app com espaço que não existe: erro claro', () => {
