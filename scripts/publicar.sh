@@ -26,6 +26,7 @@ mkdir -p "$DEST"
 # Limpa tudo menos o .git do destino (o histórico do repositório público é só dele).
 find "$DEST" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 git -C "$ORIG" archive --format=tar HEAD "${ENTRA[@]}" | tar -x -C "$DEST"
+rm -f "$DEST/scripts/publicar.sh" # ferramenta do desenvolvimento (e tem a lista do que é proibido)
 for f in "${PUBLICO[@]}"; do cp "$ORIG/publico/$f" "$DEST/$f"; done
 [[ -f "$ORIG/publico/LICENSE" ]] && cp "$ORIG/publico/LICENSE" "$DEST/LICENSE" || echo "aviso: sem publico/LICENSE (defina a licença antes de publicar)"
 
