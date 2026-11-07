@@ -53,7 +53,7 @@ describe('instalador', () => {
     const linha = 'export PATH="$HOME/.local/bin:$PATH"';
     writeFileSync(f, `alias x=y\n\n${linha}\nexport FOO=1\n`);
     tirarLinha(f, linha);
-    expect(readFileSync(f, 'utf8')).toBe('alias x=y\n\nexport FOO=1\n');
+    expect(readFileSync(f, 'utf8')).toBe('alias x=y\nexport FOO=1\n');
   });
 });
 

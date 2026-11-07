@@ -37,10 +37,15 @@ async function removerPrograma(a: Programa) {
 export function tirarLinha(arquivo: string, linha: string) {
   if (!existsSync(arquivo)) return;
   const antes = readFileSync(arquivo, 'utf8');
-  const depois = antes
-    .split('\n')
-    .filter((l) => l !== linha)
-    .join('\n');
+  // O instalador põe uma linha em branco antes da dele: sai junto.
+  const linhas = antes.split('\n');
+  const fora = new Set<number>();
+  linhas.forEach((l, i) => {
+    if (l !== linha) return;
+    fora.add(i);
+    if (i > 0 && linhas[i - 1] === '') fora.add(i - 1);
+  });
+  const depois = linhas.filter((_, i) => !fora.has(i)).join('\n');
   if (depois !== antes) writeFileSync(arquivo, depois);
 }
 
@@ -122,7 +127,7 @@ export async function desinstalar(casa: Casa) {
   } catch (e) {
     if (e instanceof Parou) {
       salvarEstado(casa.estado, estado);
-      tela.fim('Parei no meio. Rode `./muxor desinstalar` de novo para terminar.');
+      tela.fim('Parei no meio. Rode `muxor desinstalar` de novo para terminar.');
       return 1;
     }
     throw e;

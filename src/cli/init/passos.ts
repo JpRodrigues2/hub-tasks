@@ -278,7 +278,7 @@ export async function existentes(ctx: Ctx) {
       '  • Trazer para o Muxor: ele entra no fluxo completo. O Muxor manda tasks para ele, abre sessões do Claude e',
       '    escreve nas sessões que já existem nessa pasta, e marca o status da área de trabalho no Orca.',
       '  • Deixar de fora: o Muxor nunca toca nesse projeto nem nas sessões dele.',
-      'Dá para trazer mais depois: ./muxor adicionar projeto',
+      'Dá para trazer mais depois: muxor adicionar projeto',
     ].join('\n'),
     'Projetos que você já tem no Orca',
   );
@@ -508,7 +508,7 @@ export async function servico(ctx: Ctx) {
   if (!subiu) {
     const fim = existsSync(log) ? readFileSync(log, 'utf8').split('\n').slice(-12).join('\n') : '(sem log)';
     tela.nota(fim, `Últimas linhas de ${log}`);
-    tela.info('Rode `./muxor diagnostico` para ver o que falta. Depois, `./muxor init` continua daqui.');
+    tela.info('Rode `muxor diagnostico` para ver o que falta. Depois, `muxor init` continua daqui.');
     throw new Interrompido();
   }
 }
@@ -569,7 +569,7 @@ export async function teste() {
   );
   db.close();
   if (estado !== 'concluido') {
-    tela.aviso('A task de teste não terminou. Veja o que o Muxor disse no Telegram e rode `./muxor diagnostico`. Rodar `./muxor init` de novo refaz este teste.');
+    tela.aviso('A task de teste não terminou. Veja o que o Muxor disse no Telegram e rode `muxor diagnostico`. Rodar `muxor init` de novo refaz este teste.');
     throw new Interrompido();
   }
 }
@@ -583,11 +583,11 @@ export function resumoFinal(ferramentasOk: string[]) {
     ...(ferramentasOk.includes('funifier-pm') ? ['  /gamificacoes  cadastre as credenciais das gamificações da Funifier'] : []),
     '',
     'No terminal:',
-    '  ./muxor diagnostico              confere tudo e diz o próximo passo',
-    '  ./muxor adicionar github-workspace   outro espaço (outra conta do GitHub)',
-    '  ./muxor adicionar projeto        traz mais projetos (do Orca ou das pastas) para o Muxor',
-    '  ./muxor adicionar heartbeat      aviso se o Muxor cair (opcional)',
-    '  ./muxor desinstalar              desfaz tudo o que o muxor init fez',
+    '  muxor diagnostico              confere tudo e diz o próximo passo',
+    '  muxor adicionar github-workspace   outro espaço (outra conta do GitHub)',
+    '  muxor adicionar projeto        traz mais projetos (do Orca ou das pastas) para o Muxor',
+    '  muxor adicionar heartbeat      aviso se o Muxor cair (opcional)',
+    '  muxor desinstalar              desfaz tudo o que o muxor init fez',
     '',
     'Na primeira task de cada projeto o Claude pergunta se confia na pasta: responda "Yes" no Orca.',
   ];

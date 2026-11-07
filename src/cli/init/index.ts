@@ -41,7 +41,7 @@ export async function init(casa: Casa, refazer?: string) {
   const ctx = criarCtx(casa, estado);
   tela.abertura('Muxor · configuração');
   const feitos = PASSOS.filter((p) => estado.passos[p.id] && !p.sempre).length;
-  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Para refazer um passo: ./muxor init --refazer <passo>)`);
+  if (feitos) tela.info(`Continuando de onde parou: ${feitos} de ${PASSOS.length} passos já feitos. (Para refazer um passo: muxor init --refazer <passo>)`);
   try {
     for (const [i, p] of PASSOS.entries()) {
       if (estado.passos[p.id] && !p.sempre) {
@@ -55,15 +55,15 @@ export async function init(casa: Casa, refazer?: string) {
     }
   } catch (e) {
     if (e instanceof Parou) {
-      tela.fim('Parei aqui. Rode `./muxor init` de novo para continuar de onde parou.');
+      tela.fim('Parei aqui. Rode `muxor init` de novo para continuar de onde parou.');
       return 1;
     }
     if (e instanceof passos.Interrompido) {
-      tela.fim('Rode `./muxor init` de novo quando resolver: eu continuo deste passo.');
+      tela.fim('Rode `muxor init` de novo quando resolver: eu continuo deste passo.');
       return 1;
     }
     tela.erro(`Erro inesperado: ${(e as Error).message}`);
-    tela.fim('Rode `./muxor diagnostico` para ver o que falta, e `./muxor init` de novo para continuar.');
+    tela.fim('Rode `muxor diagnostico` para ver o que falta, e `muxor init` de novo para continuar.');
     return 1;
   }
   passos.resumoFinal(JSON.parse(estado.passos.ferramentasOk ?? '[]'));

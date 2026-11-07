@@ -105,8 +105,8 @@ function executar(bin: string, args: string[], o: { log?: string; terminal?: boo
 
 // Orca: o release oficial do GitHub (o pacote "orca" do Homebrew é outro programa). Confere a assinatura e a
 // notarização da Apple antes de pôr em /Applications.
-async function instalarOrca(log: string) {
-  if ((await rodar('/usr/bin/pgrep', ['-x', 'Orca'])).ok && existsSync(ORCA_APP))
+export async function instalarOrca(log: string, destino = ORCA_APP) {
+  if (destino === ORCA_APP && (await rodar('/usr/bin/pgrep', ['-x', 'Orca'])).ok && existsSync(ORCA_APP))
     throw new Error('o Orca está aberto. Atualize por ele (menu Orca → Check for Updates) e rode o muxor init de novo');
   const r = (await (await fetch('https://api.github.com/repos/stablyai/orca/releases/latest', { signal: AbortSignal.timeout(20_000) })).json()) as {
     tag_name: string;
@@ -125,8 +125,8 @@ async function instalarOrca(log: string) {
     const app = join(pasta, 'Orca.app');
     await executar('/usr/bin/codesign', ['--verify', '--deep', '--strict', app], { log });
     await executar('/usr/sbin/spctl', ['--assess', '--type', 'execute', app], { log });
-    rmSync(ORCA_APP, { recursive: true, force: true });
-    await executar('/usr/bin/ditto', [app, ORCA_APP], { log });
+    rmSync(destino, { recursive: true, force: true });
+    await executar('/usr/bin/ditto', [app, destino], { log });
   } finally {
     rmSync(pasta, { recursive: true, force: true });
   }

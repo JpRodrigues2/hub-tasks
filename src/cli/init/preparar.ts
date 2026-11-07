@@ -67,7 +67,7 @@ export async function preRequisitos(ctx: Ctx) {
       'Programas',
     );
     if (!(await tela.sim('Instalar agora?'))) {
-      tela.info(`Sem eles o Muxor não funciona. Para instalar você mesmo, veja ${GUIA}; depois rode ./muxor init de novo.`);
+      tela.info(`Sem eles o Muxor não funciona. Para instalar você mesmo, veja ${GUIA}; depois rode muxor init de novo.`);
       throw new Interrompido();
     }
     const orcaAberto = (await rodar('/usr/bin/pgrep', ['-x', 'Orca'])).ok;
@@ -94,7 +94,7 @@ export async function preRequisitos(ctx: Ctx) {
   } else tela.ok('GitHub CLI, Claude Code, Orca e Tailscale instalados.');
 
   if (!ctx.estado.passos.appsCelular) {
-    await tela.link(PAGINA_CELULAR, 'Enquanto isso, no celular: instale o Telegram, o Orca e o Tailscale (leia o QR code)', { qr: true });
+    await tela.link(PAGINA_CELULAR, 'No celular: instale o Telegram, o Orca e o Tailscale (leia o QR code)', { qr: true });
     ctx.estado.passos.appsCelular = new Date().toISOString();
     ctx.salvar();
   }
@@ -110,14 +110,14 @@ export async function esperar(id: IdPrograma) {
       await tela.esperando(`Terminando de instalar o ${p.nome}…`, () => t, () => `${p.nome} instalado`);
     } catch (e) {
       tela.erro(`Não consegui instalar o ${p.nome}: ${(e as Error).message}`);
-      tela.info(`Como instalar à mão: ${GUIA}. Depois rode ./muxor init de novo: eu continuo daqui.`);
+      tela.info(`Como instalar à mão: ${GUIA}. Depois rode muxor init de novo: eu continuo daqui.`);
       throw new Interrompido();
     }
   }
   const [s] = await conferir([id]);
   if (!s.ok) {
     tela.erro(s.versao ? `O ${p.nome} ${s.versao} é antigo: preciso da ${p.minima} ou mais nova.` : `Falta o ${p.nome}.`);
-    tela.info(`Rode ./muxor init de novo para eu instalar (ou veja ${GUIA}).`);
+    tela.info(`Rode muxor init de novo para eu instalar (ou veja ${GUIA}).`);
     throw new Interrompido();
   }
 }
@@ -129,7 +129,7 @@ export async function claudeComLogin() {
   tela.info('Falta entrar no Claude Code com a sua conta (a assinatura que ele vai usar). Vou abrir o login no navegador.');
   await new Promise<void>((ok) => spawn('claude', ['auth', 'login'], { stdio: 'inherit' }).on('close', () => ok()));
   if (!(await logado())) {
-    tela.erro('O Claude Code continua sem login. Rode `claude` num terminal, entre com a sua conta e rode ./muxor init de novo.');
+    tela.erro('O Claude Code continua sem login. Rode `claude` num terminal, entre com a sua conta e rode muxor init de novo.');
     throw new Interrompido();
   }
   tela.ok('Claude Code com login.');
@@ -188,7 +188,7 @@ async function aguardar(texto: string, ok: (s: EstadoTailscale) => boolean, minu
 }
 
 async function pularOuParar(oQue: string) {
-  if (await tela.sim(`${oQue} Pular por agora? (dá para fazer depois com ./muxor init --refazer front)`, false)) return true;
+  if (await tela.sim(`${oQue} Pular por agora? (dá para fazer depois com muxor init --refazer front)`, false)) return true;
   throw new Interrompido();
 }
 

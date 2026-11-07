@@ -101,7 +101,7 @@ QR code e, no Mac, abrem no navegador.
 
 | # | Passo | O que acontece | Atrito que evita |
 |---|---|---|---|
-| 1 | Pré-requisitos | Confere Node, git, Orca e Claude Code (com login). Falta algo: aponta o trecho do `pre-requisitos.md` | — |
+| 1 | Programas (O19) | O `install.sh` do site já pôs Homebrew, git e Node. Aqui confere gh, Claude Code, Orca ≥ 1.4.246 e Tailscale, mostra a lista do que falta e, com um sim, instala: o Tailscale em primeiro plano (pede a senha do Mac), o resto em segundo plano enquanto a pessoa segue. Cada passo espera o programa de que precisa (espaços → gh, existentes → Orca aberto, repositórios → Claude com login). QR code para `muxor.com.br/celular` (Telegram, Orca, Tailscale) | A2, A3 |
 | 2 | Modo | Local ou servidor (O1) | — |
 | 3 | Ferramentas de gestão | Marca quais usa (Funifier PM, Bnexo, Jira) e faz o login de cada uma: OAuth no navegador de verdade, ou token num campo escondido | A8 |
 | 4 | Espaços | Para cada conta do GitHub: nome, pasta-mãe, login do `gh` (código + link + QR), nome e e-mail sugeridos pela conta, regras (modelo, nenhuma ou própria) | A16 |
@@ -109,6 +109,7 @@ QR code e, no Mac, abrem no navegador.
 | 6 | De-para | Lista os projetos de cada ferramenta e liga cada um a uma pasta, ou "depois, pelo Telegram" (B15) | A12, A13 |
 | 7 | Telegram | Guia o BotFather (link + QR), recebe o token escondido, confere o bot e mostra `t.me/<bot>` + QR; o `/start` dá o chat id sozinho | A7, A10 |
 | 8 | Orca | Confere o Orca aberto, o `--permission-mode auto` nos argumentos do Claude e a pasta confiável; pareamento do celular: relay (qualquer rede, recomendado) ou mesma Wi-Fi (O3), com QR | A11 |
+| 9b | Front-end no celular (O20) | Tailscale no Mac (permitir a VPN, login), no celular com a mesma conta (confere o aparelho na rede) e, opcional, ngrok com o Authtoken | — |
 | 9 | Serviço e cofre | Mac: LaunchAgent e Keychain. Servidor: systemd, cofre cifrado e cópia de recuperação da chave-mestra | A6 |
 | 10 | Teste | "Hub online" no Telegram e uma task de exemplo no sandbox, de ponta a ponta | A14 |
 | 11 | Fim | Checklist; se a Funifier foi escolhida, "cadastre as gamificações no `/gamificacoes`" (O9); heartbeat opcional | — |
@@ -144,6 +145,7 @@ QR code e, no Mac, abrem no navegador.
 4. ✔️ **B20:** a listagem igual à do PM, em produção.
 5. ✔️ **Jira (B36).**
 6. ✔️ **Pasta `instalacao/`**, `CLAUDE.md`, `AGENTS.md` e a skill `instalar-hub` (O16).
+6b. ✔️ **Instalador (B45, O19/O20):** `install.sh`/`uninstall.sh` servidos pelo site, programas instalados pelo `init`, passo `front`, `muxor atualizar`. Testado aqui: o `install.sh` e o `uninstall.sh` numa pasta pessoal temporária (duas vezes, sem repetir nada), o download do Orca com a assinatura e a notarização conferidas, o passo 1 no terminal. Falta no teste do zero: Homebrew, Node, Claude Code e Tailscale instalados de verdade num Mac sem eles.
 7. ⬜ **Teste do zero** (seção 6), no Mac emprestado, só com o `instalacao/`.
 8. ⬜ **Modo servidor e `hub migrar servidor`**, depois do teste local.
 
