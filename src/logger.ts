@@ -39,6 +39,8 @@ function write(level: Level, msg: string, data?: Record<string, unknown>) {
     }),
   );
   appendFileSync(join(LOG_DIR, `hub-${now.toISOString().slice(0, 10)}.log`), line + '\n');
+  // HUB_LOG_SILENCIOSO: o comando `hub` escreve só no arquivo, para a saída do terminal ficar limpa.
+  if (process.env.HUB_LOG_SILENCIOSO) return;
   if (level !== 'debug' || process.env.HUB_DEBUG) (level === 'error' ? console.error : console.log)(line);
 }
 

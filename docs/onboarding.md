@@ -53,7 +53,7 @@ onboarding.
 | `hub adicionar github-workspace` | Um espaço novo (outra conta do GitHub) |
 | `hub adicionar heartbeat` | Liga o Healthchecks.io |
 | `hub migrar servidor` | Leva a instalação local para uma VPS |
-| `hub diagnostico` | Confere cada peça e diz o próximo passo; é o que o Claude Code do usuário lê para ajudar |
+| `hub diagnostico` ✔️ | Confere cada peça e diz o próximo passo; é o que o Claude Code do usuário lê para ajudar (`--json`). Mac: `npm run -s hub -- diagnostico` na pasta do hub. Servidor: `sudo -u hub -i /home/hub/app/bin/hub.mjs diagnostico` |
 
 Todos guardam o progresso em `configuracao.json` (✅/⬜ por passo) e podem rodar de novo sem estragar.
 

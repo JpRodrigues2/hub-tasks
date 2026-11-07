@@ -95,7 +95,7 @@ const CatalogoSchema = z.object({
 export type Catalogo = Omit<z.infer<typeof CatalogoSchema>, 'apps'> & { apps: App[] };
 
 function formatIssues(e: z.ZodError) {
-  return e.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+  return e.issues.map((i) => `${i.path.join('.')}: ${/received undefined/.test(i.message) ? 'falta' : i.message}`).join('; ');
 }
 
 export function loadEnv(): Env {
