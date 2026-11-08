@@ -578,6 +578,7 @@ export async function servico(ctx: Ctx) {
   }
   const log = join(ctx.casa.logs, 'servico.log');
   mkdirSync(ctx.casa.logs, { recursive: true });
+  const inicio = new Date().toISOString(); // só vale o "bot online" que vier depois daqui
   const caminho = [dirname(process.execPath), join(homedir(), '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
   const plist = await tela.esperando(
     'Instalando o Muxor como serviço do Mac',
@@ -594,7 +595,7 @@ export async function servico(ctx: Ctx) {
   );
   ctx.registrar({ tipo: 'launchagent', plist, rotulo: ROTULO });
   ctx.registrar({ tipo: 'keychain', servico: process.env.HUB_KEYCHAIN_SERVICO ?? 'hub-tasks' });
-  const subiu = await tela.esperando('Ligando o Muxor', () => esperarOnline(ctx), (ok) => (ok ? 'Muxor ligado. Chegou o aviso no Telegram' : 'O Muxor não ligou'));
+  const subiu = await tela.esperando('Ligando o Muxor', () => esperarOnline(ctx, inicio), (ok) => (ok ? 'Muxor ligado. Chegou o aviso no Telegram' : 'O Muxor não ligou'));
   if (!subiu) {
     const fim = existsSync(log) ? readFileSync(log, 'utf8').split('\n').slice(-12).join('\n') : 'Sem registro';
     tela.nota(fim, `Últimas linhas de ${log}`);
@@ -610,11 +611,16 @@ function nodeEstavel() {
   return ['/opt/homebrew/bin/node', '/usr/local/bin/node'].find(existsSync) ?? process.execPath;
 }
 
-async function esperarOnline(ctx: Ctx, limiteMs = 90_000) {
+// O "hub: bot online" desta subida: as linhas antigas do mesmo arquivo (de outra execução) não contam.
+export function subiuDesde(log: string, inicio: string) {
+  return log.split('\n').some((l) => l.includes('"hub: bot online"') && (l.match(/"ts":"([^"]+)"/)?.[1] ?? '') >= inicio);
+}
+
+async function esperarOnline(ctx: Ctx, inicio: string, limiteMs = 90_000) {
   const fim = Date.now() + limiteMs;
   while (Date.now() < fim) {
     const hoje = join(ctx.casa.logs, `hub-${new Date().toISOString().slice(0, 10)}.log`);
-    if (existsSync(hoje) && readFileSync(hoje, 'utf8').includes('"hub: bot online"')) return true;
+    if (existsSync(hoje) && subiuDesde(readFileSync(hoje, 'utf8'), inicio)) return true;
     await new Promise((r) => setTimeout(r, 2000));
   }
   return false;
