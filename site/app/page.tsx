@@ -19,7 +19,7 @@ const INSTALAR = 'curl -fsSL https://muxor.com.br/install | bash';
 function Cabecalho() {
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <div className="absolute inset-0 -z-10 border-b border-white/[0.06] bg-fundo/80 backdrop-blur-xl" />
+      <div className="absolute inset-0 -z-10 border-b border-white/[0.06] bg-fundo/95 md:bg-fundo/80 md:backdrop-blur-xl" />
       <div className="site-container flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
           <a href="#" className="flex items-center gap-2.5 text-texto transition-opacity hover:opacity-80">
@@ -58,7 +58,12 @@ function Hero() {
   return (
     <section className="relative overflow-x-clip pt-24 md:pt-32">
       {/* Brilho de nebulosa ao fundo (o céu em three.js entra depois). */}
-      <div aria-hidden className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-poeira/10 blur-[120px]" />
+      {/* Degradê radial em vez de blur: o mesmo brilho, sem o filtro de desfoque que pesa na rolagem do celular. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[640px] w-[1100px] max-w-[100vw] -translate-x-1/2"
+        style={{ background: 'radial-gradient(closest-side, color-mix(in srgb, var(--cor-poeira) 10%, transparent), transparent)' }}
+      />
       <div className="site-container grid items-center gap-12 md:grid-cols-[1.25fr_1fr]">
         <Revelar>
           <h1 className="text-display text-balance">Todas as suas tasks e sessões do Claude Code num lugar só.</h1>
@@ -89,7 +94,9 @@ function Hero() {
           </div>
         </Revelar>
         <Revelar atraso={150} className="hidden justify-center md:flex">
-          <Image src="/muxor.png" alt="O estagiário do Muxor, com um cabo em Y no braço" width={653} height={1100} priority className="h-auto w-[300px] drop-shadow-[0_0_40px_rgba(232,215,176,0.12)] lg:w-[340px]" />
+          {/* WebP (71 KB, era um PNG de 634 KB) e sem priority: no celular esta coluna fica escondida, e o priority fazia o
+              celular baixar a imagem mesmo assim, antes de tudo. */}
+          <Image src="/muxor.webp" alt="O estagiário do Muxor, com um cabo em Y no braço" width={653} height={1100} className="h-auto w-[300px] drop-shadow-[0_0_40px_rgba(232,215,176,0.12)] lg:w-[340px]" />
         </Revelar>
       </div>
     </section>
@@ -467,8 +474,12 @@ function ChamadaFinal() {
     <section className="site-container mt-20 md:mt-32">
       <Revelar>
         <div className="relative overflow-hidden rounded-2xl border border-borda bg-superficie px-5 py-12 text-center md:px-16 md:py-14">
-          <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[640px] -translate-x-1/2 rounded-full bg-nebulosa/10 blur-[100px]" />
-          <Image src="/muxor.png" alt="O estagiário do Muxor" width={653} height={1100} className="mx-auto h-auto w-[120px] md:w-[140px]" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-40 left-1/2 h-96 w-[820px] -translate-x-1/2"
+            style={{ background: 'radial-gradient(closest-side, color-mix(in srgb, var(--cor-nebulosa) 10%, transparent), transparent)' }}
+          />
+          <Image src="/muxor-280.webp" alt="O estagiário do Muxor" width={280} height={472} className="mx-auto h-auto w-[120px] md:w-[140px]" />
           <h2 className="text-heading mt-6 text-balance">Contrate o seu estagiário.</h2>
           <p className="text-lede mx-auto mt-4 max-w-xl text-suave">Instale em minutos e deixe a próxima task começar sem você na cadeira.</p>
           <div className="mx-auto mt-8 max-w-md">
