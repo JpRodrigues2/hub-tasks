@@ -143,29 +143,26 @@ const ABAS = [
   {
     nome: 'Uma lista só',
     titulo: 'Os seus boards numa lista só',
-    texto: 'As tasks do Jira, do Funifier PM e do Bnexo chegam juntas, separadas por projeto, na ordem da sprint e com as subtarefas. Você escolhe as do dia sem abrir nenhum board.',
+    texto: 'As tasks do Jira, do Funifier PM e do Bnexo chegam juntas, uma mensagem por projeto, na ordem da sprint e com as subtarefas. Marque nas caixinhas e toque em Iniciar, sem abrir nenhum board.',
     quadro: (
       <Chat
         linhas={[
           <Msg key="1">
-            <b>📋 Suas tasks hoje</b>
+            <b>📋 App de Pedidos</b>
+            <br />
+            <span className="text-suave">Jira · Sprint 14 · 2 tasks</span>
             <br />
             <br />
-            <span className="text-suave">Jira · App de Pedidos</span>
-            <br />✅ /t1 Checkout com Pix
+            <b>1.</b> Checkout com Pix
             <br />
-            {'   '}↳ ⬜ /t2 Testes do checkout
-            <br />
-            <br />
-            <span className="text-suave">Funifier PM · Painel</span>
-            <br />✅ /t3 Filtro por período
-            <br />
-            <br />
-            <span className="text-suave">Bnexo · API</span>
-            <br />⬜ /t4 Validar CPF no cadastro
+            {'   '}↳ <b>2.</b> Testes do checkout
           </Msg>,
+          <div key="b" className="flex flex-col gap-1.5 text-[12px]">
+            <span className="rounded-md border border-borda px-2.5 py-1.5">✅ 1. Checkout com Pix</span>
+            <span className="rounded-md border border-borda px-2.5 py-1.5">⬜ 2. Testes do checkout</span>
+          </div>,
           <div key="2" className="flex gap-2 text-[12px]">
-            <span className="rounded-md bg-botao px-2.5 py-1.5 font-semibold text-botao-texto">▶️ Iniciar 2 tasks</span>
+            <span className="rounded-md bg-botao px-2.5 py-1.5 font-semibold text-botao-texto">▶️ Iniciar selecionadas</span>
             <span className="rounded-md border border-borda px-2.5 py-1.5">📦 Em lote</span>
           </div>,
         ]}
