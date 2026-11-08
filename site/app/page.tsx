@@ -1,6 +1,6 @@
 // Página principal do Muxor: mesma estrutura do onorca.dev (cabeçalho fixo, hero com dois botões e o comando,
 // faixa "funciona com", abas de recursos, seções, perguntas e chamada final), com o conteúdo e as cores do Muxor.
-import { ArrowRight, BellRing, Boxes, Eye, FolderGit2, Layers, Laptop, MapPin, Lock, Server, ShieldCheck, Smartphone, Stethoscope, Terminal } from 'lucide-react';
+import { ArrowRight, BellRing, Boxes, Check, Eye, FolderGit2, Layers, Laptop, MapPin, Lock, Server, ShieldCheck, Smartphone, Stethoscope, X } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Abas } from '@/components/abas';
@@ -61,10 +61,11 @@ function Hero() {
       <div aria-hidden className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-poeira/10 blur-[120px]" />
       <div className="site-container grid items-center gap-12 md:grid-cols-[1.25fr_1fr]">
         <Revelar>
-          <h1 className="text-display text-balance">Levante da cadeira. Suas tasks continuam andando.</h1>
+          <h1 className="text-display text-balance">Todas as suas tasks e sessões do Claude Code num lugar só.</h1>
           <p className="text-lede mt-6 max-w-[40rem] text-balance text-suave">
-            Escolha as tasks do dia pelo celular e o Claude Code começa a trabalhar nelas. Você vê o código sendo escrito ao
-            vivo, responde quando ele precisar e abre o PR de onde estiver. Mais entregas, sem ficar preso ao computador.
+            O Muxor junta as tasks do Jira, do Funifier PM e do Bnexo numa lista só, despacha cada uma para uma sessão do
+            Claude Code no projeto certo e mostra tudo andando na mesma conversa. Sem pular entre três boards, sem copiar e
+            colar, sem vigiar terminal. E essa central cabe no seu bolso.
           </p>
           <div id="instalar" className="mt-8 flex max-w-lg flex-col gap-2.5">
             <a
@@ -140,27 +141,31 @@ function Tela({ linhas }: { linhas: ReactNode[] }) {
 
 const ABAS = [
   {
-    nome: 'Listagem',
-    titulo: 'Planeje o dia em 30 segundos',
-    texto: 'Suas tasks chegam no Telegram na mesma ordem da sprint, com as subtarefas. Toque nas que quer entregar hoje. Nada de abrir o board, copiar a descrição e colar no terminal.',
+    nome: 'Uma lista só',
+    titulo: 'Os seus boards numa lista só',
+    texto: 'As tasks do Jira, do Funifier PM e do Bnexo chegam juntas, separadas por projeto, na ordem da sprint e com as subtarefas. Você escolhe as do dia sem abrir nenhum board.',
     quadro: (
       <Chat
         linhas={[
           <Msg key="1">
-            <b>📋 App de Pedidos</b>
-            <br />
-            <span className="text-suave">Sprint 14 · 3 tasks</span>
+            <b>📋 Suas tasks hoje</b>
             <br />
             <br />
-            🗓 <b>Novembro</b>
+            <span className="text-suave">Jira · App de Pedidos</span>
             <br />✅ /t1 Checkout com Pix
             <br />
-            {'   '}↳ ⬜ /t2 Validar CPF no cadastro
+            {'   '}↳ ⬜ /t2 Testes do checkout
             <br />
-            {'   '}↳ ⬜ /t3 Testes do checkout
+            <br />
+            <span className="text-suave">Funifier PM · Painel</span>
+            <br />✅ /t3 Filtro por período
+            <br />
+            <br />
+            <span className="text-suave">Bnexo · API</span>
+            <br />⬜ /t4 Validar CPF no cadastro
           </Msg>,
           <div key="2" className="flex gap-2 text-[12px]">
-            <span className="rounded-md bg-botao px-2.5 py-1.5 font-semibold text-botao-texto">▶️ Iniciar</span>
+            <span className="rounded-md bg-botao px-2.5 py-1.5 font-semibold text-botao-texto">▶️ Iniciar 2 tasks</span>
             <span className="rounded-md border border-borda px-2.5 py-1.5">📦 Em lote</span>
           </div>,
         ]}
@@ -169,27 +174,30 @@ const ABAS = [
   },
   {
     nome: 'Despacho',
-    titulo: 'Um toque e o trabalho começa',
-    texto: 'O Muxor monta o contexto da task, abre o Claude Code no projeto certo e já atualiza o status no board. Enquanto uma task roda, você despacha a próxima: várias frentes andando ao mesmo tempo.',
+    titulo: 'Um toque, uma sessão em cada projeto',
+    texto: 'O Muxor lê a task inteira (descrição, anexos, critérios), abre o Claude Code no projeto certo com as suas regras de trabalho e muda o status no board. Nada de copiar e colar: despache a próxima enquanto a primeira roda.',
     quadro: (
       <Tela
         linhas={[
           <span key="1" className="text-suave">
-            {'# Orca · app-pedidos\n'}
+            {'# sessões do Claude Code agora\n\n'}
           </span>,
-          '> Leia e execute a task descrita em runs/42.md\n\n',
-          <span key="2" className="text-dourado">
-            {'⏺ Vou criar o fluxo de pagamento com Pix…\n'}
-          </span>,
-          '  ✔ src/checkout/pix.ts\n  ✔ testes passando\n',
+          <span key="2" className="text-dourado">{'⏺ '}</span>,
+          'app-pedidos   Checkout com Pix       escrevendo código\n',
+          <span key="3" className="text-dourado">{'⏺ '}</span>,
+          'painel        Filtro por período     rodando os testes\n',
+          <span key="4" className="text-nebulosa">{'? '}</span>,
+          'api           Validar CPF            esperando você\n',
+          <span key="5" className="text-ok">{'✔ '}</span>,
+          'app-pedidos   Testes do checkout     pronta para o PR\n',
         ]}
       />
     ),
   },
   {
-    nome: 'Avisos',
+    nome: 'Acompanhar',
     titulo: 'Você só é chamado quando importa',
-    texto: 'Chega de olhar o terminal esperando terminar. Quando o Claude tem uma dúvida ou conclui, você recebe no Telegram com o contexto e resolve ali: responde, pede ajuste ou abre o PR.',
+    texto: 'Chega de pular entre terminais esperando terminar. Quando uma sessão tem uma dúvida ou conclui, a mensagem chega na mesma conversa, com a task e o projeto. Você responde, pede ajuste ou abre o PR ali mesmo.',
     quadro: (
       <Chat
         linhas={[
@@ -268,8 +276,11 @@ function Recursos() {
   return (
     <section id="como-funciona" className="site-container mt-20 scroll-mt-24 md:mt-28">
       <Revelar>
-        <h2 className="text-heading text-balance text-center">Do board ao pull request.</h2>
-        <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">Você decide o que fazer. O Muxor cuida do resto e só chama você quando faz diferença.</p>
+        <h2 className="text-heading text-balance text-center">Uma central entre os seus boards e o Claude Code.</h2>
+        <p className="text-lede mx-auto mt-5 max-w-2xl text-center text-suave">
+          Tudo entra num lugar só e sai de lá: as tasks de cada ferramenta, as sessões de cada projeto e os PRs. Você decide e
+          acompanha de uma conversa, no computador ou no celular.
+        </p>
       </Revelar>
       <Revelar className="mt-12" atraso={100}>
         <Fluxo />
@@ -281,21 +292,72 @@ function Recursos() {
   );
 }
 
-// Por que instalar: o ganho, antes de como funciona.
-function Ganhos() {
-  const itens = [
-    { icone: Layers, titulo: 'Mais entregas por dia', texto: 'Várias tasks rodando em paralelo enquanto você revisa outra. Você para de esperar o Claude e passa a coordenar.' },
-    { icone: MapPin, titulo: 'Trabalhe de onde estiver', texto: 'Do café, da fila, do sofá. Escolher, responder e aprovar cabe no celular; o computador faz o trabalho pesado.' },
-    { icone: Eye, titulo: 'Sem perder o controle', texto: 'Você vê cada mudança no código enquanto ela acontece. Nada vira concluído ou PR sem o seu sim.' },
+// O problema antes da solução: o dia de quem trabalha com o Claude Code em vários boards e projetos.
+function AntesDepois() {
+  const antes = [
+    'Abrir o Jira, o Funifier PM e o Bnexo, um de cada vez, para saber o que tem para hoje',
+    'Ler cada task e copiar a descrição, os anexos e os critérios',
+    'Abrir um terminal por projeto e colar o contexto no Claude, de novo e de novo',
+    'Pular entre abas para ver qual sessão terminou e qual travou numa pergunta',
+    'Voltar a cada board para mudar o status e lembrar qual PR é de qual task',
+  ];
+  const depois = [
+    'As tasks de todos os boards chegam numa lista só, na ordem da sprint',
+    'Um toque e o Muxor monta o contexto e abre a sessão no projeto certo',
+    'Várias sessões andando ao mesmo tempo, cada uma no seu projeto',
+    'Pergunta ou conclusão chegam a você na hora, com o contexto da task',
+    'Status e PR resolvidos ali mesmo, do computador ou do celular',
   ];
   return (
     <section className="site-container mt-20 md:mt-28">
       <Revelar>
-        <h2 className="text-heading text-balance">O seu tempo vale mais do que vigiar um terminal.</h2>
-        <p className="text-lede mt-5 max-w-2xl text-suave">
-          O Claude Code já escreve o código. O que trava o seu dia é ficar na frente da tela abrindo task, colando contexto e
-          esperando ele terminar. O Muxor tira você dessa fila.
+        <h2 className="text-heading text-balance">O Claude Code já escreve o código. O trabalho em volta continua com você.</h2>
+        <p className="text-lede mt-5 max-w-3xl text-suave">
+          Cada task exige o mesmo ritual: achar no board, copiar, colar no terminal certo e ficar de olho. Multiplique por três
+          ferramentas e cinco sessões e o seu dia vira troca de contexto. O Muxor junta esse ritual num lugar só.
         </p>
+      </Revelar>
+      <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <Revelar>
+          <div className="h-full rounded-xl border border-borda bg-superficie/60 p-6 md:p-7">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-suave">Sem o Muxor</p>
+            <ul className="mt-5 space-y-3.5 text-[15px] text-suave">
+              {antes.map((t) => (
+                <li key={t} className="flex gap-3">
+                  <X className="mt-0.5 h-4 w-4 shrink-0 text-suave/70" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Revelar>
+        <Revelar atraso={120}>
+          <div className="h-full rounded-xl border border-dourado/40 bg-superficie p-6 md:p-7">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-dourado">Com o Muxor</p>
+            <ul className="mt-5 space-y-3.5 text-[15px] text-texto/90">
+              {depois.map((t) => (
+                <li key={t} className="flex gap-3">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-ok" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Revelar>
+      </div>
+    </section>
+  );
+}
+
+// O que muda no dia, depois de ver como funciona.
+function Ganhos() {
+  const itens = [
+    { icone: Layers, titulo: 'Menos carga na cabeça', texto: 'Uma lista, uma conversa, um lugar para olhar. Você deixa de guardar na memória o que está em qual board e em qual terminal.' },
+    { icone: Eye, titulo: 'Mais entregas, mesmo controle', texto: 'Várias tasks andando em paralelo, cada uma na sua sessão. Você vê cada mudança e nada vira concluído ou PR sem o seu sim.' },
+    { icone: MapPin, titulo: 'Longe da cadeira', texto: 'Escolher, responder e aprovar cabe no celular. O computador faz o trabalho pesado enquanto você está no café, na reunião ou no sofá.' },
+  ];
+  return (
+    <section className="site-container mt-20 md:mt-32">
+      <Revelar>
+        <h2 className="text-heading text-balance">Você para de operar ferramentas e passa a coordenar o trabalho.</h2>
       </Revelar>
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {itens.map((x, i) => (
@@ -304,36 +366,6 @@ function Ganhos() {
               <x.icone className="h-6 w-6 text-dourado" />
               <h3 className="mt-4 text-lg font-medium tracking-[-0.01em]">{x.titulo}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-suave">{x.texto}</p>
-            </div>
-          </Revelar>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Passos() {
-  const passos = [
-    { icone: IconeTelegram, titulo: 'Escolha pelo celular', texto: 'A lista das suas tasks chega num bot só seu. Escolha as do dia e mande o contexto que faltar: texto, foto ou arquivo.' },
-    { icone: Terminal, titulo: 'O Claude trabalha', texto: 'Cada task vira uma sessão do Claude Code no projeto certo, seguindo as suas regras de trabalho.' },
-    { icone: FolderGit2, titulo: 'Você revisa e entrega', texto: 'Ele avisa quando termina. Você confere, pede ajuste ou abre o PR, de onde estiver.' },
-  ];
-  return (
-    <section className="site-container mt-20 md:mt-32">
-      <Revelar>
-        <h2 className="text-heading text-balance">Três passos. Um estagiário.</h2>
-      </Revelar>
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {passos.map((p, i) => (
-          <Revelar key={p.titulo} atraso={i * 120}>
-            <div className="h-full rounded-xl border border-borda bg-superficie p-6">
-              <div className="flex items-center gap-3 font-mono text-[12px] text-dourado">
-                <span>0{i + 1}</span>
-                <span className="h-px flex-1 bg-borda" />
-              </div>
-              <p.icone className="mt-5 h-6 w-6 text-texto" />
-              <h3 className="mt-4 text-lg font-medium tracking-[-0.01em]">{p.titulo}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-suave">{p.texto}</p>
             </div>
           </Revelar>
         ))}
@@ -401,7 +433,8 @@ function Seguranca() {
 }
 
 const PERGUNTAS = [
-  ['O que é o Muxor?', 'Um estagiário para o seu Claude Code: pega as tasks do seu board, coloca o Claude para trabalhar nelas e mantém você no controle pelo celular. Você decide e revisa; ele cuida do resto.'],
+  ['O que é o Muxor?', 'Uma central de trabalho para quem usa o Claude Code: junta as tasks das suas ferramentas de gestão numa lista só, despacha cada uma para uma sessão do Claude no projeto certo e mostra tudo andando na mesma conversa, no computador ou no celular. Você decide e revisa; ele cuida do resto.'],
+  ['Eu já listo minhas tasks pelo MCP do Jira dentro do Claude. Por que o Muxor?', 'O MCP resolve uma task dentro de uma sessão. O Muxor cuida do ciclo inteiro de várias: junta tasks de ferramentas diferentes, abre uma sessão para cada uma no projeto certo, acompanha todas ao mesmo tempo, avisa quando alguma precisa de você e fecha com o status e o PR. Sem você ficar na frente do computador.'],
   ['Preciso do Orca?', 'Sim. O Orca é quem roda as sessões do Claude Code e deixa você acompanhar pelo celular. Ele é gratuito.'],
   ['Quais ferramentas de gestão funcionam?', 'Jira (Cloud), Funifier PM e Bnexo. Você escolhe na instalação e pode mudar depois. Sem nenhuma, dá para usar só as atividades avulsas (/nova).'],
   ['Funciona com mais de uma conta do GitHub?', 'Sim. Cada espaço é uma pasta ligada a uma conta: o trabalho sai pela conta do trabalho, o pessoal pela pessoal.'],
@@ -504,9 +537,9 @@ export default function Pagina() {
       <main>
         <Hero />
         <FuncionaCom />
-        <Ganhos />
+        <AntesDepois />
         <Recursos />
-        <Passos />
+        <Ganhos />
         <Modos />
         <Seguranca />
         <Perguntas />

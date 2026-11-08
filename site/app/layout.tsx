@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://muxor.com.br'),
   title: 'Muxor · o estagiário que despacha suas tasks para o Claude Code',
   description:
-    'Escolha as tasks pelo celular e o Claude Code trabalha nelas. Acompanhe o código ao vivo, responda e abra o PR de onde estiver.',
+    'Suas tasks de várias ferramentas de gestão e várias sessões do Claude Code numa central só. Escolha, despache e acompanhe tudo de uma conversa, no computador ou no celular.',
   icons: { icon: '/favicon.ico', apple: '/icone-180.png' },
-  openGraph: { title: 'Muxor', description: 'Levante da cadeira. Suas tasks continuam andando.', images: ['/icone-512.png'] },
+  openGraph: { title: 'Muxor', description: 'Todas as suas tasks e sessões do Claude Code num lugar só.', images: ['/icone-512.png'] },
 };
 
 // Celular: largura do aparelho e zoom bloqueado (a navegação fica fixa, sem pinça nem toque duplo).
