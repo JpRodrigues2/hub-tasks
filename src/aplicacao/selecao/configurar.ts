@@ -323,7 +323,7 @@ export class ConfigurarSelecao {
         vistas.set(p, n);
       }
     }
-    // O nome e a pasta de cima, para saber onde está: "pecas-c4 · DAC".
+    // O nome e a pasta de cima, para saber onde está: "app-pedidos · EMPRESA".
     return [...vistas]
       .slice(0, 30)
       .map(([pasta, nome]) => ({ pasta, rotulo: `${nome} · ${basename(dirname(pasta))}` }));
