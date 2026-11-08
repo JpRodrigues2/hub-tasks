@@ -145,7 +145,7 @@ QR code e, no Mac, abrem no navegador.
 4. ✔️ **B20:** a listagem igual à do PM, em produção.
 5. ✔️ **Jira (B36).**
 6. ✔️ **Pasta `instalacao/`**, `CLAUDE.md`, `AGENTS.md` e a skill `instalar-hub` (O16).
-6b. ✔️ **Instalador (B45, O19/O20):** `install.sh`/`uninstall.sh` servidos pelo site, programas instalados pelo `init`, passo `front`, `muxor atualizar`. Testado aqui: o `install.sh` e o `uninstall.sh` numa pasta pessoal temporária (duas vezes, sem repetir nada), o download do Orca com a assinatura e a notarização conferidas, o passo 1 no terminal. Falta no teste do zero: Homebrew, Node, Claude Code e Tailscale instalados de verdade num Mac sem eles.
+6b. ✔️ **Instalador (B45, O19/O20):** `install.sh`/`uninstall.sh` servidos pelo site, programas instalados pelo `init`, passo `front`, `muxor update`. Testado aqui: o `install.sh` e o `uninstall.sh` numa pasta pessoal temporária (duas vezes, sem repetir nada), o download do Orca com a assinatura e a notarização conferidas, o passo 1 no terminal. Falta no teste do zero: Homebrew, Node, Claude Code e Tailscale instalados de verdade num Mac sem eles.
 7. ⬜ **Teste do zero** (seção 6), no Mac emprestado, só com o `instalacao/`.
 8. ⬜ **Modo servidor e `hub migrar servidor`**, depois do teste local.
 

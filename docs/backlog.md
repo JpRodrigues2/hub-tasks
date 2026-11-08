@@ -86,7 +86,7 @@ botões ✅/⬜ ficam embaixo com o título cortado, e fica difícil achar a tas
 | B42 ✔️ | **Comandos do Telegram enxutos** (O12, 06/11): na lista só `/tarefas`, `/nova`, `/continuar` (+ `/gamificacoes` e `/pm_login` com a Funifier); o resto num `/menu` com os comandos clicáveis e a descrição |
 | B43 ⬜ | **Vídeo de apresentação** (pedido de 07/11): um vídeo curto feito com IA, como o do Orca, na primeira página da documentação do site (`/docs`, hoje com o aviso "em breve") |
 | B44 ⬜ | **Front-end no celular** (O20, 07/11): o Muxor detecta o servidor de desenvolvimento aberto pela sessão e manda o link no Telegram. Tailscale (`tailscale serve`, privado) por padrão; ngrok para link público (`/compartilhar`). Liberar o host no Vite/Next (`allowedHosts`) via regras do espaço. Funciona também no modo servidor |
-| B45 ✔️ | **Instalador completo** (O19, 07/11): `install.sh` no `muxor.com.br/install` confere e instala os pré-requisitos (Homebrew, Node, gh, Claude Code, Orca pelo release oficial do GitHub, Tailscale; ngrok opcional), registra o que instalou e chama o `muxor init`. `uninstall.sh` e `muxor atualizar` juntos |
+| B45 ✔️ | **Instalador completo** (O19, 07/11): `install.sh` no `muxor.com.br/install` confere e instala os pré-requisitos (Homebrew, Node, gh, Claude Code, Orca pelo release oficial do GitHub, Tailscale; ngrok opcional), registra o que instalou e chama o `muxor init`. `uninstall.sh` e `muxor update` juntos |
 | B41 ⬜ | **Estudo do João:** primeiro os [fundamentos](estudo/fundamentos.md) (sistema operacional, rede, scripts e as perguntas de 06/11), depois arquitetura, broker e infra em nuvem ([estudo/](estudo/)) |
 
 **Ideias sem data** (sobras do roadmap da v1): mensagens de voz com transcrição local; comandos pré-aprovados por
